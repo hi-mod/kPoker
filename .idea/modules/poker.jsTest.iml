@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="FacetManager">
+    <facet type="kotlin-language" name="Kotlin">
+      <configuration version="5" platform="JavaScript " allPlatforms="JS []" useProjectSettings="false" isTestModule="true" externalProjectId="poker" isHmppProject="true">
+        <dependsOnModuleNames>poker:commonTest</dependsOnModuleNames>
+        <additionalVisibleModuleNames>
+          <friend>poker:jsMain</friend>
+          <friend>poker:commonMain</friend>
+        </additionalVisibleModuleNames>
+        <sourceSets>
+          <sourceSet>poker.commonTest</sourceSet>
+        </sourceSets>
+        <newMppModelJpsModuleKind>COMPILATION_AND_SOURCE_SET_HOLDER</newMppModelJpsModuleKind>
+        <externalSystemTestTasks>
+          <externalSystemTestTask>jsBrowserTest|:|js|js</externalSystemTestTask>
+        </externalSystemTestTasks>
+        <compilerSettings />
+        <compilerArguments>
+          <flagArguments>
+            <flagArg name="irOnly" arg="true" />
+            <flagArg name="irProduceKlibDir" arg="true" />
+          </flagArguments>
+          <stringArguments>
+            <stringArg name="irModuleName" arg="me.aaron:poker_test" />
+            <stringArg name="irPerModuleOutputName" arg="poker-test" />
+            <stringArg name="apiVersion" arg="1.9" />
+            <stringArg name="languageVersion" arg="1.9" />
+          </stringArguments>
+          <arrayArguments>
+            <arrayArg name="pluginClasspaths" />
+            <arrayArg name="pluginOptions" />
+          </arrayArguments>
+        </compilerArguments>
+      </configuration>
+    </facet>
+  </component>
+</module>

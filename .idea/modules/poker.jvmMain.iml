@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="FacetManager">
+    <facet type="kotlin-language" name="Kotlin">
+      <configuration version="5" platform="JVM 18" allPlatforms="JVM [18]" useProjectSettings="false" isTestModule="false" externalProjectId="poker" isHmppProject="true" pureKotlinSourceFolders="C:\Users\aaron\IdeaProjects\poker\src\jvmMain\kotlin;C:\Users\aaron\IdeaProjects\poker\src\jvmTest\kotlin;C:\Users\aaron\IdeaProjects\poker\src\jsMain\kotlin;C:\Users\aaron\IdeaProjects\poker\src\jsTest\kotlin">
+        <dependsOnModuleNames>poker:commonMain</dependsOnModuleNames>
+        <sourceSets>
+          <sourceSet>poker.commonMain</sourceSet>
+        </sourceSets>
+        <newMppModelJpsModuleKind>COMPILATION_AND_SOURCE_SET_HOLDER</newMppModelJpsModuleKind>
+        <compilerSettings />
+        <compilerArguments>
+          <stringArguments>
+            <stringArg name="jvmTarget" arg="18" />
+            <stringArg name="apiVersion" arg="1.9" />
+            <stringArg name="languageVersion" arg="1.9" />
+          </stringArguments>
+          <arrayArguments>
+            <arrayArg name="pluginClasspaths" />
+            <arrayArg name="pluginOptions" />
+          </arrayArguments>
+        </compilerArguments>
+      </configuration>
+    </facet>
+  </component>
+</module>
