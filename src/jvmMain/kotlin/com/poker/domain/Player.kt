@@ -1,7 +1,9 @@
 package com.poker.domain
 
 import com.poker.statemachine.GameEvent
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Player @JvmOverloads constructor(
     val id: String = "",
     val name: String = "",

@@ -2,11 +2,13 @@ package com.poker.statemachine
 
 import com.poker.domain.Game
 import com.poker.domain.Player
+import kotlinx.serialization.Serializable
 
 sealed class GameEvent {
     data class AddPlayer(val player: Player) : GameEvent()
     data class AddViewer(val userId: String) : GameEvent()
     data class RemovePlayer(val player: Player) : GameEvent()
+    @Serializable
     sealed class SelectPlayerAction(open val amount: Double = 0.0) : GameEvent() {
         data class Bet(override val amount: Double) : SelectPlayerAction(amount)
         data object Call : SelectPlayerAction()

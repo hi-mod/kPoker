@@ -3,10 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/poker.iml" filepath="$PROJECT_DIR$/.idea/modules/poker.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/poker.jsMain.iml" filepath="$PROJECT_DIR$/.idea/modules/poker.jsMain.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/poker.jsTest.iml" filepath="$PROJECT_DIR$/.idea/modules/poker.jsTest.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/poker.jvmMain.iml" filepath="$PROJECT_DIR$/.idea/modules/poker.jvmMain.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/poker.jvmTest.iml" filepath="$PROJECT_DIR$/.idea/modules/poker.jvmTest.iml" />
     </modules>
   </component>
 </project>

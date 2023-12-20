@@ -2,10 +2,11 @@ val ktorVersion: String by project
 val logbackVersion: String by project
 val ktTestVersion: String by project
 val mockkVersion: String by project
+val serializationVersion: String by project
 
 plugins {
-    kotlin("plugin.serialization") version "1.9.20"
-    kotlin("multiplatform") version "1.9.20"
+    kotlin("plugin.serialization") version "1.9.21"
+    kotlin("multiplatform") version "1.9.21"
     application
 }
 
@@ -36,7 +37,12 @@ kotlin {
         }
     }
     sourceSets {
-        val commonMain by getting
+        commonMain {
+            dependencies {
+                // Works as common dependency as well as the platform one
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
+            }
+        }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
@@ -57,7 +63,8 @@ kotlin {
                 implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
                 implementation("ch.qos.logback:logback-classic:$logbackVersion")
                 implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.7.2")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.4.1")
+
+                implementation("ch.qos.logback:logback-classic:1.2.5")
             }
         }
         val jvmTest by getting {

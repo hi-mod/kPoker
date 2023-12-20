@@ -7,7 +7,9 @@ import com.poker.domain.Game
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
+import kotlinx.serialization.ExperimentalSerializationApi
 
+@ExperimentalSerializationApi
 class GameStateMachine(
     var gameState: GameState = GameState.Idle,
 ) {
@@ -24,7 +26,7 @@ class GameStateMachine(
     private fun nextState(
         currentState: GameState,
         gameEvent: GameEvent,
-    ) = when (currentState) {
+    ): GameState = when (currentState) {
         GameState.Idle -> idleGameStateEvents(gameEvent, currentState)
         is GameState.GameStart -> gameStartGameStateEvents(gameEvent, currentState)
         is GameState.Street.PreFlop -> gameStreetGameStateEvents(gameEvent, currentState) { GameState.Street.PreFlop(it) }
@@ -39,7 +41,7 @@ class GameStateMachine(
     private fun gameHandCompleteStateEvents(
         gameEvent: GameEvent,
         currentState: GameState.HandComplete
-    ) = when (gameEvent) {
+    ): GameState = when (gameEvent) {
         is GameEvent.StartHand -> GameState.HandStart(currentState.game.startHand())
         else -> currentState
     }
@@ -47,7 +49,7 @@ class GameStateMachine(
     private fun gameShowdownGameStateEvents(
         gameEvent: GameEvent,
         currentState: GameState.Showdown,
-    ) = when (gameEvent) {
+    ): GameState = when (gameEvent) {
         is GameEvent.AwardPot -> GameState.Showdown(currentState.game.awardPot())
         is GameEvent.EndHand -> GameState.HandComplete(currentState.game.endHand())
         else -> currentState
@@ -73,7 +75,7 @@ class GameStateMachine(
     private fun gameStartGameStateEvents(
         gameEvent: GameEvent,
         currentState: GameState.GameStart
-    ) = when (gameEvent) {
+    ): GameState = when (gameEvent) {
         is GameEvent.AddPlayer -> {
             val game = currentState.game.addPlayer(gameEvent.player)
             if (game.players.size >= game.minPlayers) {
