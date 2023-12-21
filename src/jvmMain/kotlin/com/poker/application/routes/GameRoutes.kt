@@ -17,11 +17,13 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.ExperimentalSerializationApi
 
 fun Application.registerGameRoutes() = routing {
     gameRouting()
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 fun Route.gameRouting() = webSocket("/game") {
     for (frame in incoming) {
         if (frame is Frame.Text) {
