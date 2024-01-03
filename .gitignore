@@ -81,3 +81,5 @@ build
 
 /.vscode
 /myApp.log
+
+kotlin-js-store/yarn.lock

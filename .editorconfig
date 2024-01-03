@@ -103,3 +103,4 @@ ij_kotlin_space_before_while_parentheses = false
 
 ktlint.spaceBeforeParens.keywords = when, try, for, while, catch, finally
 ktlint.spaceBeforeParens.optional = true
+ktlint_standard_function-signature-wrapping = disabled

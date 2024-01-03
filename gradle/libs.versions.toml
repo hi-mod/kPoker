@@ -1,0 +1,52 @@
+[versions]
+kotlin = "1.9.21"
+ksp = "1.9.21-1.0.16"
+coroutines = "1.8.0-RC"
+kotlinxSerialization = "1.6.2"
+kotlinxDateTime = "0.5.0"
+composeMultiplatform = "1.6.0-alpha01"
+ktor = "2.3.7"
+kmpNativeCoroutines = "1.0.0-ALPHA-23"
+logbackClassic = "1.2.6"
+
+[libraries]
+kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDateTime" }
+kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
+
+androidx-compose-material3 =  { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material3-WindowSizeClass =  { group = "androidx.compose.material3", name="material3-window-size-class" }
+
+ktorServerCore = { group = "io.ktor", name = "ktor-server-core", version.ref = "ktor" }
+ktorServerWebsockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }
+ktorServerContentNegotiation = { group = "io.ktor", name = "ktor-server-content-negotiation", version.ref = "ktor" }
+ktorServerCallLogging = { group = "io.ktor", name = "ktor-server-call-logging", version.ref = "ktor" }
+ktorServerSwagger = { group = "io.ktor", name = "ktor-server-swagger", version.ref = "ktor" }
+ktorServerDefaultHeaders = { group = "io.ktor", name = "ktor-server-default-headers", version.ref = "ktor" }
+ktorServerCors = { group = "io.ktor", name = "ktor-server-cors", version.ref = "ktor" }
+ktorServerAuth = { group = "io.ktor", name = "ktor-server-auth", version.ref = "ktor" }
+ktorServerAuthJwt = { group = "io.ktor", name = "ktor-server-auth-jwt", version.ref = "ktor" }
+ktorServerNetty = { group = "io.ktor", name = "ktor-server-netty", version.ref = "ktor" }
+
+ktor-serialization = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-webSockets = { group = "io.ktor", name = "ktor-client-websockets", version.ref = "ktor" }
+ktor-client-json = { group = "io.ktor", name = "ktor-client-json", version.ref = "ktor" }
+ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
+ktor-client-serialization = { group = "io.ktor", name = "ktor-client-serialization", version.ref = "ktor" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
+ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
+ktor-client-js = { group = "io.ktor", name = "ktor-client-js", version.ref = "ktor" }
+
+logbackClassic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logbackClassic" }
+
+[plugins]
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kmpNativeCoroutines = { id = "com.rickclephas.kmp.nativecoroutines", version.ref = "kmpNativeCoroutines" }
+jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

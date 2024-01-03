@@ -1,0 +1,256 @@
+2024-01-02 23:39:07,323 INFO [main] ktor.application [ApplicationEngineEnvironmentReloading.kt:161] Autoreload is disabled because the development mode is off.
+2024-01-02 23:39:07,703 INFO [main] ktor.application [BaseApplicationEngine.kt:65] Application started in 0.419 seconds.
+2024-01-02 23:39:07,703 INFO [main] ktor.application [CallLogging.kt:45] Application started: io.ktor.server.application.Application@1b70203f
+2024-01-02 23:39:07,971 INFO [DefaultDispatcher-worker-1] ktor.application [BaseApplicationEngine.kt:77] Responding at http://127.0.0.1:8080
+2024-01-03 14:07:00,290 INFO [main] ktor.application [ApplicationEngineEnvironmentReloading.kt:161] Autoreload is disabled because the development mode is off.
+2024-01-03 14:07:00,687 INFO [main] ktor.application [BaseApplicationEngine.kt:65] Application started in 0.429 seconds.
+2024-01-03 14:07:00,687 INFO [main] ktor.application [CallLogging.kt:45] Application started: io.ktor.server.application.Application@6bab2585
+2024-01-03 14:07:00,930 INFO [DefaultDispatcher-worker-1] ktor.application [BaseApplicationEngine.kt:77] Responding at http://127.0.0.1:8080
+2024-01-03 14:07:12,338 TRACE [eventLoopGroupProxy-4-1] io.ktor.routing.Routing [Routing.kt:46] Trace for [game]
+/, segment:0 -> SUCCESS @ /
+  /ws, segment:0 -> FAILURE "Selector didn't match" @ /ws
+  /openapi, segment:0 -> FAILURE "Selector didn't match" @ /openapi
+  /, segment:0 -> SUCCESS @ /
+    /(method:GET), segment:0 -> FAILURE "Not all segments matched" @ /(method:GET)
+  /game, segment:1 -> SUCCESS @ /game
+    /game/(method:GET), segment:1 -> SUCCESS @ /game/(method:GET)
+      /game/(method:GET)/(header:Connection = Upgrade), segment:1 -> SUCCESS @ /game/(method:GET)/(header:Connection = Upgrade)
+        /game/(method:GET)/(header:Connection = Upgrade)/(header:Upgrade = websocket), segment:1 -> SUCCESS @ /game/(method:GET)/(header:Connection = Upgrade)/(header:Upgrade = websocket)
+Matched routes:
+  "" -> "game" -> "(method:GET)" -> "(header:Connection = Upgrade)" -> "(header:Upgrade = websocket)"
+Route resolve result:
+  SUCCESS @ /game/(method:GET)/(header:Connection = Upgrade)/(header:Upgrade = websocket)
+2024-01-03 14:07:12,344 TRACE [eventLoopGroupProxy-4-1] io.ktor.server.plugins.contentnegotiation.ContentNegotiation [ResponseConverter.kt:20] Skipping because body is already converted.
+2024-01-03 14:07:12,367 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:126] Starting default WebSocketSession(io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5) with negotiated extensions: 
+2024-01-03 14:07:12,370 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:56] Starting WebSocket pinger coroutine with period 15000 ms and timeout 15000 ms
+2024-01-03 14:07:12,373 TRACE [eventLoopGroupProxy-3-5] io.ktor.server.websocket.WebSockets [Routing.kt:251] Starting websocket session for /game
+2024-01-03 14:07:27,386 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:07:27,402 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:07:27,402 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:07:32,419 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:07:32,419 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:07:32,419 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:07:42,408 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:07:42,412 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:07:42,412 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:07:52,434 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:07:52,435 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:07:52,435 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:07:57,413 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:07:57,415 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:07:57,415 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:08:12,428 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:08:12,430 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:08:12,431 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:08:12,445 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:08:12,446 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:08:12,446 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:08:27,440 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:08:27,442 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:08:27,443 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:08:32,449 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:08:32,449 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:08:32,449 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:08:42,453 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:08:42,454 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:08:42,455 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:08:52,457 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:08:52,457 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:08:52,457 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:08:57,468 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:08:57,471 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:08:57,472 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:09:12,471 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:09:12,472 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:09:12,472 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:09:12,484 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:09:12,486 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:09:12,486 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:09:27,494 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:09:27,496 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:09:27,496 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:09:32,477 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:09:32,477 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:09:32,479 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:09:42,506 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:09:42,508 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:09:42,508 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:09:52,496 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:09:52,497 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:09:52,497 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:09:57,519 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:09:57,521 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:09:57,521 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:10:12,513 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:10:12,513 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:10:12,514 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:10:12,527 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:10:12,529 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:10:12,529 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:10:27,533 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:10:27,535 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:10:27,536 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:10:32,531 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:10:32,531 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:10:32,531 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:10:42,545 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:10:42,547 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:10:42,547 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:10:52,537 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:10:52,537 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:10:52,537 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:10:57,550 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:10:57,552 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:10:57,553 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:11:12,545 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:11:12,545 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:11:12,545 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:11:12,559 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:11:12,560 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:11:12,561 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:11:27,568 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:11:27,570 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:11:27,570 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:11:32,548 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:11:32,548 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:11:32,548 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:11:42,571 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:11:42,573 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:11:42,573 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:11:52,560 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:11:52,560 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:11:52,561 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:11:57,586 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:11:57,588 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:11:57,588 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:12:12,564 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:12:12,564 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:12:12,565 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:12:12,594 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:12:12,596 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:12:12,596 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:12:27,604 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:12:27,606 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:12:27,607 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:12:32,581 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:12:32,581 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:12:32,581 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:12:42,616 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:12:42,618 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@7cbb8ad2) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:12:42,619 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:12:49,645 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame CLOSE (fin=true, buffer len = 2) from session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5
+2024-01-03 14:12:49,646 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:273] Sending Close Sequence for session io.ktor.websocket.DefaultWebSocketSessionImpl@5e77f5b5 with reason CloseReason(reason=NORMAL, message=) and exception null
+2024-01-03 14:12:49,689 INFO [eventLoopGroupProxy-4-1] ktor.application [CallLogging.kt:45] [31m101 Switching Protocols[m: [36mGET[m - /game in 337360ms
+2024-01-03 14:13:28,168 TRACE [eventLoopGroupProxy-4-2] io.ktor.routing.Routing [Routing.kt:46] Trace for [game]
+/, segment:0 -> SUCCESS @ /
+  /ws, segment:0 -> FAILURE "Selector didn't match" @ /ws
+  /openapi, segment:0 -> FAILURE "Selector didn't match" @ /openapi
+  /, segment:0 -> SUCCESS @ /
+    /(method:GET), segment:0 -> FAILURE "Not all segments matched" @ /(method:GET)
+  /game, segment:1 -> SUCCESS @ /game
+    /game/(method:GET), segment:1 -> SUCCESS @ /game/(method:GET)
+      /game/(method:GET)/(header:Connection = Upgrade), segment:1 -> SUCCESS @ /game/(method:GET)/(header:Connection = Upgrade)
+        /game/(method:GET)/(header:Connection = Upgrade)/(header:Upgrade = websocket), segment:1 -> SUCCESS @ /game/(method:GET)/(header:Connection = Upgrade)/(header:Upgrade = websocket)
+Matched routes:
+  "" -> "game" -> "(method:GET)" -> "(header:Connection = Upgrade)" -> "(header:Upgrade = websocket)"
+Route resolve result:
+  SUCCESS @ /game/(method:GET)/(header:Connection = Upgrade)/(header:Upgrade = websocket)
+2024-01-03 14:13:28,169 TRACE [eventLoopGroupProxy-4-2] io.ktor.server.plugins.contentnegotiation.ContentNegotiation [ResponseConverter.kt:20] Skipping because body is already converted.
+2024-01-03 14:13:28,170 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:126] Starting default WebSocketSession(io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35) with negotiated extensions: 
+2024-01-03 14:13:28,170 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:56] Starting WebSocket pinger coroutine with period 15000 ms and timeout 15000 ms
+2024-01-03 14:13:28,170 TRACE [eventLoopGroupProxy-3-4] io.ktor.server.websocket.WebSockets [Routing.kt:251] Starting websocket session for /game
+2024-01-03 14:13:28,213 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame TEXT (fin=true, buffer len = 9)
+2024-01-03 14:13:28,217 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame TEXT (fin=true, buffer len = 12) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:13:28,294 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame TEXT (fin=true, buffer len = 2126) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:13:28,295 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame TEXT (fin=true, buffer len = 2258) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:13:28,296 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame TEXT (fin=true, buffer len = 2391) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:13:28,298 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame TEXT (fin=true, buffer len = 2389) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:13:28,299 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame TEXT (fin=true, buffer len = 2389) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:13:28,301 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame TEXT (fin=true, buffer len = 2348) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:13:43,174 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:13:43,177 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:13:43,177 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:13:48,223 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:13:48,224 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:13:48,224 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:13:58,192 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:13:58,194 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:13:58,194 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:14:08,237 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:14:08,237 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:14:08,238 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:14:13,203 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:14:13,205 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:14:13,205 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:14:28,207 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:14:28,209 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:14:28,209 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:14:28,255 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:14:28,255 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:14:28,256 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:14:43,212 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:14:43,214 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:14:43,214 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:14:48,266 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:14:48,267 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:14:48,267 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:14:58,227 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:14:58,229 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:14:58,229 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:15:08,270 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:15:08,270 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:15:08,270 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:15:13,235 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:15:13,237 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:15:13,237 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:15:28,245 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:15:28,248 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:15:28,248 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:15:28,277 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:15:28,277 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:15:28,277 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:15:43,250 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:15:43,252 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:15:43,252 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:15:48,281 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:15:48,281 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:15:48,281 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:15:58,263 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:15:58,265 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:15:58,265 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:16:08,296 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:16:08,297 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:16:08,297 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:16:13,270 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:16:13,272 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:16:13,272 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:16:28,276 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:16:28,278 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:16:28,278 TRACE [eventLoopGroupProxy-3-4] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:16:28,308 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:16:28,308 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:16:28,308 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:16:43,286 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:16:43,288 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:16:43,288 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:16:48,313 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:16:48,313 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:16:48,313 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:16:58,293 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:16:58,295 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:16:58,295 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:17:08,321 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:17:08,321 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:17:08,321 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:17:13,305 TRACE [eventLoopGroupProxy-3-5] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:17:13,307 TRACE [eventLoopGroupProxy-3-9] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:17:13,307 TRACE [eventLoopGroupProxy-3-1] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:17:28,322 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:74] WebSocket Pinger: sending ping frame
+2024-01-03 14:17:28,323 TRACE [eventLoopGroupProxy-3-7] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:17:28,323 TRACE [eventLoopGroupProxy-3-8] io.ktor.websocket.WebSocket [PingPong.kt:81] WebSocket Pinger: received valid pong frame Frame PONG (fin=true, buffer len = 76)
+2024-01-03 14:17:28,338 TRACE [eventLoopGroupProxy-3-2] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame PING (fin=true, buffer len = 76)
+2024-01-03 14:17:28,338 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [PingPong.kt:31] Received ping message, sending pong message
+2024-01-03 14:17:28,338 TRACE [eventLoopGroupProxy-3-3] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame PONG (fin=true, buffer len = 76) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:17:37,940 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:168] WebSocketSession(StandaloneCoroutine{Active}@30a65a3) receiving frame Frame CLOSE (fin=true, buffer len = 15)
+2024-01-03 14:17:37,940 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:253] Sending Frame CLOSE (fin=true, buffer len = 15) from session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35
+2024-01-03 14:17:37,942 TRACE [eventLoopGroupProxy-3-6] io.ktor.websocket.WebSocket [DefaultWebSocketSession.kt:273] Sending Close Sequence for session io.ktor.websocket.DefaultWebSocketSessionImpl@727c6b35 with reason CloseReason(reason=INTERNAL_ERROR, message=Client failed) and exception null
