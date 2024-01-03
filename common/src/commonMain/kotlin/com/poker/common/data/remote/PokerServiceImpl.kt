@@ -1,4 +1,4 @@
-package com.poker.common.remote
+package com.poker.common.data.remote
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocket

@@ -1,7 +1,5 @@
-package com.poker.server.statemachine
+package com.poker.common.domain
 
-import com.poker.server.domain.Game
-import com.poker.server.domain.Player
 import kotlinx.serialization.Serializable
 
 sealed class GameEvent {

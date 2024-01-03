@@ -1,9 +1,10 @@
 package com.poker.server.application.routes
 
-import com.poker.server.domain.Game
-import com.poker.server.domain.Player
-import com.poker.server.statemachine.GameEvent
-import com.poker.server.statemachine.GameState
+import com.poker.common.data.mappers.toGameDto
+import com.poker.common.domain.Game
+import com.poker.common.domain.GameEvent
+import com.poker.common.domain.GameState
+import com.poker.common.domain.Player
 import com.poker.server.statemachine.GameStateMachine
 import io.ktor.server.application.Application
 import io.ktor.server.routing.Route
@@ -37,7 +38,7 @@ fun Route.gameRouting() = webSocket("/game") {
                         gameStateMachine.stateMachine(gameEvents)
                             .filter { it !is GameState.Idle }
                             .collect { gameState ->
-                                sendSerialized(gameState)
+                                sendSerialized(gameState.toGameDto())
                             }
                     }
                     launch {

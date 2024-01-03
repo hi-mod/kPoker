@@ -1,17 +1,8 @@
-package com.poker.server.domain
+package com.poker.common.domain
 
-import com.poker.server.statemachine.GameEvent
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import java.time.Instant
 import java.util.Date
 
-@Serializable
 data class Game(
     val name: String = "",
     val description: String = "",
@@ -21,7 +12,6 @@ data class Game(
     val level: Level = Level(),
     val id: String = "",
     val deck: Deck = Deck(),
-    @Serializable(with = DateSerializer::class)
     val started: Date = Date.from(Instant.now()),
     val buttonPosition: Int = 0,
     val players: List<Player> = emptyList(),
@@ -128,16 +118,4 @@ data class Game(
             )
         },
     )
-}
-
-object DateSerializer : KSerializer<Date> {
-    override fun deserialize(decoder: Decoder): Date {
-        return Date.from(Instant.parse(decoder.decodeString()))
-    }
-
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Date", PrimitiveKind.STRING)
-
-    override fun serialize(encoder: Encoder, value: Date) {
-        encoder.encodeString(value.toInstant().toString())
-    }
 }

@@ -1,6 +1,6 @@
 package com.poker.common.di
 
-import com.poker.common.remote.PokerService
+import com.poker.common.data.remote.PokerService
 
 interface CommonModule {
     val pokerService: PokerService

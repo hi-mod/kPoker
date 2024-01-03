@@ -26,6 +26,8 @@ dependencies {
 
     implementation(libs.logbackClassic)
 
+    implementation(project(":common"))
+
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 

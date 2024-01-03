@@ -1,4 +1,4 @@
-package com.poker.common.remote
+package com.poker.common.data.remote
 
 object HttpRoutes {
     const val BASE_URL = "http://127.0.0.1:8080"

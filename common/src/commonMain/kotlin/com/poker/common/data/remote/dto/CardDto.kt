@@ -1,4 +1,4 @@
-package com.poker.common.remote.dto
+package com.poker.common.data.remote.dto
 
 import kotlinx.serialization.Serializable
 

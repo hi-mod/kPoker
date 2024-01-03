@@ -1,9 +1,9 @@
-package com.poker.server.domain
+package com.poker.common.data.remote.dto
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class CardRank(val value: Int, val shortName: String, val pluralName: String, val cardName: Char) {
+enum class CardRankDto(val value: Int, val shortName: String, val pluralName: String, val cardName: Char) {
     Two(2, "Deuce", "Deuces", '2'),
     Three(3, "Three", "Threes", '3'),
     Four(4, "Four", "Fours", '4'),

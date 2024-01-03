@@ -1,8 +1,5 @@
-package com.poker.server.domain
+package com.poker.common.domain
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 data class Deck(
     val cards: MutableList<Card> = CardSuit.entries
         .flatMap { s ->

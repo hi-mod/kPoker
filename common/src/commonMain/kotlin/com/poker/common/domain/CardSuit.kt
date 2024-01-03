@@ -1,8 +1,5 @@
-package com.poker.server.domain
+package com.poker.common.domain
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 enum class CardSuit(val value: Int, private val shortName: String) {
     Clubs(0, "C"),
     Diamonds(1, "D"),

@@ -1,8 +1,5 @@
-package com.poker.server.domain
+package com.poker.common.domain
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 data class Player @JvmOverloads constructor(
     val id: String = "",
     val name: String = "",

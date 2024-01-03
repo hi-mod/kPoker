@@ -1,8 +1,5 @@
-package com.poker.server.domain
+package com.poker.common.domain
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 enum class HandKind(val rank: Int, val description: String) {
     RoyalFlush(0x9EDCBA, "Royal Flush"),
     StraightFlush(0x900000, "Straight Flush"),
