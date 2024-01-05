@@ -1,7 +1,5 @@
-import com.poker.domain.Card
-import com.poker.domain.CardRank
-import com.poker.domain.CardSuit
-import com.poker.domain.Deck
+package com.poker.common.domain
+
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.comparables.shouldNotBeEqualComparingTo
 import io.kotest.matchers.shouldBe

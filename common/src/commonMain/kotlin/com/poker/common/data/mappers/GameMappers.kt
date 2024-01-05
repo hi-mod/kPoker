@@ -20,9 +20,9 @@ import java.util.Date
 
 fun GameState.toGameDto() = when (this) {
     GameState.Idle -> idleGameStateGameDto()
-    is GameState.GameStart -> gameStartGameStateGameDto(game)
-    is GameState.HandStart -> TODO()
-    is GameState.Street.PreFlop -> TODO()
+    is GameState.GameStart -> gameStateToGameDto(this.javaClass.name, game)
+    is GameState.HandStart -> gameStateToGameDto(this.javaClass.name, game)
+    is GameState.Street.PreFlop -> gameStateToGameDto(this.javaClass.name, game)
     is GameState.Street.Flop -> TODO()
     is GameState.Street.Turn -> TODO()
     is GameState.Street.River -> TODO()
@@ -62,8 +62,8 @@ fun Card.toCardDto() = CardDto(
     suit = CardSuitDto.valueOf(suit.name)
 )
 
-private fun gameStartGameStateGameDto(game: Game) = GameDto(
-    gameState = "GameStart",
+private fun gameStateToGameDto(gameState: String, game: Game) = GameDto(
+    gameState = gameState,
     name = game.name,
     description = game.description,
     inProgress = game.inProgress,

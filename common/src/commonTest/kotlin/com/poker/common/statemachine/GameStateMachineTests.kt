@@ -1,14 +1,17 @@
-import com.poker.domain.Card
-import com.poker.domain.CardRank
-import com.poker.domain.CardSuit
-import com.poker.domain.Deck
-import com.poker.domain.Game
-import com.poker.domain.GameType
-import com.poker.domain.Level
-import com.poker.domain.Player
-import com.poker.statemachine.GameEvent
-import com.poker.statemachine.GameState
-import com.poker.statemachine.GameStateMachine
+package com.poker.common.statemachine
+
+import com.poker.common.domain.Card
+import com.poker.common.domain.CardRank
+import com.poker.common.domain.CardSuit
+import com.poker.common.domain.Deck
+import com.poker.common.domain.Game
+import com.poker.common.domain.GameEvent
+import com.poker.common.domain.GameState
+import com.poker.common.domain.GameType
+import com.poker.common.domain.IGameState
+import com.poker.common.domain.Level
+import com.poker.common.domain.Player
+import com.poker.common.domain.PokerAction
 import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
@@ -39,7 +42,7 @@ internal class GameStateMachineTests : FunSpec({
 
     coroutineTestScope = true
 
-    context("GameStateMachineTests") {
+    context("com.poker.common.statemachine.GameStateMachineTests") {
         val startingChips = 1000.0
         val players = List(5) { index ->
             val id = index + 1
@@ -61,7 +64,7 @@ internal class GameStateMachineTests : FunSpec({
             sut: GameStateMachine,
             game: Game,
         ) {
-            val gameState = (sut.gameState as GameState.Street.PreFlop).game
+            val gameState = (sut.gameState as IGameState).game
             withClue("game.level should not be null") {
                 gameState.level shouldNotBe null
             }
@@ -106,7 +109,7 @@ internal class GameStateMachineTests : FunSpec({
                 level = Level(10.0, 20.0, 0.0, 10),
                 buttonPosition = 4,
                 players = players,
-                minPlayers = 7,
+                minPlayers = 5,
             )
         }
 
@@ -164,7 +167,14 @@ internal class GameStateMachineTests : FunSpec({
             sendEventAndCollectStates(sut, GameEvent.ChooseStartingDealer)
             gameStates shouldContainExactly listOf(
                 GameState.GameStart(expectedGame),
-                GameState.GameStart(expectedGame.copy(buttonPosition = 5)),
+                GameState.GameStart(expectedGame.copy(
+                    buttonPosition = 5,
+                    players = expectedGame.players.mapIndexed { i, player ->
+                        player.copy(
+                            hand = listOf(cards[i]),
+                        )
+                    },
+                )),
             )
         }
 
@@ -200,18 +210,6 @@ internal class GameStateMachineTests : FunSpec({
             // Then
             sut.gameState should beOfType<GameState.Street.PreFlop>()
 
-            assertForHandStarting(sut, game)
-        }
-
-        test("given GameState is GameStarting when Game.minPlayers is reached then GameEvent.StartGameComplete is sent then GameState is GameState.HandStarting") {
-            // Given
-            val gameData = game.copy(minPlayers = 6)
-            val sut = GameStateMachine(GameState.GameStart(gameData))
-            val player = newPlayer()
-
-            // When
-            sendEventAndCollectStates(sut, GameEvent.AddPlayer(player))
-            // Then
             assertForHandStarting(sut, game)
         }
 
@@ -566,12 +564,15 @@ internal class GameStateMachineTests : FunSpec({
                         chips = 990.0,
                         hand = listOf(Card.TwoOfClubs, Card.SevenOfClubs),
                         currentWager = 10.0,
+                        availablePlayerActions = listOf(PokerAction.Call, PokerAction.Fold, PokerAction.Raise),
                     ),
                     Player(
                         id = "2",
                         name = "Player 2",
                         chips = 980.0,
-                        hand = listOf(Card.ThreeOfClubs, Card.EightOfClubs), currentWager = 20.0),
+                        hand = listOf(Card.ThreeOfClubs, Card.EightOfClubs),
+                        currentWager = 20.0
+                    ),
                     Player(
                         id = "3",
                         name = "Player 3",

@@ -1,4 +1,4 @@
-package com.poker.server.statemachine
+package com.poker.common.statemachine
 
 import com.poker.common.domain.Card
 import com.poker.common.domain.CardRank
@@ -39,17 +39,17 @@ class GameStateMachine(
         ) { GameState.Street.PreFlop(it) }
         is GameState.Street.Flop -> gameStreetGameStateEvents(
             gameEvent = gameEvent,
-            nextGameState = { GameState.Street.Flop(it) },
+            nextGameState = { GameState.Street.Turn(it) },
             currentState = currentState
         ) { GameState.Street.Flop(it) }
         is GameState.Street.Turn -> gameStreetGameStateEvents(
             gameEvent = gameEvent,
-            nextGameState = { GameState.Street.Flop(it) },
+            nextGameState = { GameState.Street.River(it) },
             currentState = currentState
         ) { GameState.Street.Turn(it) }
         is GameState.Street.River -> gameStreetGameStateEvents(
             gameEvent = gameEvent,
-            nextGameState = { GameState.Street.Flop(it) },
+            nextGameState = { GameState.Showdown(it) },
             currentState = currentState
         ) { GameState.Street.River(it) }
         is GameState.Showdown -> gameShowdownGameStateEvents(gameEvent, currentState)
@@ -76,7 +76,7 @@ class GameStateMachine(
 
     private fun gameStreetGameStateEvents(
         gameEvent: GameEvent,
-        nextGameState: (Game) -> GameState.Street,
+        nextGameState: (Game) -> GameState,
         currentState: GameState.Street,
         sameState: (Game) -> GameState,
     ) = when (gameEvent) {
@@ -125,13 +125,13 @@ class GameStateMachine(
     }
 
     private fun Game.startHand(): Game {
-        val game = copy(
+        deck.shuffle()
+        val gameAfterDealingCards = copy(
             activePlayer = null,
-            deck = Deck().also { it.shuffle() },
             handNumber = handNumber.inc(),
             players = players.map { player ->
                 player.copy(
-                    hand = mutableListOf(),
+                    hand = emptyList(),
                     currentWager = 0.0,
                     hasActed = false,
                     hasFolded = false,
@@ -140,21 +140,23 @@ class GameStateMachine(
         )
             .postBlindsAndAntes()
             .dealCards()
-            .copy(
-                players = players.mapIndexed { index, player ->
-                    player.copy(
-                        availablePlayerActions = if(index == 0) {
-                            listOf(PokerAction.Call, PokerAction.Fold, PokerAction.Raise)
-                        } else {
-                            emptyList()
-                        },
-                    )
-                }
-            )
-        return if(game.handNumber != 1L) {
-            game.moveButton()
+
+        val gameAfterSettingActions = gameAfterDealingCards.copy(
+            players = gameAfterDealingCards.players.mapIndexed { index, player ->
+                player.copy(
+                    availablePlayerActions = if(index == 0) {
+                        listOf(PokerAction.Call, PokerAction.Fold, PokerAction.Raise)
+                    } else {
+                        emptyList()
+                    },
+                )
+            }
+        )
+
+        return if(gameAfterSettingActions.handNumber != 1L) {
+            gameAfterSettingActions.moveButton()
         } else {
-            game
+            gameAfterSettingActions
         }
     }
 

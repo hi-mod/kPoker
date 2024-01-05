@@ -1,6 +1,8 @@
+@Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     kotlin("multiplatform")
     id("kotlinx-serialization")
+    alias(libs.plugins.kotest.multiplatform)
 }
 
 group = "com.poker.server"
@@ -11,7 +13,7 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(18)
 
     jvm()
 
@@ -31,7 +33,33 @@ kotlin {
             implementation(libs.logbackClassic)
         }
         commonTest.dependencies {
-            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.kotest.assertions.core)
+            implementation(libs.kotest.framework.engine)
+            implementation(libs.kotest.framework.datatest)
+            implementation(libs.kotest.property)
+            implementation(libs.mockk)
+            implementation(kotlin("test-common"))
+            implementation(kotlin("test-annotations-common"))
         }
+        jvmTest.dependencies {
+            implementation(libs.kotest.runner.junit5.jvm)
+        }
+    }
+}
+
+tasks.named<Test>("jvmTest") {
+    useJUnitPlatform()
+    filter {
+        isFailOnNoMatchingTests = false
+    }
+    testLogging {
+        showExceptions = true
+        showStandardStreams = true
+        events = setOf(
+            org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED,
+            org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
+        )
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }

@@ -1,7 +1,5 @@
-import com.poker.domain.Game
-import com.poker.domain.GameType
-import com.poker.domain.Level
-import com.poker.domain.Player
+package com.poker.common.domain
+
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
@@ -22,8 +20,7 @@ internal class GameTests : FunSpec({
                 buttonPosition = 4,
                 players = players,
                 minPlayers = 7,
-            )
-            game.dealCards()
+            ).dealCards()
 
             game.deck.cards.size shouldBe 42
             game.players.forEach { player -> player.hand.size shouldBe 2 }

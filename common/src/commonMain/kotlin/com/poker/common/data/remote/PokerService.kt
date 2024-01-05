@@ -10,6 +10,8 @@ import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.http.HttpHeaders
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
+import java.time.Duration
 
 interface PokerService {
     suspend fun startGame()
@@ -19,7 +21,13 @@ interface PokerService {
             client = HttpClient {
                 // Install the Auth feature and configure it to use bearer authentication.
                 install(WebSockets) {
-                    pingInterval = 20_000
+                    pingInterval = Duration.ofSeconds(15).toMillis()
+                    maxFrameSize = Long.MAX_VALUE
+                    contentConverter = KotlinxWebsocketSerializationConverter(
+                        Json {
+                            encodeDefaults = true
+                        }
+                    )
                 }
                 // Install the ContentNegotiation feature and configure it to use JSON.
                 install(ContentNegotiation) {

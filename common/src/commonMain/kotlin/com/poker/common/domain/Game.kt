@@ -68,10 +68,10 @@ data class Game(
 
     fun dealCards(): Game {
         val firstRoundPlayers = players.map { player ->
-            player.copy(hand = player.hand + deck.popCard())
+            player.copy(hand = (player.hand + deck.popCard()))
         }
         val secondRoundPlayers = firstRoundPlayers.map { player ->
-            player.copy(hand = player.hand + deck.popCard())
+            player.copy(hand = (player.hand + deck.popCard()))
         }
         return copy(players = secondRoundPlayers)
     }

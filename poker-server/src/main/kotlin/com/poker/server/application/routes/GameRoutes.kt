@@ -5,7 +5,7 @@ import com.poker.common.domain.Game
 import com.poker.common.domain.GameEvent
 import com.poker.common.domain.GameState
 import com.poker.common.domain.Player
-import com.poker.server.statemachine.GameStateMachine
+import com.poker.common.statemachine.GameStateMachine
 import io.ktor.server.application.Application
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.routing
@@ -34,7 +34,6 @@ fun Route.gameRouting() = webSocket("/game") {
                     val gameEvents = Channel<GameEvent>()
                     launch {
                         val gameStateMachine = GameStateMachine()
-                        outgoing.send(Frame.Text("Game started"))
                         gameStateMachine.stateMachine(gameEvents)
                             .filter { it !is GameState.Idle }
                             .collect { gameState ->
@@ -48,7 +47,7 @@ fun Route.gameRouting() = webSocket("/game") {
                         gameEvents.send(GameEvent.ChooseStartingDealer)
                         gameEvents.send(GameEvent.SetButton)
                         gameEvents.send(GameEvent.GameReady)
-                        // gameEvents.send(GameEvent.StartHand)
+                        gameEvents.send(GameEvent.StartHand)
                     }
                 }
                 "endGame" -> {

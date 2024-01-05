@@ -1,15 +1,12 @@
-import com.poker.domain.Card
-import com.poker.domain.CardRank
-import com.poker.domain.CardSuit
-import com.poker.domain.HandKind
-import com.poker.domain.Player
+package com.poker.common.domain
+
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
 internal class PlayerTests : FunSpec({
 
     fun createRoyalFlushHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Ace, CardSuit.Spades), Card(CardRank.King, CardSuit.Spades)))
+        val player = Player("", "", 0.0, mutableListOf(Card.AceOfSpades, Card.KingOfSpades))
 
         val board = listOf(
             Card(CardRank.Queen, CardSuit.Spades),
@@ -23,7 +20,7 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createStraightFlushHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Queen, CardSuit.Spades), Card(CardRank.King, CardSuit.Spades)))
+        val player = Player("", "", 0.0, mutableListOf(Card.QueenOfSpades, Card.KingOfSpades))
 
         val board = listOf(
             Card(CardRank.Seven, CardSuit.Spades),
@@ -36,7 +33,7 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createFlushHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Two, CardSuit.Spades), Card(CardRank.Three, CardSuit.Spades)))
+        val player = Player("", "", 0.0, mutableListOf(Card.TwoOfSpades, Card.ThreeOfSpades))
 
         val board = listOf(
             Card(CardRank.Seven, CardSuit.Spades),
@@ -49,11 +46,11 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createHandQuads(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Ace, CardSuit.Spades), Card(CardRank.Ace, CardSuit.Clubs)))
+        val player = Player("", "", 0.0, mutableListOf(Card.AceOfSpades, Card.AceOfClubs))
 
         val board = listOf(
             Card(CardRank.Ace, CardSuit.Diamonds),
-            Card(CardRank.Ace, CardSuit.Hearts),
+            Card.AceOfHearts,
             Card(CardRank.Six, CardSuit.Spades),
             Card(CardRank.Nine, CardSuit.Spades),
             Card(CardRank.Eight, CardSuit.Spades),
@@ -62,7 +59,7 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createFullHouseHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Ace, CardSuit.Spades), Card(CardRank.Ace, CardSuit.Clubs)))
+        val player = Player("", "", 0.0, mutableListOf(Card.AceOfSpades, Card.AceOfClubs))
 
         val board = listOf(
             Card(CardRank.Ace, CardSuit.Diamonds),
@@ -75,7 +72,7 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createStraightHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.King, CardSuit.Spades), Card(CardRank.Ace, CardSuit.Clubs)))
+        val player = Player("", "", 0.0, mutableListOf(Card.KingOfSpades, Card.AceOfClubs))
 
         val board = listOf(
             Card(CardRank.Queen, CardSuit.Hearts),
@@ -88,7 +85,7 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createThreeOfAKindHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Ace, CardSuit.Hearts), Card(CardRank.Ace, CardSuit.Clubs)))
+        val player = Player("", "", 0.0, mutableListOf(Card.AceOfHearts, Card.AceOfClubs))
 
         val board = listOf(
             Card(CardRank.Ace, CardSuit.Diamonds),
@@ -101,11 +98,11 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createTwoPairHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Two, CardSuit.Spades), Card(CardRank.Two, CardSuit.Clubs)))
+        val player = Player("", "", 0.0, mutableListOf(Card.TwoOfSpades, Card.TwoOfClubs))
 
         val board = listOf(
             Card(CardRank.Three, CardSuit.Diamonds),
-            Card(CardRank.Three, CardSuit.Spades),
+            Card.ThreeOfSpades,
             Card(CardRank.Nine, CardSuit.Spades),
             Card(CardRank.Eight, CardSuit.Diamonds),
             Card(CardRank.Ten, CardSuit.Spades),
@@ -114,7 +111,7 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createOnePairHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Ace, CardSuit.Hearts), Card(CardRank.Ace, CardSuit.Clubs)))
+        val player = Player("", "", 0.0, mutableListOf(Card.AceOfHearts, Card.AceOfClubs))
 
         val board = listOf(
             Card(CardRank.Two, CardSuit.Diamonds),
@@ -127,7 +124,7 @@ internal class PlayerTests : FunSpec({
     }
 
     fun createHighCardHand(): Pair<Player, List<Card>> {
-        val player = Player("", "", 0.0, mutableListOf(Card(CardRank.Three, CardSuit.Hearts), Card(CardRank.Ace, CardSuit.Clubs)))
+        val player = Player("", "", 0.0, mutableListOf(Card.ThreeOfHearts, Card.AceOfClubs))
 
         val board = listOf(
             Card(CardRank.Two, CardSuit.Diamonds),

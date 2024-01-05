@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/poker.iml" filepath="$PROJECT_DIR$/.idea/modules/poker.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/poker.common.commonMain.iml" filepath="$PROJECT_DIR$/.idea/modules/common/poker.common.commonMain.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/poker.common.commonTest.iml" filepath="$PROJECT_DIR$/.idea/modules/common/poker.common.commonTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/poker.common.jvmMain.iml" filepath="$PROJECT_DIR$/.idea/modules/common/poker.common.jvmMain.iml" />
     </modules>
   </component>

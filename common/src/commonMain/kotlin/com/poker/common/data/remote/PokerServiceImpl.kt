@@ -1,6 +1,8 @@
 package com.poker.common.data.remote
 
+import com.poker.common.data.remote.dto.GameDto
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.http.HttpMethod
 import io.ktor.websocket.Frame
@@ -13,8 +15,8 @@ class PokerServiceImpl(
         client.webSocket(method = HttpMethod.Get, host = "127.0.0.1", port = 8080, path = "/game") {
             this.send(Frame.Text("startGame"))
             while(true) {
-                val othersMessage = incoming.receive() as? Frame.Text
-                println(othersMessage?.readText())
+                val game = receiveDeserialized<GameDto>()
+                println(game)
             }
         }
     }

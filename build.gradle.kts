@@ -1,8 +1,10 @@
+@Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.kmpNativeCoroutines) apply false
+    alias(libs.plugins.kotest.multiplatform) apply false
 }
 
 allprojects {
