@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="compose-web-wasm-wasm-js-1.0-SNAPSHOT">
-    <output-path>$PROJECT_DIR$/compose-web-wasm/build/libs</output-path>
-    <root id="archive" name="compose-web-wasm-wasm-js-1.0-SNAPSHOT.jar">
-      <element id="module-output" name="poker.compose-web-wasm.wasmJsMain" />
-    </root>
-  </artifact>
-</component>

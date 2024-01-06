@@ -17,6 +17,5 @@ pluginManagement {
 
 rootProject.name = "poker"
 include(":common")
-include(":poker-client-desktop")
 include(":poker-server")
-
+include(":poker-client-desktop")

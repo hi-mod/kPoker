@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="poker-js-1.0-SNAPSHOT">
-    <output-path>$PROJECT_DIR$/build/libs</output-path>
-    <root id="archive" name="poker-js-1.0-SNAPSHOT.jar">
-      <element id="module-output" name="poker.jsMain" />
-    </root>
-  </artifact>
-</component>
