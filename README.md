@@ -1,1 +1,1 @@
-This is me having fun building a poker enginge and client.
+This is me having fun building a poker engine and client.
