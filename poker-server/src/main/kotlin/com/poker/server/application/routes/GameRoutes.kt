@@ -20,41 +20,52 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 
-fun Application.registerGameRoutes() = routing {
-    gameRouting()
-}
+fun Application.registerGameRoutes() =
+    routing {
+        gameRouting()
+    }
 
 @OptIn(ExperimentalSerializationApi::class)
-fun Route.gameRouting() = webSocket("/game") {
-    for (frame in incoming) {
-        if (frame is Frame.Text) {
-            val text = frame.readText()
-            when (text) {
-                "startGame" -> {
-                    val gameEvents = Channel<GameEvent>()
-                    launch {
-                        val gameStateMachine = GameStateMachine()
-                        gameStateMachine.stateMachine(gameEvents)
-                            .filter { it !is GameState.Idle }
-                            .collect { gameState ->
-                                sendSerialized(gameState.toGameDto())
+fun Route.gameRouting() =
+    webSocket("/game") {
+        for (frame in incoming) {
+            if (frame is Frame.Text) {
+                val text = frame.readText()
+                when (text) {
+                    "startGame" -> {
+                        val gameEvents = Channel<GameEvent>()
+                        launch {
+                            val gameStateMachine = GameStateMachine()
+                            gameStateMachine.stateMachine(gameEvents)
+                                .filter { it !is GameState.Idle }
+                                .collect { gameState ->
+                                    sendSerialized(gameState.toGameDto())
+                                }
+                        }
+                        launch {
+                            gameEvents.send(GameEvent.StartGame(Game()))
+                            (1..10).forEach {
+                                gameEvents.send(
+                                    GameEvent.AddPlayer(
+                                        Player(
+                                            id = it.toString(),
+                                            name = "Player $it",
+                                            chips = 1000.0,
+                                        ),
+                                    ),
+                                )
                             }
+                            gameEvents.send(GameEvent.ChooseStartingDealer)
+                            gameEvents.send(GameEvent.SetButton)
+                            gameEvents.send(GameEvent.GameReady)
+                            gameEvents.send(GameEvent.StartHand)
+                        }
                     }
-                    launch {
-                        gameEvents.send(GameEvent.StartGame(Game()))
-                        gameEvents.send(GameEvent.AddPlayer(Player("1", "Player 1")))
-                        gameEvents.send(GameEvent.AddPlayer(Player("2", "Player 2")))
-                        gameEvents.send(GameEvent.ChooseStartingDealer)
-                        gameEvents.send(GameEvent.SetButton)
-                        gameEvents.send(GameEvent.GameReady)
-                        gameEvents.send(GameEvent.StartHand)
+                    "endGame" -> {
+                        outgoing.send(Frame.Text("Game ended"))
+                        close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
                     }
-                }
-                "endGame" -> {
-                    outgoing.send(Frame.Text("Game ended"))
-                    close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
                 }
             }
         }
     }
-}

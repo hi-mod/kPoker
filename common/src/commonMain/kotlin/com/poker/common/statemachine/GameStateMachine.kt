@@ -192,9 +192,13 @@ class GameStateMachine(
                 currentState.game.copy(
                     buttonPosition = cards.size,
                     players = currentState.game.players.mapIndexed { i, player ->
-                        player.copy(
-                            hand = listOf(cards[i]),
-                        )
+                        if(cards.size - 1 >= i) {
+                            player.copy(
+                                hand = listOf(cards[i]),
+                            )
+                        } else {
+                            player
+                        }
                     },
                 )
             )
