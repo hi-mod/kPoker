@@ -15,7 +15,6 @@ import com.poker.client.desktop.presentation.poker.ShowPlayers
 import com.poker.common.data.remote.dto.PlayerDto
 import com.poker.common.di.CommonModuleImpl
 import kotlinx.coroutines.launch
-import java.awt.MenuBar
 
 fun main() = application {
     val windowState = rememberWindowState()
@@ -55,6 +54,7 @@ fun main() = application {
                 )
             }
         }
+
         Column {
             ShowPlayers(players = players)
         }

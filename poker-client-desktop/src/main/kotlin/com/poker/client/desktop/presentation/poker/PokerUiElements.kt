@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +41,8 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
+private const val DealerButtonSize = 75
+
 @Composable
 fun ShowPlayers(
     modifier: Modifier = Modifier,
@@ -61,7 +62,7 @@ fun ShowPlayers(
             contentDescription = "Poker Table",
             contentScale = ContentScale.Fit,
         )
-        val tableWidth = maxWidth * 0.9f
+        val tableWidth = maxWidth * 0.85f
         val tableHeight = maxHeight * 0.65f
         val centerX = maxWidth * 0.5f
         val centerY = maxHeight * 0.5f
@@ -71,8 +72,6 @@ fun ShowPlayers(
         val playerCount = players.size
         val angleStep = 360f / playerCount
         var currentAngle = 0f
-
-        println("centerX: $centerX, centerY: $centerY, radiusX: $radiusX, radiusY: $radiusY")
 
         players.forEach { player ->
             val playerX = centerX + radiusX * cos(Math.toRadians(currentAngle.toDouble())).toFloat()
@@ -103,11 +102,15 @@ fun ShowPlayers(
             )
         
             if(player == players.last()) {
+                val dealerButtonFactorX = 0.6f // Adjust this value to move the dealer button
+                val dealerButtonFactorY = 0.8f // Adjust this value to move the dealer button
+                val dealerButtonX = centerX + radiusX * cos(Math.toRadians(currentAngle.toDouble())).toFloat() * dealerButtonFactorX
+                val dealerButtonY = centerY + radiusY * sin(Math.toRadians(currentAngle.toDouble())).toFloat() * dealerButtonFactorY
                 DealerButton(
                     modifier = Modifier
                         .offset(
-                            x = (playerX),
-                            y = (playerY),
+                            x = dealerButtonX,
+                            y = dealerButtonY,
                         ),
                 )
             }
@@ -118,7 +121,7 @@ fun ShowPlayers(
 }
 
 @Composable
-fun ShowPlayer(
+private fun ShowPlayer(
     modifier: Modifier = Modifier,
     player: PlayerDto,
 ) {
@@ -143,7 +146,6 @@ private fun BoxScope.PlayerDetails(
 ) {
     Box(
         modifier = modifier
-            .requiredWidth(121.dp)
             .align(Alignment.BottomCenter)
             .background(color = Color.White),
     ) {
@@ -159,7 +161,7 @@ private fun BoxScope.PlayerDetails(
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ShowHand(
+private fun ShowHand(
     modifier: Modifier = Modifier,
     hand: List<CardDto>,
 ) {
@@ -167,7 +169,7 @@ fun ShowHand(
     val windowSize = windowInfo.containerSize
 
     // Calculate card size based on window dimensions
-    val cardHeight = min(windowSize.width, windowSize.height) * 0.15f
+    val cardHeight = min(windowSize.width, windowSize.height) * 0.125f
 
     Box(
         modifier = modifier
@@ -200,9 +202,9 @@ private fun ShowCard(
 }
 
 @Composable
-fun DealerButton(
+private fun DealerButton(
     modifier: Modifier = Modifier,
-    size: Dp = 75.dp
+    size: Dp = DealerButtonSize.dp,
 ) {
     val gradient = Brush.radialGradient(
         colors = listOf(Color.LightGray, Color.White),
