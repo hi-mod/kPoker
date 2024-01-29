@@ -1,4 +1,4 @@
-package com.poker.client.desktop.presentation.poker
+package com.poker.client.desktop.presentation.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image

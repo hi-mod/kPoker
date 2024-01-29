@@ -10,6 +10,7 @@ version = "1.0-SNAPSHOT"
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.ui)
+    implementation(libs.kotlinx.coroutines.swing)
 
     implementation(project(":common"))
 }
