@@ -20,9 +20,11 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
@@ -35,13 +37,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.poker.client.desktop.presentation.util.Brown
+import com.poker.client.desktop.presentation.util.Purple
 import com.poker.common.data.remote.dto.CardDto
 import com.poker.common.data.remote.dto.PlayerDto
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-private const val DealerButtonSize = 75
+private const val DEALER_BUTTON_SIZE = 75
 
 @Composable
 fun ShowPlayers(
@@ -70,12 +74,12 @@ fun ShowPlayers(
         val radiusY = tableHeight * 0.5f
 
         val playerCount = players.size
-        val angleStep = 360f / playerCount
-        var currentAngle = 0f
+        val angleStep = 360.0 / playerCount
+        var currentAngle = 0.0
 
         players.forEach { player ->
-            val playerX = centerX + radiusX * cos(Math.toRadians(currentAngle.toDouble())).toFloat()
-            val playerY = centerY + radiusY * sin(Math.toRadians(currentAngle.toDouble())).toFloat()
+            val playerX = centerX + radiusX * cos(Math.toRadians(currentAngle)).toFloat()
+            val playerY = centerY + radiusY * sin(Math.toRadians(currentAngle)).toFloat()
 
             println("${player.name} x: $playerX, y: $playerY")
 
@@ -95,23 +99,48 @@ fun ShowPlayers(
                     layout(placeable.width, placeable.height) {
                         placeable.placeRelative(
                             x = -placeable.width / 2,
-                            y = -placeable.height / 2
+                            y = -placeable.height / 2,
                         )
                     }
                 }
             )
+            val screenSize = minOf(maxWidth, maxHeight)
+
+            if(player.currentWager > 0.0) {
+                val chipButtonFactorX = 0.4f
+                val chipButtonFactorY = 0.3f
+                val chipButtonX = centerX + radiusX * cos(Math.toRadians(currentAngle)).toFloat() * chipButtonFactorX
+                val chipButtonY = centerY + radiusY * sin(Math.toRadians(currentAngle)).toFloat() * chipButtonFactorY
+                WagerChips(
+                    wager = player.currentWager,
+                    chipOffsetX = chipButtonX,
+                    chipOffsetY = chipButtonY,
+                )
+/*
+                PokerChip(
+                    modifier = Modifier
+                        .offset(
+                            x = chipButtonX,
+                            y = chipButtonY,
+                        ),
+                    value = player.currentWager,
+                )
+*/
+            }
         
             if(player == players.last()) {
                 val dealerButtonFactorX = 0.6f // Adjust this value to move the dealer button
                 val dealerButtonFactorY = 0.8f // Adjust this value to move the dealer button
-                val dealerButtonX = centerX + radiusX * cos(Math.toRadians(currentAngle.toDouble())).toFloat() * dealerButtonFactorX
-                val dealerButtonY = centerY + radiusY * sin(Math.toRadians(currentAngle.toDouble())).toFloat() * dealerButtonFactorY
+                val dealerButtonX = centerX + radiusX * cos(Math.toRadians(currentAngle)).toFloat() * dealerButtonFactorX
+                val dealerButtonY = centerY + radiusY * sin(Math.toRadians(currentAngle)).toFloat() * dealerButtonFactorY
+                val size = screenSize / 10 // Adjust this value to change the size of the dealer button
                 DealerButton(
                     modifier = Modifier
                         .offset(
                             x = dealerButtonX,
                             y = dealerButtonY,
                         ),
+                    size = size,
                 )
             }
 
@@ -204,7 +233,7 @@ private fun ShowCard(
 @Composable
 private fun DealerButton(
     modifier: Modifier = Modifier,
-    size: Dp = DealerButtonSize.dp,
+    size: Dp = DEALER_BUTTON_SIZE.dp,
 ) {
     val gradient = Brush.radialGradient(
         colors = listOf(Color.LightGray, Color.White),
@@ -234,6 +263,92 @@ private fun DealerButton(
             style = TextStyle(
                 fontWeight = FontWeight.Bold,
                 shadow = Shadow(color = Color.White, blurRadius = 1f, offset = Offset(1f, 1f))
+            ),
+            fontSize = (size.value * 0.2f).sp,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+private fun WagerChips(
+    wager: Double,
+    chipOffsetX: Dp = 0.dp,
+    chipOffsetY: Dp = 0.dp,
+) {
+    val chipValues = listOf(5000.0, 1000.0, 500.0, 100.0, 25.0, 10.0, 5.0, 1.0)
+
+    chipValues.fold(wager to 0.dp) { (remainingWager, offset), chipValue ->
+        var newWager = remainingWager
+        var newOffset = offset
+
+        while (newWager >= chipValue) {
+            PokerChip(
+                modifier = Modifier.offset(
+                    x = chipOffsetX,
+                    y = chipOffsetY + newOffset,
+                ),
+                value = chipValue
+            )
+            newWager -= chipValue
+            newOffset += 10.dp // Adjust this value to change the stacking offset
+        }
+
+        newWager to newOffset
+    }
+}
+
+private val colors = mapOf(
+    1.0 to Color.Blue,
+    5.0 to Color.Red,
+    10.0 to Color.Cyan,
+    25.0 to Color.Green,
+    100.0 to Color.Black,
+    500.0 to Color.Purple,
+    1000.0 to Color.Yellow,
+    5000.0 to Color.Brown,
+)
+
+@Composable
+private fun PokerChip(
+    modifier: Modifier = Modifier,
+    value: Double = 0.0,
+) {
+    val gradient = Brush.radialGradient(
+        colors = listOf(colors[value] ?: Color.White, Color.DarkGray),
+        radius = 35f
+    )
+
+    Box(
+        modifier = modifier
+            .size(35.dp)
+            .padding(2.dp)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(brush = gradient)
+            val strokeWidth = size.minDimension / 10
+            val halfStrokeWidth = strokeWidth / 2
+            val bandColors = listOf(Color.White, Color.Black)
+            repeat(16) { index ->
+                drawArc(
+                    color = bandColors[index % bandColors.size],
+                    startAngle = index * 22.5f,
+                    sweepAngle = 22.5f,
+                    useCenter = false,
+                    topLeft = Offset(halfStrokeWidth, halfStrokeWidth),
+                    size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                    style = Stroke(strokeWidth)
+                )
+            }
+        }
+        Text(
+            modifier = Modifier.align(Alignment.Center),
+            text =  (if(value % 1 == 0.0) value.toInt() else value).toString(),
+            color = Color.White,
+            style = TextStyle(
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                shadow = Shadow(color = Color.Black, blurRadius = 1f, offset = Offset(1f, 1f))
             ),
             textAlign = TextAlign.Center,
         )

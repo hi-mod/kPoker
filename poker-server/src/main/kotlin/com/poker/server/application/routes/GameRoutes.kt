@@ -4,6 +4,7 @@ import com.poker.common.data.mappers.toGameDto
 import com.poker.common.domain.Game
 import com.poker.common.domain.GameEvent
 import com.poker.common.domain.GameState
+import com.poker.common.domain.Level
 import com.poker.common.domain.Player
 import com.poker.common.statemachine.GameStateMachine
 import io.ktor.server.application.Application
@@ -43,7 +44,14 @@ fun Route.gameRouting() =
                                 }
                         }
                         launch {
-                            gameEvents.send(GameEvent.StartGame(Game()))
+                            gameEvents.send(GameEvent.StartGame(
+                                game = Game(
+                                    level = Level(
+                                        smallBlind = 5.0,
+                                        bigBlind = 10.0,
+                                    ),
+                                )
+                            ))
                             (1..10).forEach {
                                 gameEvents.send(
                                     GameEvent.AddPlayer(
