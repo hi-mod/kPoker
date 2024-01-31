@@ -116,16 +116,6 @@ fun ShowPlayers(
                     chipOffsetX = chipButtonX,
                     chipOffsetY = chipButtonY,
                 )
-/*
-                PokerChip(
-                    modifier = Modifier
-                        .offset(
-                            x = chipButtonX,
-                            y = chipButtonY,
-                        ),
-                    value = player.currentWager,
-                )
-*/
             }
         
             if(player == players.last()) {
@@ -201,7 +191,7 @@ private fun ShowHand(
     val cardHeight = min(windowSize.width, windowSize.height) * 0.125f
 
     Box(
-        modifier = modifier
+        modifier = modifier,
     ) {
         hand.forEachIndexed { index, card ->
             ShowCard(
@@ -222,12 +212,12 @@ private fun ShowCard(
     modifier: Modifier = Modifier,
     card: CardDto,
 ) {
-     val cardDeck = painterResource("deck/${card.rank.cardName}${card.suit.shortName}.svg")
-     Image(
-         modifier = modifier,
-         painter = cardDeck,
-         contentDescription = card.toString(),
-     )
+    val cardDeck = painterResource("deck/${card.rank.cardName}${card.suit.shortName}.svg")
+    Image(
+        modifier = modifier,
+        painter = cardDeck,
+        contentDescription = card.toString(),
+    )
 }
 
 @Composable
@@ -237,7 +227,7 @@ private fun DealerButton(
 ) {
     val gradient = Brush.radialGradient(
         colors = listOf(Color.LightGray, Color.White),
-        radius = size.value / 2
+        radius = size.value / 2,
     )
 
     Box(
@@ -245,7 +235,7 @@ private fun DealerButton(
             .size(size)
             .background(Color.LightGray, CircleShape)
             .padding(2.dp)
-            .shadow(1.dp, CircleShape)
+            .shadow(1.dp, CircleShape),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(brush = gradient)
@@ -262,7 +252,11 @@ private fun DealerButton(
             color = Color.Black,
             style = TextStyle(
                 fontWeight = FontWeight.Bold,
-                shadow = Shadow(color = Color.White, blurRadius = 1f, offset = Offset(1f, 1f))
+                shadow = Shadow(
+                    color = Color.White,
+                    blurRadius = 1f,
+                    offset = Offset(1f, 1f),
+                ),
             ),
             fontSize = (size.value * 0.2f).sp,
             textAlign = TextAlign.Center,
@@ -276,7 +270,7 @@ private fun WagerChips(
     chipOffsetX: Dp = 0.dp,
     chipOffsetY: Dp = 0.dp,
 ) {
-    val chipValues = listOf(5000.0, 1000.0, 500.0, 100.0, 25.0, 10.0, 5.0, 1.0)
+    val chipValues = colors.keys
 
     chipValues.fold(wager to 0.dp) { (remainingWager, offset), chipValue ->
         var newWager = remainingWager
@@ -337,7 +331,7 @@ private fun PokerChip(
                     useCenter = false,
                     topLeft = Offset(halfStrokeWidth, halfStrokeWidth),
                     size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                    style = Stroke(strokeWidth)
+                    style = Stroke(strokeWidth),
                 )
             }
         }
@@ -348,7 +342,11 @@ private fun PokerChip(
             style = TextStyle(
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,
-                shadow = Shadow(color = Color.Black, blurRadius = 1f, offset = Offset(1f, 1f))
+                shadow = Shadow(
+                    color = Color.Black,
+                    blurRadius = 1f,
+                    offset = Offset(1f, 1f),
+                ),
             ),
             textAlign = TextAlign.Center,
         )
