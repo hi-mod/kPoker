@@ -90,19 +90,19 @@ fun ShowPlayers(
                         modifier = Modifier.offset(
                             x = playerX,
                             y = playerY,
-                        )
+                        ),
                     )
                 },
                 measurePolicy = { measurables, constraints ->
                     val placeable = measurables.first().measure(constraints)
-        
+
                     layout(placeable.width, placeable.height) {
                         placeable.placeRelative(
                             x = -placeable.width / 2,
                             y = -placeable.height / 2,
                         )
                     }
-                }
+                },
             )
             val screenSize = minOf(maxWidth, maxHeight)
 
@@ -117,7 +117,7 @@ fun ShowPlayers(
                     chipOffsetY = chipButtonY,
                 )
             }
-        
+
             if(player == players.last()) {
                 val dealerButtonFactorX = 0.6f // Adjust this value to move the dealer button
                 val dealerButtonFactorY = 0.8f // Adjust this value to move the dealer button
@@ -145,7 +145,7 @@ private fun ShowPlayer(
     player: PlayerDto,
 ) {
     Box(
-       modifier = modifier,
+        modifier = modifier,
     ) {
         player.hand?.let { hand ->
             ShowHand(
@@ -270,7 +270,7 @@ private fun WagerChips(
     chipOffsetX: Dp = 0.dp,
     chipOffsetY: Dp = 0.dp,
 ) {
-    val chipValues = colors.keys
+    val chipValues = colors.keys.sortedDescending()
 
     chipValues.fold(wager to 0.dp) { (remainingWager, offset), chipValue ->
         var newWager = remainingWager
@@ -282,7 +282,7 @@ private fun WagerChips(
                     x = chipOffsetX,
                     y = chipOffsetY + newOffset,
                 ),
-                value = chipValue
+                value = chipValue,
             )
             newWager -= chipValue
             newOffset += 10.dp // Adjust this value to change the stacking offset
@@ -310,13 +310,13 @@ private fun PokerChip(
 ) {
     val gradient = Brush.radialGradient(
         colors = listOf(colors[value] ?: Color.White, Color.DarkGray),
-        radius = 35f
+        radius = 35f,
     )
 
     Box(
         modifier = modifier
             .size(35.dp)
-            .padding(2.dp)
+            .padding(2.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(brush = gradient)
