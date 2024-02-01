@@ -8,8 +8,12 @@ import com.poker.common.domain.Level
 import com.poker.common.domain.Player
 import com.poker.common.statemachine.GameStateMachine
 import io.ktor.server.application.Application
+import io.ktor.server.auth.UserIdPrincipal
+import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.routing
+import io.ktor.server.sessions.get
+import io.ktor.server.sessions.sessions
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.CloseReason
@@ -27,12 +31,17 @@ fun Application.registerGameRoutes() =
     }
 
 @OptIn(ExperimentalSerializationApi::class)
-fun Route.gameRouting() =
+fun Route.gameRouting() = authenticate("auth-jwt") {
     webSocket("/game") {
-        for (frame in incoming) {
-            if (frame is Frame.Text) {
+        val principal = call.sessions.get<UserIdPrincipal>()
+        if(principal == null) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No principal"))
+            return@webSocket
+        }
+        for(frame in incoming) {
+            if(frame is Frame.Text) {
                 val text = frame.readText()
-                when (text) {
+                when(text) {
                     "startGame" -> {
                         val gameEvents = Channel<GameEvent>()
                         launch {
@@ -44,14 +53,16 @@ fun Route.gameRouting() =
                                 }
                         }
                         launch {
-                            gameEvents.send(GameEvent.StartGame(
-                                game = Game(
-                                    level = Level(
-                                        smallBlind = 5.0,
-                                        bigBlind = 10.0,
-                                    ),
+                            gameEvents.send(
+                                GameEvent.StartGame(
+                                    game = Game(
+                                        level = Level(
+                                            smallBlind = 5.0,
+                                            bigBlind = 10.0,
+                                        ),
+                                    )
                                 )
-                            ))
+                            )
                             (1..10).forEach {
                                 gameEvents.send(
                                     GameEvent.AddPlayer(
@@ -69,6 +80,7 @@ fun Route.gameRouting() =
                             gameEvents.send(GameEvent.StartHand)
                         }
                     }
+
                     "endGame" -> {
                         outgoing.send(Frame.Text("Game ended"))
                         close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
@@ -77,3 +89,4 @@ fun Route.gameRouting() =
             }
         }
     }
+}
