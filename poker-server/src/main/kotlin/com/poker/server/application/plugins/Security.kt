@@ -24,6 +24,22 @@ fun Application.configureSecurity() {
             }
         }
     }
+    /*intercept(Plugins) {
+        if (call.request.uri == "/game") {
+            val authHeader = call.request.header(HttpHeaders.Authorization)
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                call.respond(HttpStatusCode.Unauthorized)
+                finish()
+            } else {
+                val token = authHeader.removePrefix("Bearer ")
+                val principal = JwtConfig.verifier.verify(token).subject
+                if (principal == null) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    finish()
+                }
+            }
+        }
+    }*/
 }
 
 object JwtConfig {
@@ -35,6 +51,7 @@ object JwtConfig {
         .require(Algorithm.HMAC256(SECRET))
         .withIssuer(ISSUER)
         .withAudience(realm)
+        .acceptNotBefore(5)
         .build()
 
     fun makeToken(subject: String): String {
@@ -55,6 +72,7 @@ object JwtConfig {
             .withExpiresAt(exp)
             .withNotBefore(nbf)
             .withAudience(realm)
+            .withSubject(subject)
             .sign(algorithm)
     }
 }

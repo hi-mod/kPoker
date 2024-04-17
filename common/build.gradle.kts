@@ -27,6 +27,7 @@ kotlin {
             implementation(libs.ktor.client.json)
             implementation(libs.ktor.serialization)
             implementation(libs.ktor.client.logging)
+            implementation(libs.multiplatform.settings)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.client.java)

@@ -7,12 +7,16 @@ kotlinxDateTime = "0.5.0"
 composeMultiplatform = "1.6.0-alpha01"
 ktor = "2.3.7"
 kmpNativeCoroutines = "1.0.0-ALPHA-23"
-logbackClassic = "1.2.6"
+logbackClassic = "1.4.14"
 mockk = "1.13.8"
 kotest = "5.8.0"
 compose = "1.5.4"
+rushwolf = "1.1.1"
 
 [libraries]
+multiplatform-settings = { group = "com.russhwolf", name="multiplatform-settings", version.ref = "rushwolf" }
+multiplatform-settings-coroutines = { group = "com.russhwolf", name="multiplatform-settings-coroutines", version.ref = "rushwolf" }
+
 kotlinx-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "coroutines" }
@@ -34,9 +38,11 @@ ktorServerCors = { group = "io.ktor", name = "ktor-server-cors", version.ref = "
 ktorServerAuth = { group = "io.ktor", name = "ktor-server-auth", version.ref = "ktor" }
 ktorServerAuthJwt = { group = "io.ktor", name = "ktor-server-auth-jwt", version.ref = "ktor" }
 ktorServerNetty = { group = "io.ktor", name = "ktor-server-netty", version.ref = "ktor" }
+ktor-server-sessions = { group = "io.ktor", name = "ktor-server-sessions", version.ref = "ktor" }
 
 ktor-serialization = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
+ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktor" }
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-webSockets = { group = "io.ktor", name = "ktor-client-websockets", version.ref = "ktor" }
 ktor-client-json = { group = "io.ktor", name = "ktor-client-json", version.ref = "ktor" }
@@ -47,6 +53,7 @@ ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version
 ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
 ktor-client-java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
 ktor-client-js = { group = "io.ktor", name = "ktor-client-js", version.ref = "ktor" }
+ktor-client-auth = { group = "io.ktor", name = "ktor-client-auth", version.ref = "ktor" }
 
 logbackClassic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logbackClassic" }
 

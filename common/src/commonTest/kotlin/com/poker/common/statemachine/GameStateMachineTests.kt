@@ -30,12 +30,12 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
+import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
-import java.util.UUID
 
 @OptIn(ExperimentalStdlibApi::class, ExperimentalCoroutinesApi::class, ExperimentalSerializationApi::class)
 internal class GameStateMachineTests : FunSpec({
@@ -167,14 +167,16 @@ internal class GameStateMachineTests : FunSpec({
             sendEventAndCollectStates(sut, GameEvent.ChooseStartingDealer)
             gameStates shouldContainExactly listOf(
                 GameState.GameStart(expectedGame),
-                GameState.GameStart(expectedGame.copy(
-                    buttonPosition = 5,
-                    players = expectedGame.players.mapIndexed { i, player ->
-                        player.copy(
-                            hand = listOf(cards[i]),
-                        )
-                    },
-                )),
+                GameState.GameStart(
+                    expectedGame.copy(
+                        buttonPosition = 5,
+                        players = expectedGame.players.mapIndexed { i, player ->
+                            player.copy(
+                                hand = listOf(cards[i]),
+                            )
+                        },
+                    ),
+                ),
             )
         }
 
@@ -194,7 +196,7 @@ internal class GameStateMachineTests : FunSpec({
                         players[1],
                         players[2],
                         players[3],
-                    )
+                    ),
                 )
                 sut.gameState shouldBe GameState.GameStart(expectGameData)
             }
@@ -235,9 +237,9 @@ internal class GameStateMachineTests : FunSpec({
 
         test("given GameState transition list when GameEvent.SelectPlayerAction check is sent then GameState is GameState.PreFlop, pot does NOT increase and next player becomes active") {
             val expectedPlayers = game.players.subList(1, 5) +
-                    game.players.first().copy(
-                        hasActed = true,
-                    )
+                game.players.first().copy(
+                    hasActed = true,
+                )
             val gameStateList = listOf(
                 GameState.Street.PreFlop(game) to GameState.Street.PreFlop(game.copy(players = expectedPlayers)),
                 GameState.Street.Flop(game) to GameState.Street.Flop(game.copy(players = expectedPlayers)),
@@ -301,7 +303,7 @@ internal class GameStateMachineTests : FunSpec({
                         currentWager = 10.0,
                         hasActed = true,
                     ),
-                pot = game.pot + 20.0
+                pot = game.pot + 20.0,
             )
             val gameStateList = listOf(
                 GameState.Street.PreFlop(startingGame) to GameState.Street.PreFlop(expectedGameData),
@@ -365,7 +367,7 @@ internal class GameStateMachineTests : FunSpec({
                         currentWager = 20.0,
                         hasActed = true,
                     ),
-                pot = game.pot + 30.0
+                pot = game.pot + 30.0,
             )
             val gameStateList = listOf(
                 GameState.Street.PreFlop(gameStart) to GameState.Street.PreFlop(expectedGameData),
@@ -375,7 +377,7 @@ internal class GameStateMachineTests : FunSpec({
             ).exhaustive()
             checkAll(gameStateList) { states ->
                 val sut = GameStateMachine(
-                    states.first
+                    states.first,
                 )
 
                 // When
@@ -389,7 +391,7 @@ internal class GameStateMachineTests : FunSpec({
         test("given GameState transition list when all players have acted GameState transitions to Flop and 3 cards are dealt") {
             // Given
             val givenPlayers = listOf(
-                players.first()
+                players.first(),
             ) + players.subList(1, players.size).map { player ->
                 player.copy(
                     chips = 990.0,
@@ -429,7 +431,7 @@ internal class GameStateMachineTests : FunSpec({
         test("GameState transitions from River to ShowDown when all players have acted") {
             // Given
             val givenPlayers = listOf(
-                players.first()
+                players.first(),
             ) + players.subList(1, players.size).map { player ->
                 player.copy(
                     chips = 990.0,
@@ -453,7 +455,7 @@ internal class GameStateMachineTests : FunSpec({
             val sut = GameStateMachine(GameState.Street.River(gameStart))
 
             // When
-            sendEventAndCollectStates(sut,GameEvent.SelectPlayerAction.Call)
+            sendEventAndCollectStates(sut, GameEvent.SelectPlayerAction.Call)
             // Then
             sut.gameState shouldBe GameState.Showdown(expectedGameData)
         }
@@ -476,7 +478,7 @@ internal class GameStateMachineTests : FunSpec({
                     Player("2", "", 1000.0, listOf(Card.QueenOfDiamonds, Card.KingOfDiamonds)),
                     Player("3", "", 1000.0, listOf(Card.AceOfSpades, Card.EightOfDiamonds)),
                     Player("4", "", 1000.0, listOf(Card.AceOfHearts, Card.NineOfDiamonds)),
-                )
+                ),
             )
             val sut = GameStateMachine(GameState.Showdown(gameData))
 
@@ -484,13 +486,15 @@ internal class GameStateMachineTests : FunSpec({
             sendEventAndCollectStates(sut, GameEvent.AwardPot)
 
             // Then
-            val expectedGameData = gameData.copy(players = listOf(
-                Player("5", "", 1000.0, listOf(Card.JackOfClubs, Card.JackOfDiamonds)),
-                Player("1", "", 1000.0, listOf(Card.AceOfClubs, Card.AceOfDiamonds)),
-                Player("2", "", 1005.0, listOf(Card.QueenOfDiamonds, Card.KingOfDiamonds)),
-                Player("3", "", 1000.0, listOf(Card.AceOfSpades, Card.EightOfDiamonds)),
-                Player("4", "", 1000.0, listOf(Card.AceOfHearts, Card.NineOfDiamonds)),
-            ))
+            val expectedGameData = gameData.copy(
+                players = listOf(
+                    Player("5", "", 1000.0, listOf(Card.JackOfClubs, Card.JackOfDiamonds)),
+                    Player("1", "", 1000.0, listOf(Card.AceOfClubs, Card.AceOfDiamonds)),
+                    Player("2", "", 1005.0, listOf(Card.QueenOfDiamonds, Card.KingOfDiamonds)),
+                    Player("3", "", 1000.0, listOf(Card.AceOfSpades, Card.EightOfDiamonds)),
+                    Player("4", "", 1000.0, listOf(Card.AceOfHearts, Card.NineOfDiamonds)),
+                ),
+            )
             sut.gameState shouldBe GameState.Showdown(expectedGameData)
         }
 
@@ -512,7 +516,7 @@ internal class GameStateMachineTests : FunSpec({
                     Player("2", "", 1005.0, listOf(Card.QueenOfDiamonds, Card.KingOfDiamonds)),
                     Player("3", "", 1000.0, listOf(Card.AceOfSpades, Card.EightOfDiamonds)),
                     Player("4", "", 1000.0, listOf(Card.AceOfHearts, Card.NineOfDiamonds)),
-                )
+                ),
             )
             val sut = GameStateMachine(GameState.Showdown(gameData))
 
@@ -528,7 +532,7 @@ internal class GameStateMachineTests : FunSpec({
                     Player("2", "", 1005.0),
                     Player("3", "", 1000.0),
                     Player("4", "", 1000.0),
-                )
+                ),
             )
             sut.gameState shouldBe GameState.HandComplete(expectedGameData)
         }
@@ -571,7 +575,7 @@ internal class GameStateMachineTests : FunSpec({
                         name = "Player 2",
                         chips = 980.0,
                         hand = listOf(Card.ThreeOfClubs, Card.EightOfClubs),
-                        currentWager = 20.0
+                        currentWager = 20.0,
                     ),
                     Player(
                         id = "3",

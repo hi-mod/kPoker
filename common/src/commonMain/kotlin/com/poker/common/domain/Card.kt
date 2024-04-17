@@ -11,7 +11,7 @@ data class Card(
     }
 
     override fun toString(): String {
-        val rank = when(rank) {
+        val rank = when (rank) {
             CardRank.Ace -> " A"
             in CardRank.Two..CardRank.Ten -> " ${rank.value}"
             CardRank.Jack -> " J"
@@ -19,7 +19,7 @@ data class Card(
             CardRank.King -> " K"
             else -> throw IllegalStateException()
         }
-        val suit = when(suit) {
+        val suit = when (suit) {
             CardSuit.Clubs -> "C"
             CardSuit.Diamonds -> "D"
             CardSuit.Hearts -> "H"
@@ -106,7 +106,6 @@ data class Card(
 
         val KingOfDiamonds: Card
             get() = Card(CardRank.King, CardSuit.Diamonds)
-
 
         val AceOfHearts: Card
             get() = Card(CardRank.Ace, CardSuit.Hearts)

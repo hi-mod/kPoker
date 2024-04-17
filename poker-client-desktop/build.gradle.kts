@@ -12,6 +12,16 @@ dependencies {
     implementation(compose.ui)
     implementation(libs.kotlinx.coroutines.swing)
 
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.webSockets)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.client.json)
+    implementation(libs.ktor.serialization)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.ktor.client.auth)
+
+    implementation(libs.multiplatform.settings)
+
     implementation(project(":common"))
 }
 

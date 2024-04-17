@@ -6,8 +6,8 @@ import io.ktor.server.application.install
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.pingPeriod
 import io.ktor.server.websocket.timeout
-import kotlinx.serialization.json.Json
 import java.time.Duration
+import kotlinx.serialization.json.Json
 
 fun Application.configureSockets() {
     install(WebSockets) {
@@ -18,7 +18,7 @@ fun Application.configureSockets() {
         contentConverter = KotlinxWebsocketSerializationConverter(
             Json {
                 encodeDefaults = true
-            }
+            },
         )
     }
 }

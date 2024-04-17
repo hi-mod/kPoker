@@ -10,16 +10,19 @@ import com.poker.common.statemachine.GameStateMachine
 import io.ktor.server.application.Application
 import io.ktor.server.auth.UserIdPrincipal
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.principal
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.routing
-import io.ktor.server.sessions.get
-import io.ktor.server.sessions.sessions
+import io.ktor.server.websocket.DefaultWebSocketServerSession
+import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.CloseReason
+import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
+import java.util.Collections
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -30,63 +33,112 @@ fun Application.registerGameRoutes() =
         gameRouting()
     }
 
+data class GameData
 @OptIn(ExperimentalSerializationApi::class)
-fun Route.gameRouting() = authenticate("auth-jwt") {
-    webSocket("/game") {
-        val principal = call.sessions.get<UserIdPrincipal>()
-        if(principal == null) {
-            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No principal"))
+constructor(
+    val gameStateMachine: GameStateMachine,
+    val gameEvents: Channel<GameEvent>,
+    val connections: MutableSet<Connection>,
+)
+
+data class Connection(
+    val session: DefaultWebSocketSession,
+    val username: String,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+private fun Route.gameRouting() = authenticate("auth-jwt") {
+    val games = Collections.synchronizedMap<String, GameData?>(LinkedHashMap())
+    webSocket("/game/{gameId}") {
+        val gameId = call.parameters["gameId"]
+        if (gameId == null) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No game ID provided"))
             return@webSocket
         }
-        for(frame in incoming) {
-            if(frame is Frame.Text) {
-                val text = frame.readText()
-                when(text) {
-                    "startGame" -> {
-                        val gameEvents = Channel<GameEvent>()
-                        launch {
-                            val gameStateMachine = GameStateMachine()
-                            gameStateMachine.stateMachine(gameEvents)
-                                .filter { it !is GameState.Idle }
-                                .collect { gameState ->
-                                    sendSerialized(gameState.toGameDto())
-                                }
-                        }
-                        launch {
-                            gameEvents.send(
-                                GameEvent.StartGame(
-                                    game = Game(
-                                        level = Level(
-                                            smallBlind = 5.0,
-                                            bigBlind = 10.0,
-                                        ),
-                                    )
-                                )
+        for (frame in incoming) {
+            if (frame !is Frame.Text) continue
+            val text = frame.readText()
+            when (text) {
+                "startGame" -> {
+                    val principal = call.principal<UserIdPrincipal>()
+                    if (principal == null) {
+                        close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No user"))
+                        return@webSocket
+                    }
+                    val gameData = games.getOrPut(
+                        key = gameId,
+                        defaultValue = {
+                            GameData(
+                                gameStateMachine = GameStateMachine(),
+                                gameEvents = Channel(),
+                                connections = Collections.synchronizedSet(LinkedHashSet()),
                             )
-                            (1..10).forEach {
-                                gameEvents.send(
-                                    GameEvent.AddPlayer(
-                                        Player(
-                                            id = it.toString(),
-                                            name = "Player $it",
-                                            chips = 1000.0,
-                                        ),
-                                    ),
-                                )
-                            }
+                        },
+                    )
+                    if (gameData.connections.any { it.username == principal.name }) {
+                        println("User already in game")
+                        close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No user"))
+                        return@webSocket
+                    }
+                    println("Adding user!")
+                    val thisConnection = Connection(this, principal.name)
+                    gameData.connections += thisConnection
+                    sendGameUpdates(gameData)
+                    startPokerGame(gameData.gameEvents)
+                }
+
+                "endGame" -> {
+                    outgoing.send(Frame.Text("Game ended"))
+                    close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                }
+            }
+        }
+    }
+}
+
+private fun DefaultWebSocketServerSession.startPokerGame(gameEvents: Channel<GameEvent>) {
+    launch {
+        gameEvents.send(
+            GameEvent.StartGame(
+                game = Game(
+                    level = Level(
+                        smallBlind = 5.0,
+                        bigBlind = 10.0,
+                    ),
+                ),
+            ),
+        )
+        val principal = call.principal<UserIdPrincipal>()
+        val username = principal?.name
+        username?.let {
+            gameEvents.send(
+                GameEvent.AddPlayer(
+                    Player(
+                        id = username,
+                        name = username,
+                        chips = 1000.0,
+                    ),
+                ),
+            )
+        }
+        /*
                             gameEvents.send(GameEvent.ChooseStartingDealer)
                             gameEvents.send(GameEvent.SetButton)
                             gameEvents.send(GameEvent.GameReady)
                             gameEvents.send(GameEvent.StartHand)
-                        }
-                    }
+*/
+    }
+}
 
-                    "endGame" -> {
-                        outgoing.send(Frame.Text("Game ended"))
-                        close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
-                    }
+@OptIn(ExperimentalSerializationApi::class)
+private fun DefaultWebSocketServerSession.sendGameUpdates(gameData: GameData) {
+    launch {
+        gameData.gameStateMachine.stateMachine(gameData.gameEvents)
+            .filter { it !is GameState.Idle }
+            .collect { gameState ->
+                gameData.connections.forEach {
+                    (it.session as WebSocketServerSession).sendSerialized(gameState.toGameDto())
                 }
             }
-        }
     }
 }

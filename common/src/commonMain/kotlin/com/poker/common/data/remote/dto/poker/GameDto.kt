@@ -1,7 +1,6 @@
-package com.poker.common.data.remote.dto
+package com.poker.common.data.remote.dto.poker
 
 import java.util.Date
-
 import kotlinx.serialization.Serializable
 @Serializable
 data class GameDto(

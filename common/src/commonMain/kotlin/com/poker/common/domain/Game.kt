@@ -83,13 +83,13 @@ data class Game(
         )
         is GameEvent.SelectPlayerAction.Call -> this.copy(
             players = players.subList(1, players.size) + players.first().wager(currentWager()),
-            pot = pot + currentWager()
+            pot = pot + currentWager(),
         )
         GameEvent.SelectPlayerAction.Check -> this.copy(
-            players = players.subList(1, players.size) + players.first().check()
+            players = players.subList(1, players.size) + players.first().check(),
         )
         GameEvent.SelectPlayerAction.Fold -> this.copy(
-            players = players.subList(1, players.size) + players.first().fold()
+            players = players.subList(1, players.size) + players.first().fold(),
         )
     }
 

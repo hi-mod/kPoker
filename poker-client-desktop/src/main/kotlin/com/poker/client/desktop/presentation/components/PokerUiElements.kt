@@ -39,8 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.poker.client.desktop.presentation.util.Brown
 import com.poker.client.desktop.presentation.util.Purple
-import com.poker.common.data.remote.dto.CardDto
-import com.poker.common.data.remote.dto.PlayerDto
+import com.poker.common.data.remote.dto.poker.CardDto
+import com.poker.common.data.remote.dto.poker.PlayerDto
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -106,7 +106,7 @@ fun ShowPlayers(
             )
             val screenSize = minOf(maxWidth, maxHeight)
 
-            if(player.currentWager > 0.0) {
+            if (player.currentWager > 0.0) {
                 val chipButtonFactorX = 0.4f
                 val chipButtonFactorY = 0.3f
                 val chipButtonX = centerX + radiusX * cos(Math.toRadians(currentAngle)).toFloat() * chipButtonFactorX
@@ -118,7 +118,7 @@ fun ShowPlayers(
                 )
             }
 
-            if(player == players.last()) {
+            if (player == players.last()) {
                 val dealerButtonFactorX = 0.6f // Adjust this value to move the dealer button
                 val dealerButtonFactorY = 0.8f // Adjust this value to move the dealer button
                 val dealerButtonX = centerX + radiusX * cos(Math.toRadians(currentAngle)).toFloat() * dealerButtonFactorX
@@ -337,7 +337,7 @@ private fun PokerChip(
         }
         Text(
             modifier = Modifier.align(Alignment.Center),
-            text =  (if(value % 1 == 0.0) value.toInt() else value).toString(),
+            text = (if (value % 1 == 0.0) value.toInt() else value).toString(),
             color = Color.White,
             style = TextStyle(
                 fontWeight = FontWeight.Bold,

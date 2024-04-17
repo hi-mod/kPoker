@@ -1,4 +1,4 @@
-package com.poker.common.data.remote.dto
+package com.poker.common.data.remote.dto.poker
 
 import kotlinx.serialization.Serializable
 
@@ -14,7 +14,7 @@ data class CardDto(
     }
 
     override fun toString(): String {
-        val rank = when(rank) {
+        val rank = when (rank) {
             CardRankDto.Ace -> " A"
             in CardRankDto.Two..CardRankDto.Ten -> " ${rank.value}"
             CardRankDto.Jack -> " J"
@@ -22,7 +22,7 @@ data class CardDto(
             CardRankDto.King -> " K"
             else -> throw IllegalStateException()
         }
-        val suit = when(suit) {
+        val suit = when (suit) {
             CardSuitDto.Clubs -> "C"
             CardSuitDto.Diamonds -> "D"
             CardSuitDto.Hearts -> "H"

@@ -24,6 +24,7 @@ dependencies {
     implementation(libs.ktorServerNetty)
     implementation(libs.ktorServerSwagger)
     implementation(libs.ktorServerAuth)
+    implementation(libs.ktor.server.sessions)
 
     implementation(libs.logbackClassic)
 

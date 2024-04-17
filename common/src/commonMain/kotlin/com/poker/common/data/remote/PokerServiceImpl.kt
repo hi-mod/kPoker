@@ -1,24 +1,30 @@
 package com.poker.common.data.remote
 
-import com.poker.common.data.remote.dto.GameDto
+import com.poker.common.data.TokenService
+import com.poker.common.data.remote.dto.poker.GameDto
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.receiveDeserialized
-import io.ktor.client.plugins.websocket.webSocket
-import io.ktor.http.HttpMethod
+import io.ktor.client.plugins.websocket.webSocketSession
+import io.ktor.client.request.header
+import io.ktor.client.request.url
+import io.ktor.http.HttpHeaders
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.flow.flow
 
 class PokerServiceImpl(
     private val client: HttpClient,
+    private val tokenService: TokenService,
 ) : PokerService {
-    override suspend fun startGame() = flow {
-        client.webSocket(method = HttpMethod.Get, host = "127.0.0.1", port = 8080, path = "/game") {
-            this.send(Frame.Text("startGame"))
-            while(true) {
-                val game = receiveDeserialized<GameDto>()
-                println(game)
-                emit(game)
-            }
+    override suspend fun startGame(gameId: String) = flow {
+        val session = client.webSocketSession {
+            url("${HttpRoutes.START_GAME}/$gameId")
+            header(HttpHeaders.Authorization, "Bearer ${tokenService.token}")
+        }
+        session.send(Frame.Text("startGame"))
+        while (true) {
+            val game = session.receiveDeserialized<GameDto>()
+            println(game)
+            emit(game)
         }
     }
 }

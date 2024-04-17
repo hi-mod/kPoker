@@ -1,5 +1,6 @@
 package com.poker.server.application.routes
 
+import com.poker.common.data.remote.dto.login.UserDto
 import com.poker.server.application.plugins.JwtConfig
 import com.poker.server.data.User
 import io.ktor.http.HttpStatusCode
@@ -14,28 +15,29 @@ val users = listOf(
     User(
         id = "1",
         username = "Aaron",
-        password = "test1"
+        password = "test1",
     ),
     User(
         id = "2",
         username = "test2",
-        password = "test2"
+        password = "test2",
     ),
     User(
         id = "3",
         username = "test3",
-        password = "test3"
+        password = "test3",
     ),
 )
 
 fun Application.registerLoginRoutes() = routing {
     post("/login") {
         // Authenticate the user and generate a JWT token
-        val user = call.receive<User>()
-        if(!users.contains(user)) {
+        val userDto = call.receive<UserDto>()
+        val user = users.firstOrNull { it.username == userDto.username && it.password == userDto.password }
+        if (user == null) {
             return@post call.respondText("Missing or malformed gameId", status = HttpStatusCode.Unauthorized)
         }
-        val token = JwtConfig.makeToken(user.id)
+        val token = JwtConfig.makeToken(user.username)
         call.respondText(token)
     }
 }

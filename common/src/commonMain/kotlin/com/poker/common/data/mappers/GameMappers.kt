@@ -1,13 +1,13 @@
 package com.poker.common.data.mappers
 
-import com.poker.common.data.remote.dto.CardDto
-import com.poker.common.data.remote.dto.CardRankDto
-import com.poker.common.data.remote.dto.CardSuitDto
-import com.poker.common.data.remote.dto.GameDto
-import com.poker.common.data.remote.dto.GameTypeDto
-import com.poker.common.data.remote.dto.LevelDto
-import com.poker.common.data.remote.dto.PlayerDto
-import com.poker.common.data.remote.dto.PokerActionDto
+import com.poker.common.data.remote.dto.poker.CardDto
+import com.poker.common.data.remote.dto.poker.CardRankDto
+import com.poker.common.data.remote.dto.poker.CardSuitDto
+import com.poker.common.data.remote.dto.poker.GameDto
+import com.poker.common.data.remote.dto.poker.GameTypeDto
+import com.poker.common.data.remote.dto.poker.LevelDto
+import com.poker.common.data.remote.dto.poker.PlayerDto
+import com.poker.common.data.remote.dto.poker.PokerActionDto
 import com.poker.common.domain.Card
 import com.poker.common.domain.Game
 import com.poker.common.domain.GameState
@@ -59,7 +59,7 @@ fun PokerAction.toPokerActionDto() = PokerActionDto.valueOf(name)
 
 fun Card.toCardDto() = CardDto(
     rank = CardRankDto.valueOf(rank.name),
-    suit = CardSuitDto.valueOf(suit.name)
+    suit = CardSuitDto.valueOf(suit.name),
 )
 
 private fun gameStateToGameDto(gameState: String, game: Game) = GameDto(

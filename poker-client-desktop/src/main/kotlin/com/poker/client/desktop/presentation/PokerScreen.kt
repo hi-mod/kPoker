@@ -12,7 +12,11 @@ fun PokerScreen(appModule: AppModule) {
     val state by appModule.pokerViewModel.state.collectAsState()
     ShowPlayers(players = state.players)
     LaunchedEffect(Unit) {
-        appModule.pokerViewModel.startGame()
+        appModule.pokerViewModel.login()
     }
-
+    LaunchedEffect(state.loggedIn) {
+        if (state.loggedIn) {
+            appModule.pokerViewModel.startGame()
+        }
+    }
 }
