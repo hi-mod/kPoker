@@ -29,7 +29,7 @@ val users = listOf(
     ),
 )
 
-fun Application.registerLoginRoutes() = routing {
+fun Application.registerAccountRoutes() = routing {
     post("/login") {
         // Authenticate the user and generate a JWT token
         val userDto = call.receive<UserDto>()

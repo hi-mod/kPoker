@@ -5,8 +5,8 @@ import com.poker.server.application.plugins.configureMonitoring
 import com.poker.server.application.plugins.configureSecurity
 import com.poker.server.application.plugins.configureSerialization
 import com.poker.server.application.plugins.configureSockets
+import com.poker.server.application.routes.registerAccountRoutes
 import com.poker.server.application.routes.registerGameRoutes
-import com.poker.server.application.routes.registerLoginRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -28,6 +28,6 @@ fun Application.module() {
     configureHTTP()
     configureSecurity()
 
-    registerLoginRoutes()
+    registerAccountRoutes()
     registerGameRoutes()
 }
