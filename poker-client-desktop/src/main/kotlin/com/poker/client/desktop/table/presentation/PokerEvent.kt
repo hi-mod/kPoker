@@ -1,4 +1,4 @@
-package com.poker.client.desktop.presentation
+package com.poker.client.desktop.table.presentation
 
 sealed interface PokerEvent {
     data object OnLoginMenuClick : PokerEvent

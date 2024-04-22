@@ -1,4 +1,4 @@
-package com.poker.client.desktop.presentation.util
+package com.poker.client.desktop.util
 
 import androidx.compose.ui.graphics.Color
 

@@ -2,6 +2,7 @@ package com.poker.common.data.remote
 
 import com.poker.common.core.Resource
 import com.poker.common.data.remote.dto.login.UserDto
+import com.poker.common.domain.LoginService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException

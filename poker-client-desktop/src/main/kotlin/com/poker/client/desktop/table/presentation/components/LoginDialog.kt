@@ -1,4 +1,4 @@
-package com.poker.client.desktop.presentation.components
+package com.poker.client.desktop.table.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,8 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.poker.client.desktop.presentation.PokerEvent
-import com.poker.client.desktop.presentation.PokerState
+import com.poker.client.desktop.table.presentation.PokerEvent
+import com.poker.client.desktop.table.presentation.PokerState
 
 @Composable
 fun LoginDialog(

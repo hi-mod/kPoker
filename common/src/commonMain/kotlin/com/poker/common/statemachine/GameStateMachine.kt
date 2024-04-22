@@ -3,7 +3,7 @@ package com.poker.common.statemachine
 import com.poker.common.domain.Card
 import com.poker.common.domain.CardRank
 import com.poker.common.domain.CardSuit
-import com.poker.common.domain.Game
+import com.poker.common.domain.Table
 import com.poker.common.domain.GameEvent
 import com.poker.common.domain.GameState
 import com.poker.common.domain.PokerAction
@@ -64,7 +64,7 @@ class GameStateMachine(
         gameEvent: GameEvent,
         currentState: GameState.HandComplete,
     ): GameState = when (gameEvent) {
-        is GameEvent.StartHand -> GameState.HandStart(currentState.game.startHand())
+        is GameEvent.StartHand -> GameState.HandStart(currentState.table.startHand())
         else -> currentState
     }
 
@@ -72,20 +72,20 @@ class GameStateMachine(
         gameEvent: GameEvent,
         currentState: GameState.Showdown,
     ): GameState = when (gameEvent) {
-        is GameEvent.AwardPot -> GameState.Showdown(currentState.game.awardPot())
-        is GameEvent.EndHand -> GameState.HandComplete(currentState.game.endHand())
+        is GameEvent.AwardPot -> GameState.Showdown(currentState.table.awardPot())
+        is GameEvent.EndHand -> GameState.HandComplete(currentState.table.endHand())
         else -> currentState
     }
 
     private fun gameStreetGameStateEvents(
         gameEvent: GameEvent,
-        nextGameState: (Game) -> GameState,
+        nextGameState: (Table) -> GameState,
         currentState: GameState.Street,
-        sameState: (Game) -> GameState,
+        sameState: (Table) -> GameState,
     ) = when (gameEvent) {
-        is GameEvent.AddViewer -> sameState(currentState.game.addViewer(gameEvent.userId))
+        is GameEvent.AddViewer -> sameState(currentState.table.addViewer(gameEvent.userId))
         is GameEvent.SelectPlayerAction -> {
-            val game = currentState.game.performPlayerAction(gameEvent)
+            val game = currentState.table.performPlayerAction(gameEvent)
             if (game.allPlayersHaveActed()) {
                 nextGameState(game)
             } else {
@@ -101,16 +101,16 @@ class GameStateMachine(
         currentState: GameState.GameStart,
     ): GameState = when (gameEvent) {
         is GameEvent.AddPlayer -> {
-            val game = currentState.game.addPlayer(gameEvent.player)
+            val game = currentState.table.addPlayer(gameEvent.player)
             GameState.GameStart(game)
         }
 
-        is GameEvent.RemovePlayer -> GameState.GameStart(currentState.game.removePlayer(gameEvent.player))
-        is GameEvent.AddViewer -> GameState.GameStart(currentState.game.addViewer(gameEvent.userId))
-        GameEvent.SetButton -> GameState.GameStart(setButton(currentState.game))
+        is GameEvent.RemovePlayer -> GameState.GameStart(currentState.table.removePlayer(gameEvent.player))
+        is GameEvent.AddViewer -> GameState.GameStart(currentState.table.addViewer(gameEvent.userId))
+        GameEvent.SetButton -> GameState.GameStart(setButton(currentState.table))
         GameEvent.ChooseStartingDealer -> chooseStartingDealer(currentState)
         GameEvent.GameReady -> {
-            val game = currentState.game
+            val game = currentState.table
             if (game.players.size >= game.minPlayers) {
                 GameState.Street.PreFlop(game.startHand())
             } else {
@@ -125,12 +125,12 @@ class GameStateMachine(
         gameEvent: GameEvent,
         currentState: GameState,
     ) = if (gameEvent is GameEvent.StartGame) {
-        GameState.GameStart(gameEvent.game)
+        GameState.GameStart(gameEvent.table)
     } else {
         currentState
     }
 
-    private fun Game.startHand(): Game {
+    private fun Table.startHand(): Table {
         deck.shuffle()
         val gameAfterDealingCards = copy(
             activePlayer = null,
@@ -166,7 +166,7 @@ class GameStateMachine(
         }
     }
 
-    private fun Game.moveButton(): Game {
+    private fun Table.moveButton(): Table {
         val smallBindPlayer = players.first()
         return copy(
             buttonPosition = if (buttonPosition == players.size) 1 else buttonPosition.inc(),
@@ -174,7 +174,7 @@ class GameStateMachine(
         )
     }
 
-    private fun Game.postBlindsAndAntes() = level.let { level ->
+    private fun Table.postBlindsAndAntes() = level.let { level ->
         val ante = (level.ante ?: 0.0)
         players.mapIndexed { index, player ->
             when (index) {
@@ -186,18 +186,18 @@ class GameStateMachine(
     }.let { players -> copy(players = players, pot = players.sumOf { it.currentWager }) }
 
     private fun chooseStartingDealer(currentState: GameState.GameStart): GameState.GameStart {
-        val deck = currentState.game.deck
+        val deck = currentState.table.deck
         deck.shuffle()
         val cards = mutableListOf<Card>()
-        for (i in 1..currentState.game.players.size) {
+        for (i in 1..currentState.table.players.size) {
             cards.add(deck.popCard())
             if (cards.last() == Card(CardRank.Ace, CardSuit.Spades)) break
         }
         return if (cards.size < 10) {
             GameState.GameStart(
-                currentState.game.copy(
+                currentState.table.copy(
                     buttonPosition = cards.size,
-                    players = currentState.game.players.mapIndexed { i, player ->
+                    players = currentState.table.players.mapIndexed { i, player ->
                         if (cards.size - 1 >= i) {
                             player.copy(
                                 hand = listOf(cards[i]),
@@ -210,7 +210,7 @@ class GameStateMachine(
             )
         } else {
             GameState.GameStart(
-                currentState.game.copy(
+                currentState.table.copy(
                     buttonPosition = cards
                         .withIndex()
                         .maxWithOrNull(
@@ -220,7 +220,7 @@ class GameStateMachine(
                             ) { it.value },
                         )
                         ?.index?.plus(1) ?: 0,
-                    players = currentState.game.players.mapIndexed { i, player ->
+                    players = currentState.table.players.mapIndexed { i, player ->
                         player.copy(
                             hand = listOf(cards[i]),
                         )
@@ -230,18 +230,18 @@ class GameStateMachine(
         }
     }
 
-    private fun setButton(game: Game): Game {
-        val buttonPlayerIndex = game.buttonPosition - 1
-        val smallBlindPlayerIndex = if (buttonPlayerIndex >= game.players.size - 1) 0 else buttonPlayerIndex + 1
+    private fun setButton(table: Table): Table {
+        val buttonPlayerIndex = table.buttonPosition - 1
+        val smallBlindPlayerIndex = if (buttonPlayerIndex >= table.players.size - 1) 0 else buttonPlayerIndex + 1
         val bigBlindPlayerIndex = when {
-            buttonPlayerIndex >= game.players.size - 1 -> 1
-            buttonPlayerIndex + 1 >= game.players.size - 1 -> 0
+            buttonPlayerIndex >= table.players.size - 1 -> 1
+            buttonPlayerIndex + 1 >= table.players.size - 1 -> 0
             else -> buttonPlayerIndex + 2
         }
-        val buttonPlayer = game.players[buttonPlayerIndex]
-        val smallBlindPlayer = game.players[if (game.players.size == 2) buttonPlayerIndex else smallBlindPlayerIndex]
-        val bigBlindPlayer = game.players[if (game.players.size == 2) smallBlindPlayerIndex else bigBlindPlayerIndex]
-        val buttonAndBlindsPlayers = if (game.players.size == 2) {
+        val buttonPlayer = table.players[buttonPlayerIndex]
+        val smallBlindPlayer = table.players[if (table.players.size == 2) buttonPlayerIndex else smallBlindPlayerIndex]
+        val bigBlindPlayer = table.players[if (table.players.size == 2) smallBlindPlayerIndex else bigBlindPlayerIndex]
+        val buttonAndBlindsPlayers = if (table.players.size == 2) {
             listOf(
                 smallBlindPlayer,
                 bigBlindPlayer,
@@ -253,14 +253,14 @@ class GameStateMachine(
                 bigBlindPlayer,
             )
         }
-        val players = if (game.players.size == 2) {
+        val players = if (table.players.size == 2) {
             buttonAndBlindsPlayers
         } else {
             listOf(smallBlindPlayer)
                 .plus(listOf(bigBlindPlayer))
-                .plus(game.players.filter { !buttonAndBlindsPlayers.contains(it) })
+                .plus(table.players.filter { !buttonAndBlindsPlayers.contains(it) })
                 .plus(listOf(buttonPlayer))
         }
-        return game.copy(players = players)
+        return table.copy(players = players)
     }
 }

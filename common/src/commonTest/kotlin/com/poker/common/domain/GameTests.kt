@@ -10,7 +10,7 @@ internal class GameTests : FunSpec({
                 val id = index + 1
                 Player(id.toString(), "Player $id", 1000.0)
             }
-            val game = Game(
+            val table = Table(
                 name = "",
                 description = "",
                 inProgress = true,
@@ -22,8 +22,8 @@ internal class GameTests : FunSpec({
                 minPlayers = 7,
             ).dealCards()
 
-            game.deck.cards.size shouldBe 42
-            game.players.forEach { player -> player.hand.size shouldBe 2 }
+            table.deck.cards.size shouldBe 42
+            table.players.forEach { player -> player.hand.size shouldBe 2 }
         }
     }
 })

@@ -15,7 +15,7 @@ sealed class GameEvent {
         data object Fold : SelectPlayerAction()
         data class Raise(override val amount: Double) : SelectPlayerAction(amount)
     }
-    data class StartGame(val game: Game) : GameEvent()
+    data class StartGame(val table: Table) : GameEvent()
     data object GameReady : GameEvent()
     data object ChooseStartingDealer : GameEvent()
     data object AwardPot : GameEvent()

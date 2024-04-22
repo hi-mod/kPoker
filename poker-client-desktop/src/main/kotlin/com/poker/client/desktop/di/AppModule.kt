@@ -1,10 +1,12 @@
 package com.poker.client.desktop.di
 
-import com.poker.client.desktop.presentation.PokerViewModel
+import com.poker.client.desktop.table.presentation.PokerViewModel
 import com.poker.common.data.TokenService
 import com.poker.common.data.remote.LoginServiceImpl
-import com.poker.common.data.remote.PokerServiceImpl
+import com.poker.common.data.remote.GameServiceImpl
+import com.poker.common.data.remote.dto.game.UUIDSerializer
 import com.poker.common.domain.AppSettings
+import com.poker.common.domain.GameDataSource
 import com.russhwolf.settings.PreferencesSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -23,6 +25,8 @@ import java.time.Duration
 import java.util.prefs.Preferences
 import kotlinx.coroutines.MainScope
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.contextual
 
 interface AppModule {
     val pokerViewModel: PokerViewModel
@@ -57,7 +61,14 @@ class AppModuleImpl : AppModule {
             install(ContentNegotiation) {
                 json(
                     json = Json {
+                        serializersModule = SerializersModule {
+                            contextual(UUIDSerializer)
+                        }
+                        isLenient = true
                         ignoreUnknownKeys = true
+                        allowSpecialFloatingPointValues = true
+                        useArrayPolymorphism = true
+                        encodeDefaults = true
                     },
                 )
             }
@@ -74,8 +85,8 @@ class AppModuleImpl : AppModule {
         LoginServiceImpl(client = ktorClient)
     }
 
-    private val pokerService by lazy {
-        PokerServiceImpl(
+    private val gameService by lazy {
+        GameServiceImpl(
             client = ktorClient,
             tokenService = tokenService,
         )
@@ -88,7 +99,7 @@ class AppModuleImpl : AppModule {
     override val pokerViewModel by lazy {
         PokerViewModel(
             coroutineScope = MainScope(),
-            pokerService = pokerService,
+            gameDataSource = gameDataSource,
             loginService = loginService,
             tokenService = tokenService,
             appSettings = appSettings,
@@ -101,5 +112,9 @@ class AppModuleImpl : AppModule {
 
     private val appSettings by lazy {
         AppSettings(settings)
+    }
+
+    private val gameDataSource by lazy {
+        GameDataSource(gameService = gameService)
     }
 }

@@ -10,8 +10,9 @@ kmpNativeCoroutines = "1.0.0-ALPHA-23"
 logbackClassic = "1.4.14"
 mockk = "1.13.8"
 kotest = "5.8.0"
-compose = "1.5.4"
 rushwolf = "1.1.1"
+compose-bom = "2024.04.01"
+material3 = "1.6.2"
 
 [libraries]
 multiplatform-settings = { group = "com.russhwolf", name="multiplatform-settings", version.ref = "rushwolf" }
@@ -24,9 +25,11 @@ kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime",
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinxSerialization" }
 kotlinx-serialization-json-jvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json-jvm", version.ref = "kotlinxSerialization" }
 
-androidx-compose-material3 =  { group = "androidx.compose.material3", name = "material3" }
-androidx-compose-material3-WindowSizeClass = { group = "androidx.compose.material3", name="material3-window-size-class" }
-androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compose" }
+#androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
+#androidx-compose-material3 =  { group = "androidx.compose.material3", name = "material3" }
+#androidx-compose-material3-WindowSizeClass = { group = "androidx.compose.material3", name="material3-window-size-class" }
+#androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+jetbrains-compose-material3 = { group = "org.jetbrains.compose.material3", name = "material3", version.ref = "material3" }
 
 ktorServerCore = { group = "io.ktor", name = "ktor-server-core", version.ref = "ktor" }
 ktorServerWebsockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktor" }

@@ -1,9 +1,9 @@
-package com.poker.client.desktop.presentation.components
+package com.poker.client.desktop.table.presentation.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
-import com.poker.client.desktop.presentation.PokerEvent
+import com.poker.client.desktop.table.presentation.PokerEvent
 
 @Composable
 fun FrameWindowScope.MainMenu(

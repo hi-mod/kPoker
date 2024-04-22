@@ -1,10 +1,10 @@
-package com.poker.client.desktop.presentation
+package com.poker.client.desktop.table.presentation
 
 import com.poker.common.core.Resource
 import com.poker.common.data.TokenService
-import com.poker.common.data.remote.LoginService
-import com.poker.common.data.remote.PokerService
+import com.poker.common.domain.LoginService
 import com.poker.common.domain.AppSettings
+import com.poker.common.domain.GameDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class PokerViewModel(
     private val coroutineScope: CoroutineScope,
-    private val pokerService: PokerService,
+    private val gameDataSource: GameDataSource,
     private val loginService: LoginService,
     private val tokenService: TokenService,
     private val appSettings: AppSettings,
@@ -62,7 +62,7 @@ class PokerViewModel(
 
     fun startGame() {
         coroutineScope.launch {
-            pokerService.startGame("1").collect { game ->
+            gameDataSource.startGame("1").collect { game ->
                 _state.update { state ->
                     state.copy(players = game.players)
                 }
@@ -87,6 +87,19 @@ class PokerViewModel(
                 it.copy(showLogin = false)
             }
             PokerEvent.OnLogin -> login()
+        }
+    }
+
+    fun getGames() {
+        coroutineScope.launch {
+            val response = gameDataSource.getGames()
+            if (response is Resource.Success) {
+                response.data?.let { games ->
+                    _state.update { state ->
+                        state.copy(availableGames = games)
+                    }
+                }
+            }
         }
     }
 }

@@ -1,15 +1,17 @@
 package com.poker.common.data.mappers
 
+import com.poker.common.data.remote.dto.game.GameDto
 import com.poker.common.data.remote.dto.poker.CardDto
 import com.poker.common.data.remote.dto.poker.CardRankDto
 import com.poker.common.data.remote.dto.poker.CardSuitDto
-import com.poker.common.data.remote.dto.poker.GameDto
+import com.poker.common.data.remote.dto.poker.TableDto
 import com.poker.common.data.remote.dto.poker.GameTypeDto
 import com.poker.common.data.remote.dto.poker.LevelDto
 import com.poker.common.data.remote.dto.poker.PlayerDto
 import com.poker.common.data.remote.dto.poker.PokerActionDto
 import com.poker.common.domain.Card
 import com.poker.common.domain.Game
+import com.poker.common.domain.Table
 import com.poker.common.domain.GameState
 import com.poker.common.domain.GameType
 import com.poker.common.domain.Level
@@ -18,11 +20,26 @@ import com.poker.common.domain.PokerAction
 import java.time.Instant
 import java.util.Date
 
+fun GameDto.toGame() = Game(
+    id = id,
+    name = name,
+    description = description,
+    numPlayers = numPlayers,
+    level = level.toLevel(),
+)
+
+fun LevelDto.toLevel() = Level(
+    smallBlind = smallBlind,
+    bigBlind = bigBlind,
+    ante = ante,
+    duration = duration,
+)
+
 fun GameState.toGameDto() = when (this) {
     GameState.Idle -> idleGameStateGameDto()
-    is GameState.GameStart -> gameStateToGameDto(this.javaClass.name, game)
-    is GameState.HandStart -> gameStateToGameDto(this.javaClass.name, game)
-    is GameState.Street.PreFlop -> gameStateToGameDto(this.javaClass.name, game)
+    is GameState.GameStart -> gameStateToGameDto(this.javaClass.name, table)
+    is GameState.HandStart -> gameStateToGameDto(this.javaClass.name, table)
+    is GameState.Street.PreFlop -> gameStateToGameDto(this.javaClass.name, table)
     is GameState.Street.Flop -> TODO()
     is GameState.Street.Turn -> TODO()
     is GameState.Street.River -> TODO()
@@ -62,28 +79,28 @@ fun Card.toCardDto() = CardDto(
     suit = CardSuitDto.valueOf(suit.name),
 )
 
-private fun gameStateToGameDto(gameState: String, game: Game) = GameDto(
+private fun gameStateToGameDto(gameState: String, table: Table) = TableDto(
     gameState = gameState,
-    name = game.name,
-    description = game.description,
-    inProgress = game.inProgress,
-    gameType = game.gameType.toGameTypeDto(),
-    tableNumber = game.tableNumber,
-    level = game.level.toLevelDto(),
-    id = game.id,
-    started = game.started,
-    buttonPosition = game.buttonPosition,
-    players = game.players.map { it.toPlayerDto() },
-    handNumber = game.handNumber,
-    board = game.board.map { it.toCardDto() },
-    smallestChipSizeInPlay = game.smallestChipSizeInPlay,
-    pot = game.pot,
-    viewers = game.viewers,
-    maxPlayers = game.maxPlayers,
-    minPlayers = game.minPlayers,
+    name = table.name,
+    description = table.description,
+    inProgress = table.inProgress,
+    gameType = table.gameType.toGameTypeDto(),
+    tableNumber = table.tableNumber,
+    level = table.level.toLevelDto(),
+    id = table.id,
+    started = table.started,
+    buttonPosition = table.buttonPosition,
+    players = table.players.map { it.toPlayerDto() },
+    handNumber = table.handNumber,
+    board = table.board.map { it.toCardDto() },
+    smallestChipSizeInPlay = table.smallestChipSizeInPlay,
+    pot = table.pot,
+    viewers = table.viewers,
+    maxPlayers = table.maxPlayers,
+    minPlayers = table.minPlayers,
 )
 
-private fun idleGameStateGameDto() = GameDto(
+private fun idleGameStateGameDto() = TableDto(
     gameState = "Idle",
     name = "",
     description = "",

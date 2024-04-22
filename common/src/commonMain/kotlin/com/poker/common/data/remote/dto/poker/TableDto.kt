@@ -3,7 +3,7 @@ package com.poker.common.data.remote.dto.poker
 import java.util.Date
 import kotlinx.serialization.Serializable
 @Serializable
-data class GameDto(
+data class TableDto(
     val gameState: String,
     val name: String,
     val description: String,

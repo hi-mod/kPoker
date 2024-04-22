@@ -1,4 +1,4 @@
-package com.poker.client.desktop.presentation.components
+package com.poker.client.desktop.table.presentation.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -37,8 +37,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.poker.client.desktop.presentation.util.Brown
-import com.poker.client.desktop.presentation.util.Purple
+import com.poker.client.desktop.util.Brown
+import com.poker.client.desktop.util.Purple
 import com.poker.common.data.remote.dto.poker.CardDto
 import com.poker.common.data.remote.dto.poker.PlayerDto
 import kotlin.math.cos

@@ -1,4 +1,4 @@
-package com.poker.common.data.remote
+package com.poker.common.domain
 
 import com.poker.common.core.Resource
 
