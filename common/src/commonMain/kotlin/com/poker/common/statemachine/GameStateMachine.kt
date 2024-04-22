@@ -3,10 +3,10 @@ package com.poker.common.statemachine
 import com.poker.common.domain.Card
 import com.poker.common.domain.CardRank
 import com.poker.common.domain.CardSuit
-import com.poker.common.domain.Table
 import com.poker.common.domain.GameEvent
 import com.poker.common.domain.GameState
 import com.poker.common.domain.PokerAction
+import com.poker.common.domain.Table
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.ExperimentalSerializationApi

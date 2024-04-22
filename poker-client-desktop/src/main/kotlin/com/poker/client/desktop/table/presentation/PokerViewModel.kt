@@ -2,9 +2,9 @@ package com.poker.client.desktop.table.presentation
 
 import com.poker.common.core.Resource
 import com.poker.common.data.TokenService
-import com.poker.common.domain.LoginService
 import com.poker.common.domain.AppSettings
 import com.poker.common.domain.GameDataSource
+import com.poker.common.domain.LoginService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

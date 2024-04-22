@@ -3,11 +3,11 @@ package com.poker.server.application.routes
 import com.poker.common.data.mappers.toGameDto
 import com.poker.common.data.remote.dto.game.GameDto
 import com.poker.common.data.remote.dto.poker.LevelDto
-import com.poker.common.domain.Table
 import com.poker.common.domain.GameEvent
 import com.poker.common.domain.GameState
 import com.poker.common.domain.Level
 import com.poker.common.domain.Player
+import com.poker.common.domain.Table
 import com.poker.common.statemachine.GameStateMachine
 import io.ktor.server.application.Application
 import io.ktor.server.application.call
@@ -67,8 +67,8 @@ private fun Route.gameManagement() {
                         smallBlind = 5.0,
                         bigBlind = 10.0,
                     ),
-                )
-            )
+                ),
+            ),
         )
     }
 }

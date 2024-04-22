@@ -4,19 +4,19 @@ import com.poker.common.data.remote.dto.game.GameDto
 import com.poker.common.data.remote.dto.poker.CardDto
 import com.poker.common.data.remote.dto.poker.CardRankDto
 import com.poker.common.data.remote.dto.poker.CardSuitDto
-import com.poker.common.data.remote.dto.poker.TableDto
 import com.poker.common.data.remote.dto.poker.GameTypeDto
 import com.poker.common.data.remote.dto.poker.LevelDto
 import com.poker.common.data.remote.dto.poker.PlayerDto
 import com.poker.common.data.remote.dto.poker.PokerActionDto
+import com.poker.common.data.remote.dto.poker.TableDto
 import com.poker.common.domain.Card
 import com.poker.common.domain.Game
-import com.poker.common.domain.Table
 import com.poker.common.domain.GameState
 import com.poker.common.domain.GameType
 import com.poker.common.domain.Level
 import com.poker.common.domain.Player
 import com.poker.common.domain.PokerAction
+import com.poker.common.domain.Table
 import java.time.Instant
 import java.util.Date
 

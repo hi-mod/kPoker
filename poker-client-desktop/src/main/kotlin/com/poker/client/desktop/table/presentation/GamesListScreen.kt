@@ -34,10 +34,10 @@ import com.poker.common.domain.Game
 fun GamesListScreen(availableGames: List<Game>) {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
-            modifier = Modifier.padding(all = 16.dp)
+            modifier = Modifier.padding(all = 16.dp),
         ) {
             GameList(availableGames)
             Button(
@@ -82,7 +82,7 @@ private fun GameEntries(
 ) {
     var isHovered by remember { mutableStateOf(false) }
     val isSelected = selectedGame == game
-    val foregroundColor = if(isSelected) Color.White else Color.Black
+    val foregroundColor = if (isSelected) Color.White else Color.Black
     val backgroundColor = when {
         isSelected -> Color(0xff0078d7)
         isHovered -> Color.LightGray

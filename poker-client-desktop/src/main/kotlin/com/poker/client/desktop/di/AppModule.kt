@@ -2,8 +2,8 @@ package com.poker.client.desktop.di
 
 import com.poker.client.desktop.table.presentation.PokerViewModel
 import com.poker.common.data.TokenService
-import com.poker.common.data.remote.LoginServiceImpl
 import com.poker.common.data.remote.GameServiceImpl
+import com.poker.common.data.remote.LoginServiceImpl
 import com.poker.common.data.remote.dto.game.UUIDSerializer
 import com.poker.common.domain.AppSettings
 import com.poker.common.domain.GameDataSource

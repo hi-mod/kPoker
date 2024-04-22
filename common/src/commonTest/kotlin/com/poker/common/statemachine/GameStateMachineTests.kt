@@ -4,7 +4,6 @@ import com.poker.common.domain.Card
 import com.poker.common.domain.CardRank
 import com.poker.common.domain.CardSuit
 import com.poker.common.domain.Deck
-import com.poker.common.domain.Table
 import com.poker.common.domain.GameEvent
 import com.poker.common.domain.GameState
 import com.poker.common.domain.GameType
@@ -12,6 +11,7 @@ import com.poker.common.domain.IGameState
 import com.poker.common.domain.Level
 import com.poker.common.domain.Player
 import com.poker.common.domain.PokerAction
+import com.poker.common.domain.Table
 import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec

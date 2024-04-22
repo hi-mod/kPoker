@@ -8,7 +8,7 @@ class GameDataSource(
 ) {
     suspend fun getGames(): Resource<List<Game>> = try {
         Resource.Success(gameService.getGames().map { it.toGame() })
-    } catch(e: Exception) {
+    } catch (e: Exception) {
         e.printStackTrace()
         Resource.Error(e.message ?: "An error occurred", null)
     }
