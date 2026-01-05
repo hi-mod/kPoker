@@ -3,7 +3,9 @@ package com.aaronchancey.poker.kpoker.betting
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class BettingRoundType {
     PRE_FLOP,
     FLOP,
@@ -11,6 +13,7 @@ enum class BettingRoundType {
     RIVER,
 }
 
+@Serializable
 data class BettingRound(
     val type: BettingRoundType,
     val currentBet: ChipAmount = 0,
@@ -22,6 +25,7 @@ data class BettingRound(
     val isComplete: Boolean = false,
 )
 
+@Serializable
 data class BettingStructure(
     val smallBlind: ChipAmount,
     val bigBlind: ChipAmount,

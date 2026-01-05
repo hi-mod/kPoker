@@ -1,5 +1,8 @@
 package com.aaronchancey.poker.kpoker.player
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Pot(
     val amount: ChipAmount = 0,
     val eligiblePlayerIds: Set<PlayerId> = emptySet(),
@@ -10,6 +13,7 @@ data class Pot(
     fun removePlayer(playerId: PlayerId): Pot = copy(eligiblePlayerIds = eligiblePlayerIds - playerId)
 }
 
+@Serializable
 data class PotManager(
     val pots: List<Pot> = emptyList(),
 ) {

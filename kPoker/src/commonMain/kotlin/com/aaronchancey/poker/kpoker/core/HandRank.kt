@@ -1,5 +1,8 @@
 package com.aaronchancey.poker.kpoker.core
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class HandRank(val rank: Int, val displayName: String) {
     HIGH_CARD(1, "High Card"),
     ONE_PAIR(2, "One Pair"),

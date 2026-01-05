@@ -1,5 +1,8 @@
 package com.aaronchancey.poker.kpoker.core
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class Suit(val symbol: String, val unicode: String) {
     CLUBS("c", "♣"),
     DIAMONDS("d", "♦"),

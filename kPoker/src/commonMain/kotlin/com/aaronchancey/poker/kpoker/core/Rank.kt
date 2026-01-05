@@ -1,5 +1,8 @@
 package com.aaronchancey.poker.kpoker.core
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class Rank(val value: Int, val symbol: String) {
     TWO(2, "2"),
     THREE(3, "3"),

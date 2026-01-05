@@ -1,5 +1,8 @@
 package com.aaronchancey.poker.kpoker.core
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class EvaluatedHand(
     val rank: HandRank,
     val cards: List<Card>,

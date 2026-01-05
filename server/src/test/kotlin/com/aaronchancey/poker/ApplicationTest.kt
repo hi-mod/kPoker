@@ -10,12 +10,12 @@ import kotlin.test.assertEquals
 class ApplicationTest {
 
     @Test
-    fun testRoot() = testApplication {
+    fun testRoomsList() = testApplication {
         application {
             module()
         }
-        val response = client.get("/")
+        val response = client.get("/rooms")
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("Ktor: ${Greeting().greet()}", response.bodyAsText())
+        assertEquals("[]", response.bodyAsText())
     }
 }

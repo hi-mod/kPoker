@@ -1,5 +1,8 @@
 package com.aaronchancey.poker.kpoker.player
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Seat(
     val number: Int,
     val playerState: PlayerState? = null,
@@ -13,6 +16,7 @@ data class Seat(
     fun updatePlayerState(update: (PlayerState) -> PlayerState): Seat = copy(playerState = playerState?.let(update))
 }
 
+@Serializable
 data class Table(
     val id: String,
     val name: String,

@@ -1,0 +1,184 @@
+package com.aaronchancey.poker.routes
+
+import com.aaronchancey.poker.message.ClientMessage
+import com.aaronchancey.poker.message.ServerMessage
+import com.aaronchancey.poker.ws.PlayerConnection
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.application
+import io.ktor.server.websocket.WebSocketServerSession
+import io.ktor.server.websocket.receiveDeserialized
+import io.ktor.server.websocket.sendSerialized
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.Frame
+import io.ktor.websocket.close
+import java.util.UUID
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
+
+fun Route.routeGameSocket() {
+    val roomManager by lazy { application.attributes[RoomManagerKey] }
+    val connectionManager by lazy { application.attributes[ConnectionManagerKey] }
+
+    webSocket("/ws/room/{roomId}") {
+        val roomId = call.parameters["roomId"]
+            ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing roomId"))
+
+        val room = roomManager.getRoom(roomId)
+            ?: roomManager.getRoomOrCreate(roomId)
+
+        val playerId = UUID.randomUUID().toString()
+        var playerName = "Player-${playerId.take(4)}"
+        var isJoined = false
+
+        // Send welcome message
+        sendSerialized<ServerMessage>(ServerMessage.Welcome(playerId))
+
+        try {
+            for (frame in incoming) {
+                when (frame) {
+                    is Frame.Text -> {
+                        val message = receiveDeserialized<ClientMessage>()
+                        handleClientMessage(
+                            message = message,
+                            playerId = playerId,
+                            playerName = playerName,
+                            room = room,
+                            roomId = roomId,
+                            connectionManager = connectionManager,
+                            session = this,
+                            isJoined = isJoined,
+                            onJoined = { name ->
+                                playerName = name
+                                isJoined = true
+                            },
+                        )
+                    }
+
+                    else -> {}
+                }
+            }
+        } catch (e: ClosedReceiveChannelException) {
+            // Client disconnected
+        } catch (e: Exception) {
+            sendSerialized<ServerMessage>(ServerMessage.Error("INTERNAL_ERROR", e.message ?: "Unknown error"))
+        } finally {
+            // Cleanup on disconnect
+            if (isJoined) {
+                connectionManager.removeConnection(roomId, playerId)
+                connectionManager.broadcast(roomId, ServerMessage.PlayerDisconnected(playerId))
+
+                // Stand player up if seated
+                if (room.isPlayerSeated(playerId)) {
+                    room.standPlayer(playerId)
+                }
+            }
+        }
+    }
+}
+
+private suspend fun handleClientMessage(
+    message: ClientMessage,
+    playerId: String,
+    playerName: String,
+    room: com.aaronchancey.poker.room.ServerRoom,
+    roomId: String,
+    connectionManager: com.aaronchancey.poker.ws.ConnectionManager,
+    session: WebSocketServerSession,
+    isJoined: Boolean,
+    onJoined: (String) -> Unit,
+) {
+    when (message) {
+        is ClientMessage.JoinRoom -> {
+            if (isJoined) {
+                session.sendSerialized<ServerMessage>(ServerMessage.Error("ALREADY_JOINED", "Already joined room"))
+                return
+            }
+
+            val connection = PlayerConnection(playerId, message.playerName, session)
+            connectionManager.addConnection(roomId, connection)
+            onJoined(message.playerName)
+
+            // Send room info and current state
+            session.sendSerialized<ServerMessage>(ServerMessage.RoomJoined(room.getRoomInfo()))
+            session.sendSerialized<ServerMessage>(ServerMessage.GameStateUpdate(room.getGameState()))
+
+            // Notify others
+            connectionManager.broadcastExcept(
+                roomId,
+                playerId,
+                ServerMessage.PlayerConnected(playerId, message.playerName),
+            )
+        }
+
+        is ClientMessage.LeaveRoom -> {
+            session.close(CloseReason(CloseReason.Codes.NORMAL, "Player left"))
+        }
+
+        is ClientMessage.TakeSeat -> {
+            if (!isJoined) {
+                session.sendSerialized<ServerMessage>(ServerMessage.Error("NOT_JOINED", "Must join room first"))
+                return
+            }
+
+            val result = room.seatPlayer(playerId, playerName, message.seatNumber, message.buyIn)
+            result.fold(
+                onSuccess = {
+                    session.sendSerialized<ServerMessage>(ServerMessage.GameStateUpdate(room.getGameState()))
+                    // Try to start hand if enough players
+                    room.startHandIfReady()
+                },
+                onFailure = { e ->
+                    session.sendSerialized<ServerMessage>(ServerMessage.Error("SEAT_ERROR", e.message ?: "Cannot take seat"))
+                },
+            )
+        }
+
+        is ClientMessage.LeaveSeat -> {
+            if (!isJoined) {
+                session.sendSerialized<ServerMessage>(ServerMessage.Error("NOT_JOINED", "Must join room first"))
+                return
+            }
+
+            val result = room.standPlayer(playerId)
+            result.fold(
+                onSuccess = { chips ->
+                    session.sendSerialized<ServerMessage>(ServerMessage.GameStateUpdate(room.getGameState()))
+                },
+                onFailure = { e ->
+                    session.sendSerialized<ServerMessage>(ServerMessage.Error("STAND_ERROR", e.message ?: "Cannot leave seat"))
+                },
+            )
+        }
+
+        is ClientMessage.PerformAction -> {
+            if (!isJoined) {
+                session.sendSerialized<ServerMessage>(ServerMessage.Error("NOT_JOINED", "Must join room first"))
+                return
+            }
+
+            val result = room.performAction(playerId, message.action)
+            result.fold(
+                onSuccess = {
+                    // State updates are broadcast via game events
+                },
+                onFailure = { e ->
+                    session.sendSerialized<ServerMessage>(ServerMessage.Error("ACTION_ERROR", e.message ?: "Invalid action"))
+                },
+            )
+        }
+
+        is ClientMessage.SendChat -> {
+            if (!isJoined) {
+                session.sendSerialized<ServerMessage>(ServerMessage.Error("NOT_JOINED", "Must join room first"))
+                return
+            }
+
+            connectionManager.broadcast(
+                roomId,
+                ServerMessage.GameEventOccurred(
+                    com.aaronchancey.poker.kpoker.events.GameEvent.ChatMessage(playerId, message.message),
+                ),
+            )
+        }
+    }
+}

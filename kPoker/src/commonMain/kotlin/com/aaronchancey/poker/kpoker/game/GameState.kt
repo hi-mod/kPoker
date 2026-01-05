@@ -9,7 +9,10 @@ import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.PotManager
 import com.aaronchancey.poker.kpoker.player.Table
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
+@Serializable
 enum class GamePhase {
     WAITING, // Waiting for players
     STARTING, // Hand is starting
@@ -23,10 +26,11 @@ enum class GamePhase {
     HAND_COMPLETE, // Hand finished, ready for next
 }
 
+@Serializable
 data class GameState(
     val table: Table,
     val phase: GamePhase = GamePhase.WAITING,
-    val deck: Deck = Deck.standard(),
+    @Transient val deck: Deck = Deck.standard(),
     val communityCards: List<Card> = emptyList(),
     val potManager: PotManager = PotManager(),
     val bettingRound: BettingRound? = null,
@@ -65,6 +69,7 @@ data class GameState(
     )
 }
 
+@Serializable
 data class Winner(
     val playerId: PlayerId,
     val amount: ChipAmount,

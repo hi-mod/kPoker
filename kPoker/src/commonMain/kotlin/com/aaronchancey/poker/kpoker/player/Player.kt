@@ -1,14 +1,18 @@
 package com.aaronchancey.poker.kpoker.player
 
+import kotlinx.serialization.Serializable
+
 typealias PlayerId = String
 typealias ChipAmount = Long
 
+@Serializable
 data class Player(
     val id: PlayerId,
     val name: String,
     val avatarUrl: String? = null,
 )
 
+@Serializable
 enum class PlayerStatus {
     WAITING, // Waiting for next hand
     ACTIVE, // In current hand
@@ -18,6 +22,7 @@ enum class PlayerStatus {
     DISCONNECTED, // Lost connection
 }
 
+@Serializable
 data class PlayerState(
     val player: Player,
     val chips: ChipAmount,
