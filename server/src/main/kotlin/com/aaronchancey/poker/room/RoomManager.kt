@@ -1,7 +1,7 @@
 package com.aaronchancey.poker.room
 
 import com.aaronchancey.poker.kpoker.player.ChipAmount
-import com.aaronchancey.poker.message.RoomInfo
+import com.aaronchancey.poker.shared.message.RoomInfo
 import com.aaronchancey.poker.ws.ConnectionManager
 import java.util.concurrent.ConcurrentHashMap
 

@@ -41,10 +41,6 @@ kotlin {
     }
 
     sourceSets {
-        androidMain.dependencies {
-            implementation(compose.preview)
-            implementation(libs.androidx.activity.compose)
-        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -55,13 +51,33 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
+            implementation(projects.kPoker)
+            implementation(libs.ktor.clientCore)
+            implementation(libs.ktor.clientWebsockets)
+            implementation(libs.ktor.clientContentNegotiation)
+            implementation(libs.ktor.clientSerializationJson)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        androidMain.dependencies {
+            implementation(compose.preview)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.clientOkhttp)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.clientDarwin)
+        }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.ktor.clientCio)
+        }
+        jsMain.dependencies {
+            implementation(libs.ktor.clientJs)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.ktor.clientJs)
         }
     }
 }

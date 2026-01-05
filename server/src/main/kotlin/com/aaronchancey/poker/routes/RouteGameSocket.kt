@@ -1,7 +1,7 @@
 package com.aaronchancey.poker.routes
 
-import com.aaronchancey.poker.message.ClientMessage
-import com.aaronchancey.poker.message.ServerMessage
+import com.aaronchancey.poker.shared.message.ClientMessage
+import com.aaronchancey.poker.shared.message.ServerMessage
 import com.aaronchancey.poker.ws.PlayerConnection
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application

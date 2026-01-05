@@ -1,4 +1,4 @@
-package com.aaronchancey.poker.message
+package com.aaronchancey.poker.shared.message
 
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.events.GameEvent

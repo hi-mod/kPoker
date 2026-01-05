@@ -1,7 +1,7 @@
 package com.aaronchancey.poker.ws
 
 import com.aaronchancey.poker.kpoker.player.PlayerId
-import com.aaronchancey.poker.message.ServerMessage
+import com.aaronchancey.poker.shared.message.ServerMessage
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.sendSerialized
 import java.util.concurrent.ConcurrentHashMap

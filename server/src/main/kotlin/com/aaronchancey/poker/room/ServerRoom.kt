@@ -11,8 +11,8 @@ import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.Seat
 import com.aaronchancey.poker.kpoker.player.Table
 import com.aaronchancey.poker.kpoker.variants.TexasHoldemGame
-import com.aaronchancey.poker.message.RoomInfo
-import com.aaronchancey.poker.message.ServerMessage
+import com.aaronchancey.poker.shared.message.RoomInfo
+import com.aaronchancey.poker.shared.message.ServerMessage
 import com.aaronchancey.poker.ws.ConnectionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
