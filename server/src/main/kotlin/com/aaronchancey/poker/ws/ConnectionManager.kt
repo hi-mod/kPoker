@@ -58,6 +58,7 @@ class ConnectionManager {
         connections.forEach { connection ->
             try {
                 connection.session.sendSerialized(message)
+                println("broadCastExcept Sent message: $message")
             } catch (_: Exception) {
                 // Connection might be closed
             }

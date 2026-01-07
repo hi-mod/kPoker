@@ -90,7 +90,7 @@ class SeatManager(
     ): SeatSelectionResult {
         cleanExpiredReservations(currentTime)
 
-        if (seatNumber < 1 || seatNumber > maxSeats) {
+        if (seatNumber !in 1..maxSeats) {
             return SeatSelectionResult.InvalidSeat(seatNumber, maxSeats)
         }
 
@@ -118,7 +118,12 @@ class SeatManager(
     }
 
     fun cancelReservation(playerId: PlayerId) {
-        reservations.entries.removeIf { it.value.playerId == playerId }
+        val iterator = reservations.entries.iterator()
+        while (iterator.hasNext()) {
+            if (iterator.next().value.playerId == playerId) {
+                iterator.remove()
+            }
+        }
     }
 
     fun hasReservation(seatNumber: Int, playerId: PlayerId, currentTime: Long): Boolean {
@@ -137,6 +142,11 @@ class SeatManager(
     }
 
     private fun cleanExpiredReservations(currentTime: Long) {
-        reservations.entries.removeIf { it.value.isExpired(currentTime) }
+        val iterator = reservations.entries.iterator()
+        while (iterator.hasNext()) {
+            if (iterator.next().value.isExpired(currentTime)) {
+                iterator.remove()
+            }
+        }
     }
 }

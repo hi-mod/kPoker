@@ -1,8 +1,10 @@
 package com.aaronchancey.poker.routes
 
+import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.shared.message.ClientMessage
 import com.aaronchancey.poker.shared.message.ServerMessage
 import com.aaronchancey.poker.ws.PlayerConnection
+import io.ktor.server.application.log
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.application
 import io.ktor.server.websocket.WebSocketServerSession
@@ -10,7 +12,6 @@ import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.CloseReason
-import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import java.util.UUID
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
@@ -34,28 +35,23 @@ fun Route.routeGameSocket() {
         sendSerialized<ServerMessage>(ServerMessage.Welcome(playerId))
 
         try {
-            for (frame in incoming) {
-                when (frame) {
-                    is Frame.Text -> {
-                        val message = receiveDeserialized<ClientMessage>()
-                        handleClientMessage(
-                            message = message,
-                            playerId = playerId,
-                            playerName = playerName,
-                            room = room,
-                            roomId = roomId,
-                            connectionManager = connectionManager,
-                            session = this,
-                            isJoined = isJoined,
-                            onJoined = { name ->
-                                playerName = name
-                                isJoined = true
-                            },
-                        )
-                    }
-
-                    else -> {}
-                }
+            while (true) {
+                val message = receiveDeserialized<ClientMessage>()
+                application.log.info("Received message from player $playerId: $message")
+                handleClientMessage(
+                    message = message,
+                    playerId = playerId,
+                    playerName = playerName,
+                    room = room,
+                    roomId = roomId,
+                    connectionManager = connectionManager,
+                    session = this,
+                    isJoined = isJoined,
+                    onJoined = { name ->
+                        playerName = name
+                        isJoined = true
+                    },
+                )
             }
         } catch (e: ClosedReceiveChannelException) {
             // Client disconnected
@@ -175,9 +171,7 @@ private suspend fun handleClientMessage(
 
             connectionManager.broadcast(
                 roomId,
-                ServerMessage.GameEventOccurred(
-                    com.aaronchancey.poker.kpoker.events.GameEvent.ChatMessage(playerId, message.message),
-                ),
+                ServerMessage.GameEventOccurred(GameEvent.ChatMessage(playerId, message.message)),
             )
         }
     }

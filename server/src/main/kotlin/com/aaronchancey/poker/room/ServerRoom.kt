@@ -2,7 +2,7 @@ package com.aaronchancey.poker.room
 
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.BettingStructure
-import com.aaronchancey.poker.kpoker.game.GamePhase
+import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.Player
@@ -14,8 +14,10 @@ import com.aaronchancey.poker.kpoker.variants.TexasHoldemGame
 import com.aaronchancey.poker.shared.message.RoomInfo
 import com.aaronchancey.poker.shared.message.ServerMessage
 import com.aaronchancey.poker.ws.ConnectionManager
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -32,15 +34,35 @@ class ServerRoom(
 ) {
     private val mutex = Mutex()
     private val bettingStructure = BettingStructure.noLimit(smallBlind, bigBlind)
-    private var table = Table.create(roomId, roomName, maxPlayers)
     private var game = TexasHoldemGame(bettingStructure)
     private val scope = CoroutineScope(Dispatchers.Default)
 
     init {
-        game.initialize(table)
+        val initialTable = Table.create(roomId, roomName, maxPlayers)
+        game.initialize(initialTable)
         game.addEventListener { event ->
             scope.launch {
                 connectionManager.broadcast(roomId, ServerMessage.GameEventOccurred(event))
+                connectionManager.broadcast(roomId, ServerMessage.GameStateUpdate(game.currentState))
+
+                when (event) {
+                    is GameEvent.TurnChanged -> {
+                        game.getActionRequest()?.let { actionRequest ->
+                            connectionManager.sendTo(
+                                roomId,
+                                event.playerId,
+                                ServerMessage.ActionRequired(actionRequest),
+                            )
+                        }
+                    }
+
+                    is GameEvent.HandComplete -> {
+                        delay(5.seconds)
+                        startHandIfReady()
+                    }
+
+                    else -> Unit /* No additional action needed for other events */
+                }
             }
         }
     }
@@ -62,8 +84,9 @@ class ServerRoom(
         try {
             val player = Player(playerId, playerName)
             val playerState = PlayerState(player, buyIn)
-            table = table.sitPlayer(seatNumber, playerState)
-            game.initialize(table)
+            val currentTable = game.currentState.table
+            val newTable = currentTable.sitPlayer(seatNumber, playerState)
+            game.updateTable(newTable)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -73,11 +96,12 @@ class ServerRoom(
     suspend fun standPlayer(playerId: PlayerId): Result<ChipAmount> {
         return mutex.withLock {
             try {
-                val seat = table.getPlayerSeat(playerId)
+                val currentTable = game.currentState.table
+                val seat = currentTable.getPlayerSeat(playerId)
                     ?: return@withLock Result.failure(IllegalStateException("Player not seated"))
                 val chips = seat.playerState?.chips ?: 0
-                table = table.standPlayer(playerId)
-                game.initialize(table)
+                val newTable = currentTable.standPlayer(playerId)
+                game.updateTable(newTable)
                 Result.success(chips)
             } catch (e: Exception) {
                 Result.failure(e)
@@ -100,8 +124,7 @@ class ServerRoom(
     }
 
     suspend fun startHandIfReady(): Boolean = mutex.withLock {
-        val state = game.currentState
-        if (state.table.playerCount >= 2 && state.phase == GamePhase.WAITING) {
+        if (game.currentState.table.playerCount >= 2 && !game.currentState.isHandInProgress) {
             game.startHand()
             true
         } else {

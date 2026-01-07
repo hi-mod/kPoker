@@ -49,6 +49,10 @@ abstract class PokerGame(
         emit(GameEvent.GameInitialized(state))
     }
 
+    open fun updateTable(table: Table) {
+        state = state.withTable(table)
+    }
+
     open fun startHand(): GameState {
         require(state.table.playerCount >= 2) { "Need at least 2 players" }
         require(!state.isHandInProgress) { "Hand already in progress" }
@@ -99,8 +103,13 @@ abstract class PokerGame(
         val occupiedSeats = state.table.occupiedSeats.map { it.number }.sorted()
         val dealerIndex = occupiedSeats.indexOf(state.dealerSeatNumber)
 
-        val smallBlindIndex = (dealerIndex + 1) % occupiedSeats.size
-        val bigBlindIndex = (dealerIndex + 2) % occupiedSeats.size
+        val (smallBlindIndex, bigBlindIndex) = if (occupiedSeats.size == 2) {
+            // In Heads-Up, Dealer is SB, other player is BB
+            dealerIndex to (dealerIndex + 1) % occupiedSeats.size
+        } else {
+            // Multi-player: SB is dealer + 1, BB is dealer + 2
+            (dealerIndex + 1) % occupiedSeats.size to (dealerIndex + 2) % occupiedSeats.size
+        }
 
         val smallBlindSeat = occupiedSeats[smallBlindIndex]
         val bigBlindSeat = occupiedSeats[bigBlindIndex]
@@ -125,7 +134,7 @@ abstract class PokerGame(
                 ps.copy(
                     chips = ps.chips - actualAmount,
                     currentBet = actualAmount,
-                    totalBetThisRound = actualAmount,
+                    totalBetThisRound = actualAmount, // Track blind as part of round bet
                     isSmallBlind = blindType == BlindType.SMALL_BLIND,
                     isBigBlind = blindType == BlindType.BIG_BLIND,
                     status = if (ps.chips - actualAmount == 0L) PlayerStatus.ALL_IN else PlayerStatus.ACTIVE,
@@ -133,6 +142,7 @@ abstract class PokerGame(
             }
         }
 
+        // Blind stays with player until end of round
         state = state.withTable(table).withLastAction(action)
         emit(GameEvent.BlindPosted(playerState.player.id, actualAmount, blindType))
     }
@@ -150,6 +160,12 @@ abstract class PokerGame(
     }
 
     protected fun setNextActor() {
+        val playersInHandCount = state.table.getPlayersInHand().size
+        if (playersInHandCount <= 1) {
+            endBettingRound()
+            return
+        }
+
         val playersInHand = state.table.occupiedSeats
             .filter { it.playerState?.status == PlayerStatus.ACTIVE }
             .map { it.number }
@@ -160,7 +176,11 @@ abstract class PokerGame(
             return
         }
 
-        val currentSeat = state.currentActorSeatNumber ?: state.dealerSeatNumber
+        val currentSeat = state.currentActorSeatNumber ?: if (state.phase == GamePhase.PRE_FLOP) {
+            state.table.occupiedSeats.find { it.playerState?.isBigBlind == true }?.number ?: state.dealerSeatNumber
+        } else {
+            state.dealerSeatNumber
+        }
         val currentIndex = playersInHand.indexOf(currentSeat)
 
         // Find next player who hasn't acted or needs to respond to a raise
@@ -326,7 +346,10 @@ abstract class PokerGame(
             }
         }
 
-        state = state.withTable(table).withPotManager(newPotManager).withBettingRound(null)
+        state = state.withTable(table)
+            .withPotManager(newPotManager)
+            .withBettingRound(null)
+            .withCurrentActor(null)
 
         // Check if hand should continue
         val playersRemaining = state.table.getPlayersInHand()

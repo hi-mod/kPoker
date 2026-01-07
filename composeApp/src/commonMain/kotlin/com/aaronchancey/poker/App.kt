@@ -29,12 +29,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aaronchancey.poker.kpoker.betting.Action
+import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.betting.ActionType
+import com.aaronchancey.poker.kpoker.game.GameState
+import com.aaronchancey.poker.kpoker.player.ChipAmount
+import com.aaronchancey.poker.kpoker.player.PlayerId
+import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.network.ConnectionState
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 @Preview
-fun App(viewModel: GameViewModel = viewModel { GameViewModel() }) {
+fun App(viewModel: GameViewModel = viewModel { GameViewModel() }) = MaterialTheme {
     val uiState by viewModel.uiState.collectAsState()
 
     // Handle side effects
@@ -56,69 +63,67 @@ fun App(viewModel: GameViewModel = viewModel { GameViewModel() }) {
         }
     }
 
-    MaterialTheme {
-        Box(
+    Box(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .safeContentPadding()
+            .fillMaxSize(),
+    ) {
+        Column(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                when (uiState.connectionState) {
-                    ConnectionState.DISCONNECTED -> {
-                        ConnectScreen(
+            when (uiState.connectionState) {
+                ConnectionState.DISCONNECTED -> {
+                    ConnectScreen(
+                        onIntent = viewModel::onIntent,
+                        isLoading = uiState.isLoading,
+                    )
+                }
+
+                ConnectionState.CONNECTING -> {
+                    CircularProgressIndicator()
+                    Text("Connecting...")
+                }
+
+                ConnectionState.CONNECTED, ConnectionState.RECONNECTING -> {
+                    if (uiState.roomInfo == null) {
+                        JoinRoomScreen(
                             onIntent = viewModel::onIntent,
                             isLoading = uiState.isLoading,
                         )
-                    }
-
-                    ConnectionState.CONNECTING -> {
-                        CircularProgressIndicator()
-                        Text("Connecting...")
-                    }
-
-                    ConnectionState.CONNECTED, ConnectionState.RECONNECTING -> {
-                        if (uiState.roomInfo == null) {
-                            JoinRoomScreen(
-                                onIntent = viewModel::onIntent,
-                                isLoading = uiState.isLoading,
-                            )
-                        } else {
-                            GameScreen(
-                                uiState = uiState,
-                                onIntent = viewModel::onIntent,
-                            )
-                        }
-                    }
-                }
-
-                uiState.error?.let { error ->
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "Error: $error",
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(16.dp),
+                    } else {
+                        GameScreen(
+                            uiState = uiState,
+                            onIntent = viewModel::onIntent,
                         )
-                    }
-                    Button(onClick = { viewModel.onIntent(GameIntent.ClearError) }) {
-                        Text("Dismiss")
                     }
                 }
             }
 
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
+            uiState.error?.let { error ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Error: $error",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp),
+                    )
                 }
+                Button(onClick = { viewModel.onIntent(GameIntent.ClearError) }) {
+                    Text("Dismiss")
+                }
+            }
+        }
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
             }
         }
     }
@@ -209,6 +214,8 @@ private fun GameScreen(
     ) {
         uiState.roomInfo?.let { room ->
             Text("Room: ${room.roomName}", style = MaterialTheme.typography.headlineSmall)
+            uiState.gameState?.handNumber
+            Text("Hand No: ${uiState.gameState?.handNumber ?: "N/A"}")
             Text("Blinds: ${room.smallBlind}/${room.bigBlind}")
             Text("Players: ${room.playerCount}/${room.maxPlayers}")
         }
@@ -217,24 +224,13 @@ private fun GameScreen(
 
         uiState.gameState?.let { state ->
             Text("Phase: ${state.phase}")
+            Text("Community Cards: ${state.communityCards.joinToString(", ")}")
             Text("Pot: ${state.totalPot}")
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Display seats
-            state.table.seats.forEach { seat ->
-                val playerState = seat.playerState
-                if (playerState != null) {
-                    Text("Seat ${seat.number}: ${playerState.player.name} - ${playerState.chips} chips")
-                } else {
-                    Button(
-                        onClick = { onIntent(GameIntent.TakeSeat(seat.number, 100)) },
-                        enabled = !uiState.isLoading,
-                    ) {
-                        Text("Take Seat ${seat.number}")
-                    }
-                }
-            }
+            Seats(state, uiState.gameState, uiState, onIntent)
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -255,4 +251,83 @@ private fun GameScreen(
             }
         }
     }
+}
+
+@Composable
+private fun Seats(
+    state: GameState,
+    gameState: GameState,
+    uiState: GameUiState,
+    onIntent: (GameIntent) -> Unit,
+) {
+    state.table.seats.forEach { seat ->
+        val playerState = seat.playerState
+        if (playerState != null) {
+            val text = buildString {
+                append("Seat ${seat.number}: ${playerState.player.name} - ")
+                if (playerState.holeCards.isNotEmpty()) {
+                    append("Cards: ${playerState.holeCards.joinToString(", ")} - ")
+                }
+                append("${playerState.chips} chips ")
+                if (playerState.isDealer) {
+                    append("(Dealer) ")
+                }
+                if (gameState.winners.find { it.playerId == playerState.player.id } != null) {
+                    append("Winner!")
+                }
+            }
+            Text(text)
+            PlayerActions(playerState, uiState, onIntent)
+        } else {
+            Button(
+                onClick = { onIntent(GameIntent.TakeSeat(seat.number, 100)) },
+                enabled = !uiState.isLoading,
+            ) {
+                Text("Take Seat ${seat.number}")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerActions(
+    playerState: PlayerState,
+    uiState: GameUiState,
+    onIntent: (GameIntent) -> Unit,
+) {
+    if (playerState.hasActed || uiState.availableActions?.playerId != playerState.player.id) return
+    Row {
+        uiState.availableActions.validActions.forEach { actionType ->
+            Button(
+                onClick = actionClick(
+                    playerId = playerState.player.id,
+                    chips = playerState.chips,
+                    actionType = actionType,
+                    availableActions = uiState.availableActions,
+                    onIntent = onIntent,
+                ),
+                enabled = !uiState.isLoading,
+            ) {
+                Text(actionType.name)
+            }
+        }
+    }
+}
+
+private fun actionClick(
+    playerId: PlayerId,
+    chips: ChipAmount,
+    actionType: ActionType,
+    availableActions: ActionRequest,
+    onIntent: (GameIntent) -> Unit,
+): () -> Unit = {
+    val action: Action = when (actionType) {
+        ActionType.FOLD -> Action.Fold(playerId)
+        ActionType.CHECK -> Action.Check(playerId)
+        ActionType.CALL -> Action.Call(playerId, availableActions.amountToCall)
+        ActionType.BET -> Action.Bet(playerId, availableActions.minimumBet)
+        ActionType.RAISE -> Action.Raise(playerId, availableActions.minimumRaise, 0)
+        ActionType.ALL_IN -> Action.AllIn(playerId, chips)
+    }
+    onIntent(GameIntent.PerformAction(action))
 }

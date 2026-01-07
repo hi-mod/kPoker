@@ -65,37 +65,38 @@ class BettingManager(
         minRaise: ChipAmount,
         isPotLimit: Boolean = false,
     ): ActionRequest {
-        val validActions = mutableSetOf<ActionType>()
         val amountToCall = currentBet - playerState.currentBet
 
-        // Always can fold (unless no bet to call)
-        if (amountToCall > 0) {
-            validActions.add(ActionType.FOLD)
-        }
+        val validActions = buildSet {
+            // Always can fold (unless no bet to call)
+            if (amountToCall > 0) {
+                add(ActionType.FOLD)
+            }
 
-        // Check if no bet to call
-        if (amountToCall == 0L) {
-            validActions.add(ActionType.CHECK)
-        }
+            // Check if no bet to call
+            if (amountToCall == 0L) {
+                add(ActionType.CHECK)
+            }
 
-        // Call if there's a bet and player has chips
-        if (amountToCall > 0 && playerState.chips > 0) {
-            validActions.add(ActionType.CALL)
-        }
+            // Call if there's a bet and player has chips
+            if (amountToCall > 0 && playerState.chips > 0) {
+                add(ActionType.CALL)
+            }
 
-        // Bet if no current bet
-        if (currentBet == 0L && playerState.chips >= structure.minBet) {
-            validActions.add(ActionType.BET)
-        }
+            // Bet if no current bet
+            if (currentBet == 0L && playerState.chips >= structure.minBet) {
+                add(ActionType.BET)
+            }
 
-        // Raise if there's a bet and player has enough chips
-        if (currentBet > 0 && playerState.chips > amountToCall) {
-            validActions.add(ActionType.RAISE)
-        }
+            // Raise if there's a bet and player has enough chips
+            if (currentBet > 0 && playerState.chips > amountToCall) {
+                add(ActionType.RAISE)
+            }
 
-        // All-in is always available if player has chips
-        if (playerState.chips > 0) {
-            validActions.add(ActionType.ALL_IN)
+            // All-in is always available if player has chips
+            if (playerState.chips > 0) {
+                add(ActionType.ALL_IN)
+            }
         }
 
         val maxBet = if (isPotLimit) {

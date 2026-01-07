@@ -1,6 +1,8 @@
 package com.aaronchancey.poker.network
 
 import com.aaronchancey.poker.kpoker.betting.Action
+import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
@@ -25,6 +27,9 @@ class PokerRepository(
     private val _gameState = MutableStateFlow<GameState?>(null)
     val gameState: StateFlow<GameState?> = _gameState.asStateFlow()
 
+    private val _availableActions = MutableStateFlow<ActionRequest?>(null)
+    val availableActions: StateFlow<ActionRequest?> = _availableActions.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
@@ -38,37 +43,45 @@ class PokerRepository(
         _error.value = error.message
     }
 
-    private fun handleServerMessage(message: ServerMessage) = when (message) {
-        is ServerMessage.Welcome -> {
-            _playerId.value = message.playerId
-        }
+    private fun handleServerMessage(message: ServerMessage) {
+        println("Received message: $message")
+        when (message) {
+            is ServerMessage.Welcome -> {
+                _playerId.value = message.playerId
+            }
 
-        is ServerMessage.RoomJoined -> {
-            _roomInfo.value = message.roomInfo
-        }
+            is ServerMessage.RoomJoined -> {
+                _roomInfo.value = message.roomInfo
+            }
 
-        is ServerMessage.GameStateUpdate -> {
-            _gameState.value = message.state
-        }
+            is ServerMessage.GameStateUpdate -> {
+                _gameState.value = message.state
+                if (message.state.currentActor?.player?.id != playerId.value) {
+                    _availableActions.value = null
+                }
+            }
 
-        is ServerMessage.GameEventOccurred -> {
-            // Events can be handled by UI for animations/sounds
-        }
+            is ServerMessage.GameEventOccurred -> {
+                if (message.event is GameEvent.HandComplete) {
+                    _availableActions.value = null
+                }
+            }
 
-        is ServerMessage.ActionRequired -> {
-            // UI should show action buttons
-        }
+            is ServerMessage.ActionRequired -> {
+                _availableActions.value = message.request
+            }
 
-        is ServerMessage.Error -> {
-            _error.value = "${message.code}: ${message.message}"
-        }
+            is ServerMessage.Error -> {
+                _error.value = "${message.code}: ${message.message}"
+            }
 
-        is ServerMessage.PlayerConnected -> {
-            // Could show notification
-        }
+            is ServerMessage.PlayerConnected -> {
+                // Could show notification
+            }
 
-        is ServerMessage.PlayerDisconnected -> {
-            // Could show notification
+            is ServerMessage.PlayerDisconnected -> {
+                // Could show notification
+            }
         }
     }
 

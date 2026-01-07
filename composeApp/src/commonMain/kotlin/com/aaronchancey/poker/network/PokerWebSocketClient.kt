@@ -4,13 +4,14 @@ import com.aaronchancey.poker.shared.message.ClientMessage
 import com.aaronchancey.poker.shared.message.ServerMessage
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.plugins.websocket.receiveDeserialized
+import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocketSession
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.websocket.Frame
-import io.ktor.websocket.WebSocketSession
 import io.ktor.websocket.close
-import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,19 +34,27 @@ enum class ConnectionState {
 }
 
 class PokerWebSocketClient {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
-
     private val client = HttpClient {
-        install(WebSockets)
+        install(WebSockets) {
+            contentConverter =
+                KotlinxWebsocketSerializationConverter(
+                    Json {
+                        ignoreUnknownKeys = true
+                        encodeDefaults = true
+                    },
+                )
+        }
         install(ContentNegotiation) {
-            json(json)
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                    encodeDefaults = true
+                },
+            )
         }
     }
 
-    private var session: WebSocketSession? = null
+    private var session: DefaultClientWebSocketSession? = null
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
@@ -79,19 +88,12 @@ class PokerWebSocketClient {
         scope.launch {
             val currentSession = session ?: return@launch
             try {
-                for (frame in currentSession.incoming) {
-                    when (frame) {
-                        is Frame.Text -> {
-                            val text = frame.readText()
-                            try {
-                                val message = json.decodeFromString<ServerMessage>(text)
-                                _messages.emit(message)
-                            } catch (e: Exception) {
-                                _errors.emit(e)
-                            }
-                        }
-
-                        else -> {}
+                while (true) {
+                    try {
+                        val message = currentSession.receiveDeserialized<ServerMessage>()
+                        _messages.emit(message)
+                    } catch (e: Exception) {
+                        _errors.emit(e)
                     }
                 }
             } catch (e: Exception) {
@@ -112,8 +114,8 @@ class PokerWebSocketClient {
         }
 
         try {
-            val text = json.encodeToString(ClientMessage.serializer(), message)
-            currentSession.send(Frame.Text(text))
+            currentSession.sendSerialized(message)
+            println("Sent message: $message")
         } catch (e: Exception) {
             _errors.emit(e)
         }

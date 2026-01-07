@@ -21,13 +21,13 @@ data class RoomConfig(
 
 class Room(
     val config: RoomConfig,
-    val table: Table = Table.create(config.id, config.name, config.maxPlayers),
+    table: Table = Table.create(config.id, config.name, config.maxPlayers),
 ) {
     private val spectators = mutableMapOf<PlayerId, RoomParticipant.Spectator>()
     private val seatManager = SeatManager(config.maxPlayers, config.reservationDurationMs)
     private val eventListeners = mutableListOf<(GameEvent) -> Unit>()
 
-    private var _currentTable = currentTable
+    private var _currentTable = table
     val currentTable: Table
         get() = _currentTable
 

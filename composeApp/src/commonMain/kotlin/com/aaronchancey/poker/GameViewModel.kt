@@ -3,6 +3,7 @@ package com.aaronchancey.poker
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aaronchancey.poker.kpoker.betting.Action
+import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
@@ -25,6 +26,7 @@ data class GameUiState(
     val playerId: PlayerId? = null,
     val roomInfo: RoomInfo? = null,
     val gameState: GameState? = null,
+    val availableActions: ActionRequest? = null,
     val error: String? = null,
     val isLoading: Boolean = false,
 )
@@ -62,14 +64,15 @@ class GameViewModel(
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = combine(
-        _uiState,
-        repository.connectionState,
-        repository.playerId,
-        repository.roomInfo,
-        repository.gameState,
-        repository.error,
-        repository.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null),
-        repository.errors.stateIn(viewModelScope, SharingStarted.Eagerly, null),
+        _uiState, // 0
+        repository.connectionState, // 1
+        repository.playerId, // 2
+        repository.roomInfo, // 3
+        repository.gameState, // 4
+        repository.availableActions, // 5
+        repository.error, // 6
+        repository.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 7
+        repository.errors.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 8
     ) { values: Array<*> ->
         val state = values[0] as GameUiState
         state.copy(
@@ -77,7 +80,8 @@ class GameViewModel(
             playerId = values[2] as PlayerId?,
             roomInfo = values[3] as RoomInfo?,
             gameState = values[4] as GameState?,
-            error = values[5] as String?,
+            availableActions = values[5] as ActionRequest?,
+            error = values[6] as String?,
         )
     }
         .stateIn(

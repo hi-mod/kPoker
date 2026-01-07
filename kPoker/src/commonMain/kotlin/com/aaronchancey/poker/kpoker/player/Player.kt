@@ -45,7 +45,7 @@ data class PlayerState(
     fun withHoleCards(cards: List<com.aaronchancey.poker.kpoker.core.Card>) = copy(holeCards = cards)
     fun clearBet() = copy(currentBet = 0)
     fun markActed() = copy(hasActed = true)
-    fun resetForNewRound() = copy(hasActed = false, currentBet = 0)
+    fun resetForNewRound() = copy(hasActed = false, currentBet = 0, totalBetThisRound = 0)
     fun resetForNewHand() = copy(
         holeCards = emptyList(),
         status = PlayerStatus.WAITING,
