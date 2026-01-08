@@ -1,0 +1,11 @@
+runtime: java21
+entrypoint: 'java -jar kpoker-all.jar'
+
+handlers:
+  - url: /rooms.*
+    script: auto
+    secure: always
+
+  - url: /ws/.*
+    script: auto
+    secure: always

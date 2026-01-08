@@ -56,6 +56,11 @@ class PokerRepository(
 
             is ServerMessage.GameStateUpdate -> {
                 _gameState.value = message.state
+                _roomInfo.value?.let { currentInfo ->
+                    _roomInfo.value = currentInfo.copy(
+                        playerCount = message.state.table.playerCount,
+                    )
+                }
                 if (message.state.currentActor?.player?.id != playerId.value) {
                     _availableActions.value = null
                 }

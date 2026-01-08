@@ -9,4 +9,6 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.ktor) apply false
+    alias(libs.plugins.gradleup.shadow) apply false
+    alias(libs.plugins.google.gcloud.tools.appengine) apply false
 }

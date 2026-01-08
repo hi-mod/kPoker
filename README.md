@@ -93,3 +93,15 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 
 We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
 If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
+
+
+To deploy to Cloud Run:
+
+1 # 1. Build the image
+2 docker build -t gcr.io/kpoker-483701/poker-server .
+3
+4 # 2. Push to Container Registry (or Artifact Registry)
+5 docker push gcr.io/kpoker-483701/poker-server
+6
+7 # 3. Deploy
+8 gcloud run deploy poker-server --image gcr.io/kpoker-483701/poker-server --platform managed --allow-unauthenticated

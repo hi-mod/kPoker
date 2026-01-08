@@ -9,6 +9,8 @@ import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocketSession
+import io.ktor.http.URLProtocol
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.close
@@ -71,14 +73,16 @@ class PokerWebSocketClient {
 
         _connectionState.value = ConnectionState.CONNECTING
         try {
-            session = client.webSocketSession(
-                host = host,
-                port = port,
-                path = "/ws/room/$roomId",
-            )
+            session = client.webSocketSession {
+                url.host = host
+                url.port = port
+                url.encodedPath = "/ws/room/$roomId"
+                url.protocol = if (port == 443) URLProtocol.WSS else URLProtocol.WS
+            }
             _connectionState.value = ConnectionState.CONNECTED
             startListening()
         } catch (e: Exception) {
+            e.printStackTrace()
             _connectionState.value = ConnectionState.DISCONNECTED
             _errors.emit(e)
         }

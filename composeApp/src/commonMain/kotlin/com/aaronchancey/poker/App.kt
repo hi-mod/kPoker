@@ -265,6 +265,9 @@ private fun Seats(
         if (playerState != null) {
             val text = buildString {
                 append("Seat ${seat.number}: ${playerState.player.name} - ")
+                if (playerState.status == com.aaronchancey.poker.kpoker.player.PlayerStatus.WAITING) {
+                    append("(Waiting for next hand) ")
+                }
                 if (playerState.holeCards.isNotEmpty()) {
                     append("Cards: ${playerState.holeCards.joinToString(", ")} - ")
                 }
