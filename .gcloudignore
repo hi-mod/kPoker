@@ -1,9 +1,8 @@
+# Ignore build artifacts except Wasm distribution
 *.iml
 .kotlin
 .gradle
-**/build/
 xcuserdata
-!src/**/build/
 local.properties
 .idea
 .DS_Store
@@ -16,7 +15,8 @@ captures
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
-node_modules/
-/kotlin-js-store/wasm/yarn.lock
-# Generated Wasm files copied for deployment
-server/src/main/resources/static/
+node_modules
+kotlin-js-store/wasm/yarn.lock
+
+# Exclude module build directories (but not composeApp/build which has wasm dist)
+**/build

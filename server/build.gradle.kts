@@ -46,3 +46,17 @@ configure<AppEngineAppYamlExtension> {
         projectId = "GCLOUD_CONFIG"
     }
 }
+
+val wasmDistDir = project.rootDir.resolve("composeApp/build/dist/wasmJs/productionExecutable")
+
+tasks.named<ProcessResources>("processResources") {
+    // Only depend on wasmJs task if it exists (when building locally with Android SDK)
+    // For Cloud Build, Wasm is pre-built and included in the upload
+    val wasmTask = tasks.findByPath(":composeApp:wasmJsBrowserDistribution")
+    if (wasmTask != null) {
+        dependsOn(wasmTask)
+    }
+    from(wasmDistDir) {
+        into("static")
+    }
+}

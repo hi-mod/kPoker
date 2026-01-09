@@ -1,10 +1,12 @@
-# Build outputs
-build/
-**/build/
+# Build outputs (except Wasm distribution)
 .gradle/
 **/.gradle/
 .kotlin/
 **/.kotlin/
+**/build/
+
+# Exclude composeApp entirely - we'll handle Wasm separately
+composeApp/
 
 # IDE files
 .idea/
@@ -22,8 +24,7 @@ build/
 .DS_Store
 Thumbs.db
 
-# Compose multiplatform (not needed for server build)
-composeApp/
+# iOS app (not needed for server build)
 iosApp/
 
 # Test outputs
