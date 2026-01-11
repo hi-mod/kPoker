@@ -11,6 +11,7 @@ import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.Seat
 import com.aaronchancey.poker.kpoker.player.Table
 import com.aaronchancey.poker.kpoker.variants.TexasHoldemGame
+import com.aaronchancey.poker.persistence.RoomStateData
 import com.aaronchancey.poker.shared.message.RoomInfo
 import com.aaronchancey.poker.shared.message.ServerMessage
 import com.aaronchancey.poker.ws.ConnectionManager
@@ -31,6 +32,7 @@ class ServerRoom(
     val minBuyIn: ChipAmount = 40,
     val maxBuyIn: ChipAmount = 200,
     private val connectionManager: ConnectionManager,
+    initialGameState: GameState? = null,
 ) {
     private val mutex = Mutex()
     private val bettingStructure = BettingStructure.noLimit(smallBlind, bigBlind)
@@ -38,8 +40,13 @@ class ServerRoom(
     private val scope = CoroutineScope(Dispatchers.Default)
 
     init {
-        val initialTable = Table.create(roomId, roomName, maxPlayers)
-        game.initialize(initialTable)
+        if (initialGameState != null) {
+            game.restoreState(initialGameState)
+        } else {
+            val initialTable = Table.create(roomId, roomName, maxPlayers)
+            game.initialize(initialTable)
+        }
+
         game.addEventListener { event ->
             scope.launch {
                 connectionManager.broadcast(roomId, ServerMessage.GameEventOccurred(event))
@@ -76,6 +83,17 @@ class ServerRoom(
         minBuyIn = minBuyIn,
         maxBuyIn = maxBuyIn,
         playerCount = game.currentState.table.playerCount,
+    )
+
+    fun getRoomStateData(): RoomStateData = RoomStateData(
+        roomId = roomId,
+        roomName = roomName,
+        maxPlayers = maxPlayers,
+        smallBlind = smallBlind,
+        bigBlind = bigBlind,
+        minBuyIn = minBuyIn,
+        maxBuyIn = maxBuyIn,
+        gameState = game.currentState,
     )
 
     fun getGameState(): GameState = game.currentState
@@ -135,4 +153,8 @@ class ServerRoom(
     fun isPlayerSeated(playerId: PlayerId): Boolean = game.currentState.table.getPlayerSeat(playerId) != null
 
     fun getPlayerSeat(playerId: PlayerId): Seat? = game.currentState.table.getPlayerSeat(playerId)
+
+    fun addGameEventListener(listener: (GameEvent) -> Unit) {
+        game.addEventListener(listener)
+    }
 }

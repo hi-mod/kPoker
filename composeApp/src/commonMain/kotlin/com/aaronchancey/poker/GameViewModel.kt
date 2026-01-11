@@ -10,6 +10,9 @@ import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.network.PokerRepository
 import com.aaronchancey.poker.shared.message.RoomInfo
+import com.russhwolf.settings.Settings
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -58,7 +61,9 @@ enum class SoundType {
     WIN,
 }
 
+@OptIn(ExperimentalUuidApi::class)
 class GameViewModel(
+    private val settings: Settings,
     private val repository: PokerRepository = PokerRepository(),
 ) : ViewModel() {
 
@@ -73,15 +78,24 @@ class GameViewModel(
         repository.error, // 6
         repository.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 7
         repository.errors.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 8
-    ) { values: Array<*> ->
+    ) { values ->
         val state = values[0] as GameUiState
+        val connectionState = values[1] as ConnectionState
+        val playerId = values[2] as PlayerId?
+            ?: settings.getString("playerId", Uuid.generateV4().toString())
+        val roomInfo = values[3] as RoomInfo?
+        val gameState = values[4] as GameState?
+        val availableActions = values[5] as ActionRequest?
+        val error = values[6] as String?
+
+        settings.putString("playerId", playerId)
         state.copy(
-            connectionState = values[1] as ConnectionState,
-            playerId = values[2] as PlayerId?,
-            roomInfo = values[3] as RoomInfo?,
-            gameState = values[4] as GameState?,
-            availableActions = values[5] as ActionRequest?,
-            error = values[6] as String?,
+            connectionState = connectionState,
+            playerId = playerId,
+            roomInfo = roomInfo,
+            gameState = gameState,
+            availableActions = availableActions,
+            error = error,
         )
     }
         .stateIn(
@@ -94,7 +108,7 @@ class GameViewModel(
     val effects = _effects.receiveAsFlow()
 
     fun onIntent(intent: GameIntent) = when (intent) {
-        is GameIntent.Connect -> handleConnect(intent.host, intent.port, intent.roomId)
+        is GameIntent.Connect -> handleConnect(intent.host, intent.port, intent.roomId, uiState.value.playerId!!)
         is GameIntent.JoinRoom -> handleJoinRoom(intent.playerName)
         is GameIntent.LeaveRoom -> handleLeaveRoom()
         is GameIntent.TakeSeat -> handleTakeSeat(intent.seatNumber, intent.buyIn)
@@ -105,10 +119,15 @@ class GameViewModel(
         is GameIntent.ClearError -> handleClearError()
     }
 
-    private fun handleConnect(host: String, port: Int, roomId: String) = viewModelScope.launch {
+    private fun handleConnect(
+        host: String,
+        port: Int,
+        roomId: String,
+        playerId: PlayerId,
+    ) = viewModelScope.launch {
         _uiState.update { it.copy(isLoading = true) }
         try {
-            repository.connect(host, port, roomId)
+            repository.connect(host, port, roomId, playerId)
         } finally {
             _uiState.update { it.copy(isLoading = false) }
         }
@@ -160,5 +179,10 @@ class GameViewModel(
 
     private fun handleClearError() {
         repository.clearError()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        repository.close()
     }
 }

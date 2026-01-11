@@ -12,9 +12,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.SwingWindow
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.russhwolf.settings.PreferencesSettings
+import java.util.prefs.Preferences
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() = application {
+    val preferences = Preferences.userRoot().node("com.aaronchancey.poker")
+    val settings = PreferencesSettings(preferences)
+
     val windowState = rememberWindowState()
     SwingWindow(
         onCloseRequest = ::exitApplication,
@@ -23,7 +28,7 @@ fun main() = application {
     ) {
         val scrollState = rememberScrollState()
         Box(modifier = Modifier.fillMaxSize()) {
-            App()
+            App(settings = settings)
             VerticalScrollbar(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)

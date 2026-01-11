@@ -1,5 +1,6 @@
 package com.aaronchancey.poker.network
 
+import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.shared.message.ClientMessage
 import com.aaronchancey.poker.shared.message.ServerMessage
 import io.ktor.client.HttpClient
@@ -18,6 +19,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -68,43 +71,82 @@ class PokerWebSocketClient {
     private val _errors = MutableSharedFlow<Throwable>(replay = 1)
     val errors: SharedFlow<Throwable> = _errors.asSharedFlow()
 
-    suspend fun connect(host: String, port: Int, roomId: String) {
+    private var playerId: String? = null
+    private var currentHost: String? = null
+    private var currentPort: Int? = null
+    private var currentRoomId: String? = null
+    private var shouldBeConnected = false
+
+    fun connect(host: String, port: Int, roomId: String, playerId: PlayerId) {
+        currentHost = host
+        currentPort = port
+        currentRoomId = roomId
+        this.playerId = playerId
+        shouldBeConnected = true
+
         if (_connectionState.value == ConnectionState.CONNECTED) return
 
-        _connectionState.value = ConnectionState.CONNECTING
-        try {
-            session = client.webSocketSession {
-                url.host = host
-                url.port = port
-                url.encodedPath = "/ws/room/$roomId"
-                url.protocol = if (port == 443) URLProtocol.WSS else URLProtocol.WS
-            }
-            _connectionState.value = ConnectionState.CONNECTED
-            startListening()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            _connectionState.value = ConnectionState.DISCONNECTED
-            _errors.emit(e)
+        scope.launch {
+            connectLoop()
         }
     }
 
-    private fun startListening() {
-        scope.launch {
-            val currentSession = session ?: return@launch
+    private suspend fun connectLoop() {
+        while (shouldBeConnected && currentCoroutineContext().isActive) {
+            _connectionState.value = if (playerId == null) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
+
             try {
-                while (true) {
-                    try {
-                        val message = currentSession.receiveDeserialized<ServerMessage>()
-                        _messages.emit(message)
-                    } catch (e: Exception) {
-                        _errors.emit(e)
+                val host = currentHost ?: return
+                val port = currentPort ?: return
+                val roomId = currentRoomId ?: return
+
+                session = client.webSocketSession {
+                    url.host = host
+                    url.port = port
+                    url.encodedPath = "/ws/room/$roomId"
+                    url.protocol = if (port == 443) URLProtocol.WSS else URLProtocol.WS
+
+                    if (playerId != null) {
+                        url.parameters.append("playerId", playerId!!)
                     }
                 }
-            } catch (e: Exception) {
-                if (currentSession.isActive) {
-                    _errors.emit(e)
+
+                _connectionState.value = ConnectionState.CONNECTED
+
+                // If we are reconnecting (have a playerId), we might need to re-join automatically
+                // But the server handles re-sending state on JoinRoom.
+                // The client app likely watches connectionState and re-sends JoinRoom if needed.
+                // However, capturing the Welcome message is crucial.
+
+                listenMessages()
+            } catch (_: Exception) {
+                // Connection failed
+                _connectionState.value = ConnectionState.RECONNECTING // or DISCONNECTED
+                delay(3000) // Wait before retrying
+            }
+        }
+    }
+
+    private suspend fun listenMessages() {
+        val currentSession = session ?: return
+        try {
+            while (true) {
+                val message = currentSession.receiveDeserialized<ServerMessage>()
+
+                if (message is ServerMessage.Welcome) {
+                    playerId = message.playerId
                 }
-            } finally {
+
+                _messages.emit(message)
+            }
+        } catch (_: Exception) {
+            // Disconnected
+        } finally {
+            currentSession.close()
+            session = null
+            if (shouldBeConnected) {
+                _connectionState.value = ConnectionState.RECONNECTING
+            } else {
                 _connectionState.value = ConnectionState.DISCONNECTED
             }
         }
@@ -112,7 +154,8 @@ class PokerWebSocketClient {
 
     suspend fun send(message: ClientMessage) {
         val currentSession = session
-        if (currentSession == null || _connectionState.value != ConnectionState.CONNECTED) {
+        if (currentSession == null) { // || _connectionState.value != ConnectionState.CONNECTED) {
+            // Allow sending if session exists even if state update lags slightly
             _errors.emit(IllegalStateException("Not connected"))
             return
         }
@@ -126,6 +169,7 @@ class PokerWebSocketClient {
     }
 
     suspend fun disconnect() {
+        shouldBeConnected = false
         session?.close()
         session = null
         _connectionState.value = ConnectionState.DISCONNECTED

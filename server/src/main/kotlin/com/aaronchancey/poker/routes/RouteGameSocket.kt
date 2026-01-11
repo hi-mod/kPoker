@@ -27,7 +27,10 @@ fun Route.routeGameSocket() {
         val room = roomManager.getRoom(roomId)
             ?: roomManager.getRoomOrCreate(roomId)
 
-        val playerId = UUID.randomUUID().toString()
+        // Reuse existing playerId if provided, otherwise generate new
+        val requestedPlayerId = call.parameters["playerId"]
+        val playerId = if (!requestedPlayerId.isNullOrBlank()) requestedPlayerId else UUID.randomUUID().toString()
+
         var playerName = "Player-${playerId.take(4)}"
         var isJoined = false
 
@@ -63,10 +66,9 @@ fun Route.routeGameSocket() {
                 connectionManager.removeConnection(roomId, playerId)
                 connectionManager.broadcast(roomId, ServerMessage.PlayerDisconnected(playerId))
 
-                // Stand player up if seated
-                if (room.isPlayerSeated(playerId)) {
-                    room.standPlayer(playerId)
-                }
+                // NOTE: We do NOT stand the player up here anymore.
+                // This allows them to reconnect and resume their seat.
+                // The room logic should eventually timeout inactive players (future improvement).
             }
         }
     }

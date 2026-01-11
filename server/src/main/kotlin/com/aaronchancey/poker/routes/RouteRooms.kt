@@ -1,8 +1,10 @@
 package com.aaronchancey.poker.routes
 
+import com.aaronchancey.poker.persistence.FilePersistenceManager
 import com.aaronchancey.poker.room.RoomManager
 import com.aaronchancey.poker.ws.ConnectionManager
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationStopping
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -24,11 +26,17 @@ data class CreateRoomRequest(
 
 fun Route.routeRooms() {
     val connectionManager = ConnectionManager()
-    val roomManager = RoomManager(connectionManager)
+    val persistenceManager = FilePersistenceManager()
+    val roomManager = RoomManager(connectionManager, persistenceManager)
 
     // Store in application attributes for access from WebSocket route
     application.attributes.put(RoomManagerKey, roomManager)
     application.attributes.put(ConnectionManagerKey, connectionManager)
+
+    // Hook into shutdown to save rooms
+    application.monitor.subscribe(ApplicationStopping) {
+        roomManager.saveAllRooms()
+    }
 
     route("/rooms") {
         get {

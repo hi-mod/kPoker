@@ -1,5 +1,3 @@
-import com.google.cloud.tools.gradle.appengine.appyaml.AppEngineAppYamlExtension
-
 plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.kotlinSerialization)
@@ -35,9 +33,11 @@ dependencies {
 
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
 }
 
-configure<AppEngineAppYamlExtension> {
+/*configure<AppEngineAppYamlExtension> {
     stage {
         setArtifact("build/libs/${project.name}-all.jar")
     }
@@ -45,18 +45,29 @@ configure<AppEngineAppYamlExtension> {
         version = "GCLOUD_CONFIG"
         projectId = "GCLOUD_CONFIG"
     }
-}
+}*/
 
-val wasmDistDir = project.rootDir.resolve("composeApp/build/dist/wasmJs/productionExecutable")
+// Check for WASM_DEBUG env var.
+// Default to production for safety/deployments.
+/*val isWasmDebug = System.getenv("WASM_DEBUG") == "true"
+val skipClientBuild = project.hasProperty("skipClientBuild")
 
-tasks.named<ProcessResources>("processResources") {
-    // Only depend on wasmJs task if it exists (when building locally with Android SDK)
-    // For Cloud Build, Wasm is pre-built and included in the upload
-    val wasmTask = tasks.findByPath(":composeApp:wasmJsBrowserDistribution")
-    if (wasmTask != null) {
-        dependsOn(wasmTask)
+if (!skipClientBuild) {
+    println("WASM Debug Mode: $isWasmDebug")
+    // Correct task names based on 'gradle :composeApp:tasks' output
+    val wasmSimpleTaskName = if (isWasmDebug) "wasmJsBrowserDevelopmentExecutableDistribution" else "wasmJsBrowserDistribution"
+    val wasmDistPath = if (isWasmDebug) "composeApp/build/dist/wasmJs/developmentExecutable" else "composeApp/build/dist/wasmJs/productionExecutable"
+    val wasmDistDir = project.rootDir.resolve(wasmDistPath)
+
+    val composeAppProject = project(":composeApp")
+    val wasmTaskProvider = composeAppProject.tasks.named(wasmSimpleTaskName)
+
+    tasks.named<ProcessResources>("processResources") {
+        dependsOn(wasmTaskProvider)
+
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        from(wasmDistDir) {
+            into("static")
+        }
     }
-    from(wasmDistDir) {
-        into("static")
-    }
-}
+}*/

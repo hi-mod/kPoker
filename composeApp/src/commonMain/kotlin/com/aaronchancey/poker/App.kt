@@ -37,11 +37,13 @@ import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.network.ConnectionState
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.russhwolf.settings.Settings
 
 @Composable
-@Preview
-fun App(viewModel: GameViewModel = viewModel { GameViewModel() }) = MaterialTheme {
+fun App(
+    settings: Settings,
+    viewModel: GameViewModel = viewModel { GameViewModel(settings) },
+) = MaterialTheme {
     val uiState by viewModel.uiState.collectAsState()
 
     // Handle side effects

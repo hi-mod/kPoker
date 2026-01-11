@@ -1,12 +1,16 @@
 package com.aaronchancey.poker.kpoker.core
 
 import kotlin.random.Random
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
+@Serializable
 class Deck(
-    private val random: Random = Random.Default,
+    private val cards: MutableList<Card> = Card.all().toMutableList(),
+    private var position: Int = 0,
 ) {
-    private val cards: MutableList<Card> = Card.all().toMutableList()
-    private var position: Int = 0
+    @Transient
+    private val random: Random = Random.Default
 
     val remaining: Int get() = cards.size - position
 

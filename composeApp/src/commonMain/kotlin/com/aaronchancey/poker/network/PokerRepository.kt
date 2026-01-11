@@ -90,8 +90,8 @@ class PokerRepository(
         }
     }
 
-    suspend fun connect(host: String, port: Int, roomId: String) {
-        client.connect(host, port, roomId)
+    fun connect(host: String, port: Int, roomId: String, playerId: PlayerId) {
+        client.connect(host, port, roomId, playerId)
     }
 
     suspend fun joinRoom(playerName: String) {
@@ -127,5 +127,9 @@ class PokerRepository(
 
     fun clearError() {
         _error.value = null
+    }
+
+    fun close() {
+        client.close()
     }
 }

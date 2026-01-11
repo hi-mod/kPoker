@@ -49,6 +49,14 @@ abstract class PokerGame(
         emit(GameEvent.GameInitialized(state))
     }
 
+    open fun restoreState(gameState: GameState) {
+        state = gameState
+        // We might want a different event for restoration, but GameInitialized is probably fine for now
+        // or just silent restoration if the server is just coming back up.
+        // Let's emit a state update to be safe.
+        emit(GameEvent.GameInitialized(state))
+    }
+
     open fun updateTable(table: Table) {
         state = state.withTable(table)
     }
