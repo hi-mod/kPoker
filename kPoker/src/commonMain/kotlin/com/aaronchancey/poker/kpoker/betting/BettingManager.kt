@@ -16,9 +16,9 @@ enum class BettingRoundType {
 @Serializable
 data class BettingRound(
     val type: BettingRoundType,
-    val currentBet: ChipAmount = 0,
-    val minimumRaise: ChipAmount = 0,
-    val lastRaiseAmount: ChipAmount = 0,
+    val currentBet: ChipAmount = 0.0,
+    val minimumRaise: ChipAmount = 0.0,
+    val lastRaiseAmount: ChipAmount = 0.0,
     val actingPlayerIndex: Int = 0,
     val lastAggressorId: PlayerId? = null,
     val actions: List<Action> = emptyList(),
@@ -29,8 +29,8 @@ data class BettingRound(
 data class BettingStructure(
     val smallBlind: ChipAmount,
     val bigBlind: ChipAmount,
-    val ante: ChipAmount = 0,
-    val bringIn: ChipAmount = 0,
+    val ante: ChipAmount = 0.0,
+    val bringIn: ChipAmount = 0.0,
     val minBet: ChipAmount = bigBlind,
     val maxBet: ChipAmount? = null, // null = no limit
     val maxRaises: Int? = null, // null = unlimited
@@ -40,11 +40,11 @@ data class BettingStructure(
     val isFixedLimit: Boolean get() = maxBet != null && maxRaises != null
 
     companion object {
-        fun noLimit(smallBlind: ChipAmount, bigBlind: ChipAmount, ante: ChipAmount = 0) = BettingStructure(smallBlind, bigBlind, ante)
+        fun noLimit(smallBlind: ChipAmount, bigBlind: ChipAmount, ante: ChipAmount = 0.0) = BettingStructure(smallBlind, bigBlind, ante)
 
-        fun potLimit(smallBlind: ChipAmount, bigBlind: ChipAmount, ante: ChipAmount = 0) = BettingStructure(smallBlind, bigBlind, ante) // Pot limit enforced in game logic
+        fun potLimit(smallBlind: ChipAmount, bigBlind: ChipAmount, ante: ChipAmount = 0.0) = BettingStructure(smallBlind, bigBlind, ante) // Pot limit enforced in game logic
 
-        fun fixedLimit(smallBlind: ChipAmount, bigBlind: ChipAmount, ante: ChipAmount = 0, maxRaises: Int = 4) = BettingStructure(
+        fun fixedLimit(smallBlind: ChipAmount, bigBlind: ChipAmount, ante: ChipAmount = 0.0, maxRaises: Int = 4) = BettingStructure(
             smallBlind = smallBlind,
             bigBlind = bigBlind,
             ante = ante,
@@ -65,16 +65,18 @@ class BettingManager(
         minRaise: ChipAmount,
         isPotLimit: Boolean = false,
     ): ActionRequest {
+        val minBet = if (currentBet > 0.0) currentBet else structure.minBet
+
         val amountToCall = currentBet - playerState.currentBet
 
         val validActions = buildSet {
             // Always can fold (unless no bet to call)
-            if (amountToCall > 0) {
+            if (amountToCall > 0.0) {
                 add(ActionType.FOLD)
             }
 
             // Check if no bet to call
-            if (amountToCall == 0L) {
+            if (amountToCall == 0.0) {
                 add(ActionType.CHECK)
             }
 
@@ -84,7 +86,7 @@ class BettingManager(
             }
 
             // Bet if no current bet
-            if (currentBet == 0L && playerState.chips >= structure.minBet) {
+            if (currentBet == 0.0 && playerState.chips >= structure.minBet) {
                 add(ActionType.BET)
             }
 
@@ -108,7 +110,7 @@ class BettingManager(
         return ActionRequest(
             playerId = playerState.player.id,
             validActions = validActions,
-            minimumBet = structure.minBet,
+            minimumBet = minBet,
             minimumRaise = minOf(minRaise, playerState.chips),
             maximumBet = minOf(maxBet, playerState.chips),
             amountToCall = minOf(amountToCall, playerState.chips),
@@ -127,24 +129,29 @@ class BettingManager(
 
         is Action.Call -> {
             val toCall = currentBet - playerState.currentBet
-            action.amount == minOf(toCall, playerState.chips)
+            val maxCall = minOf(toCall, playerState.chips)
+            action.amount >= maxCall - EPSILON && action.amount <= maxCall + EPSILON
         }
 
         is Action.Bet -> {
-            currentBet == 0L &&
-                action.amount >= structure.minBet &&
-                action.amount <= playerState.chips
+            currentBet == 0.0 &&
+                action.amount >= structure.minBet - EPSILON &&
+                action.amount <= playerState.chips + EPSILON
         }
 
         is Action.Raise -> {
             val toCall = currentBet - playerState.currentBet
-            action.amount >= minRaise &&
-                action.totalBet >= currentBet + minRaise &&
-                action.amount + toCall <= playerState.chips
+            action.amount >= minRaise - EPSILON &&
+                action.totalBet >= currentBet + minRaise - EPSILON &&
+                action.amount + toCall <= playerState.chips + EPSILON
         }
 
-        is Action.AllIn -> action.amount == playerState.chips
+        is Action.AllIn -> action.amount >= playerState.chips - EPSILON && action.amount <= playerState.chips + EPSILON
 
-        is Action.PostBlind -> action.amount <= playerState.chips
+        is Action.PostBlind -> action.amount <= playerState.chips + EPSILON
+    }
+
+    companion object {
+        private const val EPSILON = 0.000001
     }
 }

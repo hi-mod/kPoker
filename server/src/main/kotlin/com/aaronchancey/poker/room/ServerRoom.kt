@@ -1,6 +1,7 @@
 package com.aaronchancey.poker.room
 
 import com.aaronchancey.poker.kpoker.betting.Action
+import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.betting.BettingStructure
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.game.GameState
@@ -27,10 +28,10 @@ class ServerRoom(
     val roomId: String,
     val roomName: String,
     val maxPlayers: Int = 9,
-    val smallBlind: ChipAmount = 1,
-    val bigBlind: ChipAmount = 2,
-    val minBuyIn: ChipAmount = 40,
-    val maxBuyIn: ChipAmount = 200,
+    val smallBlind: ChipAmount = 1.0,
+    val bigBlind: ChipAmount = 2.0,
+    val minBuyIn: ChipAmount = 40.0,
+    val maxBuyIn: ChipAmount = 200.0,
     private val connectionManager: ConnectionManager,
     initialGameState: GameState? = null,
 ) {
@@ -98,6 +99,8 @@ class ServerRoom(
 
     fun getGameState(): GameState = game.currentState
 
+    fun getActionRequest(): ActionRequest? = game.getActionRequest()
+
     suspend fun seatPlayer(playerId: PlayerId, playerName: String, seatNumber: Int, buyIn: ChipAmount): Result<Unit> = mutex.withLock {
         try {
             val player = Player(playerId, playerName)
@@ -117,7 +120,7 @@ class ServerRoom(
                 val currentTable = game.currentState.table
                 val seat = currentTable.getPlayerSeat(playerId)
                     ?: return@withLock Result.failure(IllegalStateException("Player not seated"))
-                val chips = seat.playerState?.chips ?: 0
+                val chips = seat.playerState?.chips ?: 0.0
                 val newTable = currentTable.standPlayer(playerId)
                 game.updateTable(newTable)
                 Result.success(chips)

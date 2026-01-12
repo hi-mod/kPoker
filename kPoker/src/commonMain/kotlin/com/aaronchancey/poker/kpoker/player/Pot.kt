@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Pot(
-    val amount: ChipAmount = 0,
+    val amount: ChipAmount = 0.0,
     val eligiblePlayerIds: Set<PlayerId> = emptySet(),
     val isMain: Boolean = true,
 ) {
@@ -17,7 +17,7 @@ data class Pot(
 data class PotManager(
     val pots: List<Pot> = emptyList(),
 ) {
-    val totalPot: ChipAmount get() = pots.sumOf { it.amount }
+    val totalPot: ChipAmount get() = pots.map { it.amount }.sum()
     val mainPot: Pot? get() = pots.firstOrNull { it.isMain }
 
     fun collectBets(playerBets: Map<PlayerId, ChipAmount>): PotManager {
@@ -30,8 +30,8 @@ data class PotManager(
         if (sortedBets.isEmpty()) return this
 
         val newPots = mutableListOf<Pot>()
-        var remainingBets = playerBets.toMutableMap()
-        var previousLevel = 0L
+        val remainingBets = playerBets.toMutableMap()
+        var previousLevel: ChipAmount = 0.0
 
         val betLevels = sortedBets.map { it.value }.distinct()
 

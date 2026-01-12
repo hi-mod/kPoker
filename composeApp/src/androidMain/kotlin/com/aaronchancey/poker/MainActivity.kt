@@ -1,5 +1,7 @@
 package com.aaronchancey.poker
 
+import android.content.Context.MODE_PRIVATE
+import android.content.ContextWrapper
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,5 +26,8 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    App()
+    val settings = SharedPreferencesSettings(
+        ContextWrapper(null).getSharedPreferences("poker_prefs", MODE_PRIVATE),
+    )
+    App(settings = settings)
 }

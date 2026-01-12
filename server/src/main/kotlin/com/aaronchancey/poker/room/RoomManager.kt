@@ -174,10 +174,10 @@ class RoomManager(
         roomId: String,
         roomName: String,
         maxPlayers: Int = 9,
-        smallBlind: ChipAmount = 1,
-        bigBlind: ChipAmount = 2,
-        minBuyIn: ChipAmount = 40,
-        maxBuyIn: ChipAmount = 200,
+        smallBlind: ChipAmount = 1.0,
+        bigBlind: ChipAmount = 2.0,
+        minBuyIn: ChipAmount = 40.0,
+        maxBuyIn: ChipAmount = 200.0,
     ): ServerRoom {
         val room = ServerRoom(
             roomId = roomId,

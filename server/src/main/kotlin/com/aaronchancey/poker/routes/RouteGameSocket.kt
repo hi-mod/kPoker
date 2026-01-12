@@ -56,7 +56,7 @@ fun Route.routeGameSocket() {
                     },
                 )
             }
-        } catch (e: ClosedReceiveChannelException) {
+        } catch (_: ClosedReceiveChannelException) {
             // Client disconnected
         } catch (e: Exception) {
             sendSerialized<ServerMessage>(ServerMessage.Error("INTERNAL_ERROR", e.message ?: "Unknown error"))
@@ -100,6 +100,13 @@ private suspend fun handleClientMessage(
             session.sendSerialized<ServerMessage>(ServerMessage.RoomJoined(room.getRoomInfo()))
             session.sendSerialized<ServerMessage>(ServerMessage.GameStateUpdate(room.getGameState()))
 
+            // If it's this player's turn, send the action request
+            room.getActionRequest()?.let { actionRequest ->
+                if (actionRequest.playerId == playerId) {
+                    session.sendSerialized<ServerMessage>(ServerMessage.ActionRequired(actionRequest))
+                }
+            }
+
             // Notify others
             connectionManager.broadcastExcept(
                 roomId,
@@ -139,7 +146,7 @@ private suspend fun handleClientMessage(
 
             val result = room.standPlayer(playerId)
             result.fold(
-                onSuccess = { chips ->
+                onSuccess = { _ ->
                     session.sendSerialized<ServerMessage>(ServerMessage.GameStateUpdate(room.getGameState()))
                 },
                 onFailure = { e ->

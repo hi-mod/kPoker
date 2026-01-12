@@ -3,7 +3,7 @@ package com.aaronchancey.poker.kpoker.player
 import kotlinx.serialization.Serializable
 
 typealias PlayerId = String
-typealias ChipAmount = Long
+typealias ChipAmount = Double
 
 @Serializable
 data class Player(
@@ -28,8 +28,8 @@ data class PlayerState(
     val chips: ChipAmount,
     val holeCards: List<com.aaronchancey.poker.kpoker.core.Card> = emptyList(),
     val status: PlayerStatus = PlayerStatus.WAITING,
-    val currentBet: ChipAmount = 0,
-    val totalBetThisRound: ChipAmount = 0,
+    val currentBet: ChipAmount = 0.0,
+    val totalBetThisRound: ChipAmount = 0.0,
     val isDealer: Boolean = false,
     val isSmallBlind: Boolean = false,
     val isBigBlind: Boolean = false,
@@ -43,14 +43,14 @@ data class PlayerState(
     fun withStatus(newStatus: PlayerStatus) = copy(status = newStatus)
     fun withBet(amount: ChipAmount) = copy(currentBet = amount, totalBetThisRound = totalBetThisRound + amount)
     fun withHoleCards(cards: List<com.aaronchancey.poker.kpoker.core.Card>) = copy(holeCards = cards)
-    fun clearBet() = copy(currentBet = 0)
+    fun clearBet() = copy(currentBet = 0.0)
     fun markActed() = copy(hasActed = true)
-    fun resetForNewRound() = copy(hasActed = false, currentBet = 0, totalBetThisRound = 0)
+    fun resetForNewRound() = copy(hasActed = false, currentBet = 0.0, totalBetThisRound = 0.0)
     fun resetForNewHand() = copy(
         holeCards = emptyList(),
         status = PlayerStatus.WAITING,
-        currentBet = 0,
-        totalBetThisRound = 0,
+        currentBet = 0.0,
+        totalBetThisRound = 0.0,
         hasActed = false,
         isDealer = false,
         isSmallBlind = false,

@@ -21,4 +21,3 @@ node_modules/
 # Generated Wasm files copied for deployment
 server/src/main/resources/static/
 /data/rooms/default.json
-!/data/rooms/default.json

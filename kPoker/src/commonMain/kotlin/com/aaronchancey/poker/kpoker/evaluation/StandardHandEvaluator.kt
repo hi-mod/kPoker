@@ -15,9 +15,7 @@ class StandardHandEvaluator : HandEvaluator {
 
     override fun findBestHand(cards: List<Card>, handSize: Int): EvaluatedHand {
         require(cards.size >= handSize) { "Need at least $handSize cards" }
-        return combinations(cards, handSize)
-            .map { evaluateFiveCardHand(it) }
-            .maxOrNull()
+        return combinations(cards, handSize).maxOfOrNull { evaluateFiveCardHand(it) }
             ?: throw IllegalStateException("No valid hand found")
     }
 

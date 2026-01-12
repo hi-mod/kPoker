@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,21 +31,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.aaronchancey.poker.kpoker.betting.Action
-import com.aaronchancey.poker.kpoker.betting.ActionRequest
-import com.aaronchancey.poker.kpoker.betting.ActionType
 import com.aaronchancey.poker.kpoker.game.GameState
-import com.aaronchancey.poker.kpoker.player.ChipAmount
-import com.aaronchancey.poker.kpoker.player.PlayerId
-import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.network.ConnectionState
 import com.russhwolf.settings.Settings
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun App(
     settings: Settings,
     viewModel: GameViewModel = viewModel { GameViewModel(settings) },
-) = MaterialTheme {
+) = MaterialExpressiveTheme {
     val uiState by viewModel.uiState.collectAsState()
 
     // Handle side effects
@@ -273,66 +270,26 @@ private fun Seats(
                 if (playerState.holeCards.isNotEmpty()) {
                     append("Cards: ${playerState.holeCards.joinToString(", ")} - ")
                 }
-                append("${playerState.chips} chips ")
+                append("${playerState.chips} chips - Bet: ${playerState.currentBet} ")
                 if (playerState.isDealer) {
                     append("(Dealer) ")
                 }
                 if (gameState.winners.find { it.playerId == playerState.player.id } != null) {
                     append("Winner!")
                 }
+                if (uiState.playerId == playerState.player.id) {
+                    append(uiState.handDescription)
+                }
             }
             Text(text)
             PlayerActions(playerState, uiState, onIntent)
         } else {
             Button(
-                onClick = { onIntent(GameIntent.TakeSeat(seat.number, 100)) },
+                onClick = { onIntent(GameIntent.TakeSeat(seat.number, 100.0)) },
                 enabled = !uiState.isLoading,
             ) {
                 Text("Take Seat ${seat.number}")
             }
         }
     }
-}
-
-@Composable
-private fun PlayerActions(
-    playerState: PlayerState,
-    uiState: GameUiState,
-    onIntent: (GameIntent) -> Unit,
-) {
-    if (playerState.hasActed || uiState.availableActions?.playerId != playerState.player.id) return
-    Row {
-        uiState.availableActions.validActions.forEach { actionType ->
-            Button(
-                onClick = actionClick(
-                    playerId = playerState.player.id,
-                    chips = playerState.chips,
-                    actionType = actionType,
-                    availableActions = uiState.availableActions,
-                    onIntent = onIntent,
-                ),
-                enabled = !uiState.isLoading,
-            ) {
-                Text(actionType.name)
-            }
-        }
-    }
-}
-
-private fun actionClick(
-    playerId: PlayerId,
-    chips: ChipAmount,
-    actionType: ActionType,
-    availableActions: ActionRequest,
-    onIntent: (GameIntent) -> Unit,
-): () -> Unit = {
-    val action: Action = when (actionType) {
-        ActionType.FOLD -> Action.Fold(playerId)
-        ActionType.CHECK -> Action.Check(playerId)
-        ActionType.CALL -> Action.Call(playerId, availableActions.amountToCall)
-        ActionType.BET -> Action.Bet(playerId, availableActions.minimumBet)
-        ActionType.RAISE -> Action.Raise(playerId, availableActions.minimumRaise, 0)
-        ActionType.ALL_IN -> Action.AllIn(playerId, chips)
-    }
-    onIntent(GameIntent.PerformAction(action))
 }

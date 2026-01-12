@@ -11,15 +11,15 @@ import kotlin.test.assertTrue
 
 class HeadsUpTest {
 
-    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1, bigBlind = 2)
+    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1.0, bigBlind = 2.0)
 
     private fun createHeadsUpTable(): Table {
         var table = Table.create("1", "Heads Up Table", 2)
         val alice = Player("p1", "Alice")
         val bob = Player("p2", "Bob")
 
-        table = table.sitPlayer(1, PlayerState(alice, chips = 100))
-        table = table.sitPlayer(2, PlayerState(bob, chips = 100))
+        table = table.sitPlayer(1, PlayerState(alice, chips = 100.0))
+        table = table.sitPlayer(2, PlayerState(bob, chips = 100.0))
 
         return table
     }
@@ -44,8 +44,8 @@ class HeadsUpTest {
         assertEquals(true, dealerState.isSmallBlind, "Dealer should be Small Blind in Heads-Up")
         assertEquals(true, nonDealerState.isBigBlind, "Non-Dealer should be Big Blind in Heads-Up")
 
-        assertEquals(1, dealerState.currentBet, "Dealer (SB) should have posted 1")
-        assertEquals(2, nonDealerState.currentBet, "Non-Dealer (BB) should have posted 2")
+        assertEquals(1.0, dealerState.currentBet, "Dealer (SB) should have posted 1")
+        assertEquals(2.0, nonDealerState.currentBet, "Non-Dealer (BB) should have posted 2")
     }
 
     @Test
@@ -71,7 +71,7 @@ class HeadsUpTest {
         // Dealer (SB) calls 1 (total 2)
         val dealerSeat = game.currentState.dealerSeatNumber
         val sb = game.currentState.table.getSeat(dealerSeat)!!.playerState!!.player
-        game.processAction(Action.Call(sb.id, 1))
+        game.processAction(Action.Call(sb.id, 1.0))
 
         // Non-Dealer (BB) checks
         val nonDealerSeat = game.currentState.table.occupiedSeats.find { it.number != dealerSeat }!!.number
@@ -80,7 +80,7 @@ class HeadsUpTest {
 
         // Now we are at FLOP
         val state = game.currentState
-        assertEquals(com.aaronchancey.poker.kpoker.game.GamePhase.FLOP, state.phase)
+        assertEquals(GamePhase.FLOP, state.phase)
 
         // Post-flop: BB (Non-Dealer) should act first
         // Current actor should be Non-Dealer

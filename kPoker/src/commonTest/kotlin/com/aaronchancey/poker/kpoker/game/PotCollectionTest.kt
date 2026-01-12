@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 
 class PotCollectionTest {
 
-    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1, bigBlind = 2)
+    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1.0, bigBlind = 2.0)
 
     private fun createTableWithPlayers(): Table {
         var table = Table.create("1", "Test Table", 6)
@@ -19,10 +19,10 @@ class PotCollectionTest {
         val bob = Player("p2", "Bob")
 
         // Seat 1: Alice (100 chips)
-        table = table.sitPlayer(1, PlayerState(alice, chips = 100))
+        table = table.sitPlayer(1, PlayerState(alice, chips = 100.0))
 
         // Seat 2: Bob (100 chips)
-        table = table.sitPlayer(2, PlayerState(bob, chips = 100))
+        table = table.sitPlayer(2, PlayerState(bob, chips = 100.0))
 
         return table
     }
@@ -57,7 +57,7 @@ class PotCollectionTest {
         // Verify Pot is EMPTY (or close to it)
         // Before fix: Pot would have 3 chips (1+2).
         // After fix: Pot should be 0 because bets are still with players.
-        assertEquals(0, state.potManager.totalPot, "Pot should be empty at start of pre-flop")
+        assertEquals(0.0, state.potManager.totalPot, "Pot should be empty at start of pre-flop")
 
         // Verify Players have bets in front of them
         val seat1 = state.table.getSeat(1)?.playerState!!
@@ -71,11 +71,11 @@ class PotCollectionTest {
         // So Seat 2 is SB (1), Seat 1 is BB (2).
 
         if (seat1.isBigBlind) {
-            assertEquals(2, seat1.totalBetThisRound, "BB (Seat 1) should have 2 bet")
-            assertEquals(1, seat2.totalBetThisRound, "SB (Seat 2) should have 1 bet")
+            assertEquals(2.0, seat1.totalBetThisRound, "BB (Seat 1) should have 2 bet")
+            assertEquals(1.0, seat2.totalBetThisRound, "SB (Seat 2) should have 1 bet")
         } else {
-            assertEquals(1, seat1.totalBetThisRound, "SB (Seat 1) should have 1 bet")
-            assertEquals(2, seat2.totalBetThisRound, "BB (Seat 2) should have 2 bet")
+            assertEquals(1.0, seat1.totalBetThisRound, "SB (Seat 1) should have 1 bet")
+            assertEquals(2.0, seat2.totalBetThisRound, "BB (Seat 2) should have 2 bet")
         }
     }
 
@@ -92,8 +92,7 @@ class PotCollectionTest {
         val sb = state.table.occupiedSeats.find { it.playerState?.isSmallBlind == true }!!.playerState!!.player
         val bb = state.table.occupiedSeats.find { it.playerState?.isBigBlind == true }!!.playerState!!.player
 
-        // Action 1: SB Calls (matches BB).
-        game.processAction(Action.Call(sb.id, 1))
+        game.processAction(Action.Call(sb.id, 1.0))
 
         // Action 2: BB Checks.
         game.processAction(Action.Check(bb.id))
@@ -107,12 +106,12 @@ class PotCollectionTest {
         // SB: 1 (blind) + 1 (call) = 2.
         // BB: 2 (blind) + 0 (check) = 2.
         // Total Pot = 4.
-        assertEquals(4, state.potManager.totalPot)
+        assertEquals(4.0, state.potManager.totalPot)
 
         // Crucial: Should be ONE main pot, not two split pots.
         assertEquals(1, state.potManager.pots.size, "Should be exactly one pot")
         assertTrue(state.potManager.pots[0].isMain, "Pot should be main")
-        assertEquals(4, state.potManager.pots[0].amount, "Main pot should have 4 chips")
+        assertEquals(4.0, state.potManager.pots[0].amount, "Main pot should have 4 chips")
     }
 
     @Test
@@ -128,18 +127,18 @@ class PotCollectionTest {
         val bb = state.table.occupiedSeats.find { it.playerState?.isBigBlind == true }!!.playerState!!.player
 
         // Pre-Flop: SB Call, BB Check
-        game.processAction(Action.Call(sb.id, 1))
+        game.processAction(Action.Call(sb.id, 1.0))
 
         // BB checks
         game.processAction(Action.Check(bb.id))
 
         state = game.currentState
         assertEquals(GamePhase.FLOP, state.phase)
-        assertEquals(4, state.potManager.totalPot, "Pot should be 4 after Pre-Flop")
+        assertEquals(4.0, state.potManager.totalPot, "Pot should be 4 after Pre-Flop")
 
         // Verify totalBetThisRound is reset
         state.table.occupiedSeats.forEach { seat ->
-            assertEquals(0, seat.playerState!!.totalBetThisRound, "totalBetThisRound should be 0 for Seat ${seat.number}")
+            assertEquals(0.0, seat.playerState!!.totalBetThisRound, "totalBetThisRound should be 0 for Seat ${seat.number}")
         }
 
         // Flop: Check, Check
@@ -153,6 +152,6 @@ class PotCollectionTest {
         assertEquals(GamePhase.TURN, state.phase)
 
         // Pot should still be 4, NOT 8
-        assertEquals(4, state.potManager.totalPot, "Pot should remain 4 after Flop checks")
+        assertEquals(4.0, state.potManager.totalPot, "Pot should remain 4 after Flop checks")
     }
 }

@@ -15,8 +15,8 @@ class RoomTest {
             id = "test-room",
             name = "Test Room",
             maxPlayers = 6,
-            minBuyIn = 100,
-            maxBuyIn = 1000,
+            minBuyIn = 100.0,
+            maxBuyIn = 1000.0,
         )
         return Room(config)
     }
@@ -40,7 +40,7 @@ class RoomTest {
         val player = createPlayer("p1", "Alice")
 
         room.joinAsSpectator(player)
-        val result = room.takeSeat(player, 1, 500, System.currentTimeMillis())
+        val result = room.takeSeat(player, 1, 500.0, System.currentTimeMillis())
 
         assertTrue(result is SeatSelectionResult.Success)
         assertEquals(1, room.playerCount)
@@ -57,8 +57,8 @@ class RoomTest {
         room.joinAsSpectator(player1)
         room.joinAsSpectator(player2)
 
-        room.takeSeat(player1, 1, 500, System.currentTimeMillis())
-        val result = room.takeSeat(player2, 1, 500, System.currentTimeMillis())
+        room.takeSeat(player1, 1, 500.0, System.currentTimeMillis())
+        val result = room.takeSeat(player2, 1, 500.0, System.currentTimeMillis())
 
         assertTrue(result is SeatSelectionResult.SeatOccupied)
     }
@@ -69,11 +69,11 @@ class RoomTest {
         val player = createPlayer("p1", "Alice")
 
         room.joinAsSpectator(player)
-        room.takeSeat(player, 1, 500, System.currentTimeMillis())
+        room.takeSeat(player, 1, 500.0, System.currentTimeMillis())
 
         val result = room.standUp(player.id)
         assertTrue(result.isSuccess)
-        assertEquals(500L, result.getOrNull())
+        assertEquals(500.0, result.getOrNull())
         assertFalse(room.isPlayerSeated(player.id))
         assertEquals(1, room.spectatorCount) // Became spectator
     }
@@ -97,7 +97,7 @@ class RoomTest {
         val currentTime = System.currentTimeMillis()
 
         room.joinAsSpectator(player1)
-        room.takeSeat(player1, 1, 500, currentTime)
+        room.takeSeat(player1, 1, 500.0, currentTime)
 
         val available = room.getAvailableSeats(currentTime)
         assertEquals(5, available.size)
@@ -110,7 +110,7 @@ class RoomTest {
         val player = createPlayer("p1", "Alice")
 
         room.joinAsSpectator(player)
-        val result = room.takeSeat(player, 1, 50, System.currentTimeMillis())
+        val result = room.takeSeat(player, 1, 50.0, System.currentTimeMillis())
 
         assertTrue(result is SeatSelectionResult.InsufficientBuyIn)
     }

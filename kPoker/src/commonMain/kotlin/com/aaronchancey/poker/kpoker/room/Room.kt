@@ -72,13 +72,13 @@ class Room(
         // Check if spectator
         if (spectators.remove(playerId) != null) {
             emit(GameEvent.SpectatorLeft(playerId))
-            return Result.success(0L)
+            return Result.success(0.0)
         }
 
         // Check if seated
         val seat = _currentTable.getPlayerSeat(playerId)
         if (seat != null) {
-            val chips = seat.playerState?.chips ?: 0L
+            val chips = seat.playerState?.chips ?: 0.0
             _currentTable = _currentTable.standPlayer(playerId)
             seatManager.cancelReservation(playerId)
             emit(GameEvent.PlayerStoodUp(playerId, seat.number, chips))
@@ -168,7 +168,7 @@ class Room(
         val seat = _currentTable.getPlayerSeat(playerId)
             ?: return Result.failure(IllegalStateException("Player not seated"))
 
-        val chips = seat.playerState?.chips ?: 0L
+        val chips = seat.playerState?.chips ?: 0.0
         _currentTable = _currentTable.standPlayer(playerId)
         seatManager.cancelReservation(playerId)
 

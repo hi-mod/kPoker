@@ -1,5 +1,6 @@
 package com.aaronchancey.poker.routes
 
+import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.persistence.FilePersistenceManager
 import com.aaronchancey.poker.room.RoomManager
 import com.aaronchancey.poker.ws.ConnectionManager
@@ -18,20 +19,22 @@ import kotlinx.serialization.Serializable
 data class CreateRoomRequest(
     val roomName: String,
     val maxPlayers: Int = 9,
-    val smallBlind: Long = 1,
-    val bigBlind: Long = 2,
-    val minBuyIn: Long = 40,
-    val maxBuyIn: Long = 200,
+    val smallBlind: ChipAmount = 1.0,
+    val bigBlind: ChipAmount = 2.0,
+    val minBuyIn: ChipAmount = 40.0,
+    val maxBuyIn: ChipAmount = 200.0,
 )
 
 fun Route.routeRooms() {
-    val connectionManager = ConnectionManager()
-    val persistenceManager = FilePersistenceManager()
-    val roomManager = RoomManager(connectionManager, persistenceManager)
+    val roomManager = application.attributes.getOrNull(RoomManagerKey) ?: run {
+        val connectionManager = application.attributes.getOrNull(ConnectionManagerKey) ?: ConnectionManager()
+        val persistenceManager = FilePersistenceManager()
+        val manager = RoomManager(connectionManager, persistenceManager)
 
-    // Store in application attributes for access from WebSocket route
-    application.attributes.put(RoomManagerKey, roomManager)
-    application.attributes.put(ConnectionManagerKey, connectionManager)
+        application.attributes.put(RoomManagerKey, manager)
+        application.attributes.put(ConnectionManagerKey, connectionManager)
+        manager
+    }
 
     // Hook into shutdown to save rooms
     application.monitor.subscribe(ApplicationStopping) {

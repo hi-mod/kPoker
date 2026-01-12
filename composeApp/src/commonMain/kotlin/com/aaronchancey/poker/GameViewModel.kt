@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.evaluation.HandEvaluator
+import com.aaronchancey.poker.kpoker.evaluation.StandardHandEvaluator
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
@@ -27,6 +29,7 @@ import kotlinx.coroutines.launch
 data class GameUiState(
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     val playerId: PlayerId? = null,
+    val handDescription: String = "",
     val roomInfo: RoomInfo? = null,
     val gameState: GameState? = null,
     val availableActions: ActionRequest? = null,
@@ -65,6 +68,7 @@ enum class SoundType {
 class GameViewModel(
     private val settings: Settings,
     private val repository: PokerRepository = PokerRepository(),
+    private val handEvaluator: HandEvaluator = StandardHandEvaluator(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GameUiState())
@@ -89,8 +93,20 @@ class GameViewModel(
         val error = values[6] as String?
 
         settings.putString("playerId", playerId)
+        val cards = gameState?.communityCards?.plus(
+            gameState.activePlayers.firstOrNull { it.player.id == playerId }?.holeCards
+                ?: emptyList(),
+        )
+            ?: emptyList()
+        val handDescription = if (cards.size >= 5) {
+            val hand = handEvaluator.findBestHand(cards)
+            hand.description()
+        } else {
+            ""
+        }
         state.copy(
             connectionState = connectionState,
+            handDescription = handDescription,
             playerId = playerId,
             roomInfo = roomInfo,
             gameState = gameState,

@@ -145,7 +145,7 @@ abstract class PokerGame(
                     totalBetThisRound = actualAmount, // Track blind as part of round bet
                     isSmallBlind = blindType == BlindType.SMALL_BLIND,
                     isBigBlind = blindType == BlindType.BIG_BLIND,
-                    status = if (ps.chips - actualAmount == 0L) PlayerStatus.ALL_IN else PlayerStatus.ACTIVE,
+                    status = if (ps.chips - actualAmount == 0.0) PlayerStatus.ALL_IN else PlayerStatus.ACTIVE,
                 )
             }
         }
@@ -158,7 +158,7 @@ abstract class PokerGame(
     protected fun startBettingRound(type: BettingRoundType) {
         val round = BettingRound(
             type = type,
-            currentBet = if (type == BettingRoundType.PRE_FLOP) bettingStructure.bigBlind else 0,
+            currentBet = if (type == BettingRoundType.PRE_FLOP) bettingStructure.bigBlind else 0.0,
             minimumRaise = bettingStructure.bigBlind,
             lastRaiseAmount = bettingStructure.bigBlind,
         )
@@ -222,7 +222,7 @@ abstract class PokerGame(
             ?: throw IllegalStateException("No betting round in progress")
 
         require(bettingManager.validateAction(action, playerState, round.currentBet, round.minimumRaise)) {
-            "Invalid action"
+            "Invalid action: $action. State: Bet=${round.currentBet}, MinRaise=${round.minimumRaise}, PlayerBet=${playerState.currentBet}, Chips=${playerState.chips}"
         }
 
         state = applyAction(action, playerState)
@@ -270,6 +270,7 @@ abstract class PokerGame(
                 round = round.copy(
                     currentBet = action.amount,
                     lastRaiseAmount = action.amount,
+                    minimumRaise = action.amount,
                     lastAggressorId = action.playerId,
                 )
                 // Reset hasActed for other players
@@ -285,9 +286,11 @@ abstract class PokerGame(
                         hasActed = true,
                     )
                 }
+                val raiseAmount = action.totalBet - round.currentBet
                 round = round.copy(
                     currentBet = action.totalBet,
-                    lastRaiseAmount = action.totalBet - round.currentBet,
+                    lastRaiseAmount = raiseAmount,
+                    minimumRaise = raiseAmount,
                     lastAggressorId = action.playerId,
                 )
                 table = resetOtherPlayersActed(table, action.playerId)
@@ -296,7 +299,7 @@ abstract class PokerGame(
             is Action.AllIn -> {
                 table = table.updatePlayerState(action.playerId) {
                     it.copy(
-                        chips = 0,
+                        chips = 0.0,
                         currentBet = it.currentBet + action.amount,
                         totalBetThisRound = it.totalBetThisRound + action.amount,
                         status = PlayerStatus.ALL_IN,

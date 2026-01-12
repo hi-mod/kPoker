@@ -23,7 +23,7 @@ data class TournamentPlayer(
     val buyInTime: Long,
     var finishPosition: Int? = null,
     var finishTime: Long? = null,
-    var winnings: ChipAmount = 0,
+    var winnings: ChipAmount = 0.0,
     var rebuys: Int = 0,
     var addon: Boolean = false,
 )
@@ -41,9 +41,9 @@ data class TournamentState(
 
     val averageStack: ChipAmount
         get() = if (activePlayers.isEmpty()) {
-            0
+            0.0
         } else {
-            activePlayers.sumOf { it.chips } / activePlayers.size
+            (activePlayers.sumOf { it.chips } / activePlayers.size)
         }
 
     val currentBlindLevel: BlindLevel? = null // Set from config
@@ -223,10 +223,10 @@ class Tournament(
 
     private fun calculatePayout(position: Int): ChipAmount {
         val payoutEntry = config.payoutStructure.find { it.place == position }
-            ?: return 0
+            ?: return 0.0
 
         val totalPrizePool = config.buyIn * state.players.size
-        return (totalPrizePool * payoutEntry.percentOfPrizePool / 100).toLong()
+        return totalPrizePool * payoutEntry.percentOfPrizePool / 100.0
     }
 
     private fun checkTournamentEnd(currentTime: Long) {

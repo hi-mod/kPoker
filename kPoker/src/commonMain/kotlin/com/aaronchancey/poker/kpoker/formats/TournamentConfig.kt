@@ -6,7 +6,7 @@ data class BlindLevel(
     val level: Int,
     val smallBlind: ChipAmount,
     val bigBlind: ChipAmount,
-    val ante: ChipAmount = 0,
+    val ante: ChipAmount = 0.0,
     val durationMinutes: Int,
 )
 
@@ -25,11 +25,11 @@ data class TournamentConfig(
     val lateRegistrationLevels: Int = 0, // Number of levels allowing late reg
     val rebuyAllowed: Boolean = false,
     val rebuyLevels: Int = 0,
-    val rebuyCost: ChipAmount = 0,
-    val rebuyChips: ChipAmount = 0,
+    val rebuyCost: ChipAmount = 0.0,
+    val rebuyChips: ChipAmount = 0.0,
     val addonAllowed: Boolean = false,
-    val addonCost: ChipAmount = 0,
-    val addonChips: ChipAmount = 0,
+    val addonCost: ChipAmount = 0.0,
+    val addonChips: ChipAmount = 0.0,
     val tablesCount: Int = 1,
 ) : GameFormatConfig {
     override val format = if (tablesCount == 1 && maxPlayers <= 10) {
@@ -44,7 +44,7 @@ data class TournamentConfig(
         fun sitAndGo(
             players: Int,
             buyIn: ChipAmount,
-            startingChips: ChipAmount = 1500,
+            startingChips: ChipAmount = 1500.0,
         ): TournamentConfig = TournamentConfig(
             minPlayers = players,
             maxPlayers = players,
@@ -57,9 +57,9 @@ data class TournamentConfig(
         private fun defaultBlindLevels(startingChips: ChipAmount): List<BlindLevel> {
             val baseSmall = startingChips / 100 // 1% of starting stack
             return listOf(
-                BlindLevel(1, baseSmall, baseSmall * 2, 0, 10),
-                BlindLevel(2, baseSmall * 2, baseSmall * 4, 0, 10),
-                BlindLevel(3, baseSmall * 3, baseSmall * 6, 0, 10),
+                BlindLevel(1, baseSmall, baseSmall * 2, 0.0, 10),
+                BlindLevel(2, baseSmall * 2, baseSmall * 4, 0.0, 10),
+                BlindLevel(3, baseSmall * 3, baseSmall * 6, 0.0, 10),
                 BlindLevel(4, baseSmall * 4, baseSmall * 8, baseSmall, 10),
                 BlindLevel(5, baseSmall * 5, baseSmall * 10, baseSmall, 10),
                 BlindLevel(6, baseSmall * 8, baseSmall * 16, baseSmall * 2, 10),
