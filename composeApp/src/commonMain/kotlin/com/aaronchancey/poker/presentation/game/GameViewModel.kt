@@ -1,7 +1,8 @@
-package com.aaronchancey.poker
+package com.aaronchancey.poker.presentation.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aaronchancey.poker.config.AppConfig
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.evaluation.HandEvaluator
@@ -13,6 +14,7 @@ import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.network.PokerRepository
 import com.aaronchancey.poker.shared.message.RoomInfo
 import com.russhwolf.settings.Settings
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.channels.Channel
@@ -20,49 +22,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-// State
-data class GameUiState(
-    val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
-    val playerId: PlayerId? = null,
-    val handDescription: String = "",
-    val roomInfo: RoomInfo? = null,
-    val gameState: GameState? = null,
-    val availableActions: ActionRequest? = null,
-    val error: String? = null,
-    val isLoading: Boolean = false,
-)
-
-// Intent (User Actions)
-sealed interface GameIntent {
-    data class Connect(val host: String, val port: Int, val roomId: String) : GameIntent
-    data class JoinRoom(val playerName: String) : GameIntent
-    data object LeaveRoom : GameIntent
-    data class TakeSeat(val seatNumber: Int, val buyIn: ChipAmount) : GameIntent
-    data object LeaveSeat : GameIntent
-    data class PerformAction(val action: Action) : GameIntent
-    data class SendChat(val message: String) : GameIntent
-    data object Disconnect : GameIntent
-    data object ClearError : GameIntent
-}
-
-// Side Effects (One-time events)
-sealed interface GameEffect {
-    data class ShowToast(val message: String) : GameEffect
-    data object NavigateToLobby : GameEffect
-    data class PlaySound(val soundType: SoundType) : GameEffect
-}
-
-enum class SoundType {
-    CARD_DEAL,
-    CHIP_MOVE,
-    YOUR_TURN,
-    WIN,
-}
+import kotlinx.coroutines.withTimeout
 
 @OptIn(ExperimentalUuidApi::class)
 class GameViewModel(
@@ -124,8 +89,7 @@ class GameViewModel(
     val effects = _effects.receiveAsFlow()
 
     fun onIntent(intent: GameIntent) = when (intent) {
-        is GameIntent.Connect -> handleConnect(intent.host, intent.port, intent.roomId, uiState.value.playerId!!)
-        is GameIntent.JoinRoom -> handleJoinRoom(intent.playerName)
+        is GameIntent.JoinRoom -> handleJoinRoom(intent)
         is GameIntent.LeaveRoom -> handleLeaveRoom()
         is GameIntent.TakeSeat -> handleTakeSeat(intent.seatNumber, intent.buyIn)
         is GameIntent.LeaveSeat -> handleLeaveSeat()
@@ -135,24 +99,16 @@ class GameViewModel(
         is GameIntent.ClearError -> handleClearError()
     }
 
-    private fun handleConnect(
-        host: String,
-        port: Int,
-        roomId: String,
-        playerId: PlayerId,
-    ) = viewModelScope.launch {
+    private fun handleJoinRoom(intent: GameIntent.JoinRoom) = viewModelScope.launch {
         _uiState.update { it.copy(isLoading = true) }
         try {
-            repository.connect(host, port, roomId, playerId)
-        } finally {
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    private fun handleJoinRoom(playerName: String) = viewModelScope.launch {
-        _uiState.update { it.copy(isLoading = true) }
-        try {
-            repository.joinRoom(playerName)
+            val host = AppConfig.wsHost
+            val port = AppConfig.wsPort
+            repository.connect(host, port, intent.roomId, uiState.value.playerId!!)
+            withTimeout(10.seconds) {
+                repository.connectionState.first { it == ConnectionState.CONNECTED }
+            }
+            repository.joinRoom(intent.playerName)
         } finally {
             _uiState.update { it.copy(isLoading = false) }
         }

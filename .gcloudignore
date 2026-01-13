@@ -20,5 +20,4 @@ kotlin-js-store/wasm/yarn.lock
 
 # Exclude module build directories (but not composeApp/build which has wasm dist)
 **/build
-/data/rooms/default.json
-
+**/data/

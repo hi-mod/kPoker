@@ -4,17 +4,21 @@ import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.betting.BettingStructure
 import com.aaronchancey.poker.kpoker.events.GameEvent
+import com.aaronchancey.poker.kpoker.game.GamePhase
 import com.aaronchancey.poker.kpoker.game.GameState
+import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.Player
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.Seat
 import com.aaronchancey.poker.kpoker.player.Table
+import com.aaronchancey.poker.kpoker.variants.OmahaGame
 import com.aaronchancey.poker.kpoker.variants.TexasHoldemGame
 import com.aaronchancey.poker.persistence.RoomStateData
 import com.aaronchancey.poker.shared.message.RoomInfo
 import com.aaronchancey.poker.shared.message.ServerMessage
+import com.aaronchancey.poker.shared.model.GameVariant
 import com.aaronchancey.poker.ws.ConnectionManager
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -32,12 +36,22 @@ class ServerRoom(
     val bigBlind: ChipAmount = 2.0,
     val minBuyIn: ChipAmount = 40.0,
     val maxBuyIn: ChipAmount = 200.0,
+    val variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
     private val connectionManager: ConnectionManager,
     initialGameState: GameState? = null,
 ) {
     private val mutex = Mutex()
-    private val bettingStructure = BettingStructure.noLimit(smallBlind, bigBlind)
-    private var game = TexasHoldemGame(bettingStructure)
+    private val bettingStructure: BettingStructure = when (variant) {
+        GameVariant.OMAHA_PL, GameVariant.OMAHA_HILO_PL -> BettingStructure.potLimit(smallBlind, bigBlind)
+        GameVariant.TEXAS_HOLDEM_NL -> BettingStructure.noLimit(smallBlind, bigBlind)
+    }
+
+    private var game: PokerGame = when (variant) {
+        GameVariant.OMAHA_PL -> OmahaGame.potLimit(smallBlind, bigBlind)
+        GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(smallBlind, bigBlind)
+        GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(smallBlind, bigBlind)
+    }
+
     private val scope = CoroutineScope(Dispatchers.Default)
 
     init {
@@ -51,7 +65,7 @@ class ServerRoom(
         game.addEventListener { event ->
             scope.launch {
                 connectionManager.broadcast(roomId, ServerMessage.GameEventOccurred(event))
-                connectionManager.broadcast(roomId, ServerMessage.GameStateUpdate(game.currentState))
+                broadcastVisibleGameState()
 
                 when (event) {
                     is GameEvent.TurnChanged -> {
@@ -84,6 +98,7 @@ class ServerRoom(
         minBuyIn = minBuyIn,
         maxBuyIn = maxBuyIn,
         playerCount = game.currentState.table.playerCount,
+        variant = variant,
     )
 
     fun getRoomStateData(): RoomStateData = RoomStateData(
@@ -94,6 +109,7 @@ class ServerRoom(
         bigBlind = bigBlind,
         minBuyIn = minBuyIn,
         maxBuyIn = maxBuyIn,
+        variant = variant,
         gameState = game.currentState,
     )
 
@@ -159,5 +175,33 @@ class ServerRoom(
 
     fun addGameEventListener(listener: (GameEvent) -> Unit) {
         game.addEventListener(listener)
+    }
+
+    private suspend fun broadcastVisibleGameState() {
+        val fullState = game.currentState
+        connectionManager.getConnections(roomId).forEach { connection ->
+            val visibleState = getVisibleGameState(fullState, connection.playerId)
+            connectionManager.sendTo(roomId, connection.playerId, ServerMessage.GameStateUpdate(visibleState))
+        }
+    }
+
+    private fun getVisibleGameState(gameState: GameState, viewerId: PlayerId): GameState {
+        val visibleTable = gameState.table.copy(
+            seats = gameState.table.seats.map { seat ->
+                val playerState = seat.playerState
+                when {
+                    playerState == null -> seat
+
+                    playerState.player.id == viewerId -> seat
+
+                    gameState.phase == GamePhase.SHOWDOWN -> seat
+
+                    else -> seat.copy(
+                        playerState = playerState.copy(holeCards = emptyList()),
+                    )
+                }
+            },
+        )
+        return gameState.copy(table = visibleTable)
     }
 }

@@ -1,8 +1,10 @@
 package com.aaronchancey.poker.routes
 
 import com.aaronchancey.poker.kpoker.events.GameEvent
+import com.aaronchancey.poker.room.ServerRoom
 import com.aaronchancey.poker.shared.message.ClientMessage
 import com.aaronchancey.poker.shared.message.ServerMessage
+import com.aaronchancey.poker.ws.ConnectionManager
 import com.aaronchancey.poker.ws.PlayerConnection
 import io.ktor.server.application.log
 import io.ktor.server.routing.Route
@@ -25,7 +27,7 @@ fun Route.routeGameSocket() {
             ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing roomId"))
 
         val room = roomManager.getRoom(roomId)
-            ?: roomManager.getRoomOrCreate(roomId)
+            ?: return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Room not found"))
 
         // Reuse existing playerId if provided, otherwise generate new
         val requestedPlayerId = call.parameters["playerId"]
@@ -78,9 +80,9 @@ private suspend fun handleClientMessage(
     message: ClientMessage,
     playerId: String,
     playerName: String,
-    room: com.aaronchancey.poker.room.ServerRoom,
+    room: ServerRoom,
     roomId: String,
-    connectionManager: com.aaronchancey.poker.ws.ConnectionManager,
+    connectionManager: ConnectionManager,
     session: WebSocketServerSession,
     isJoined: Boolean,
     onJoined: (String) -> Unit,

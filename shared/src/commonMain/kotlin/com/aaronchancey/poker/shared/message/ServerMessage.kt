@@ -5,6 +5,7 @@ import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
+import com.aaronchancey.poker.shared.model.GameVariant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -53,4 +54,5 @@ data class RoomInfo(
     val minBuyIn: ChipAmount,
     val maxBuyIn: ChipAmount,
     val playerCount: Int,
+    val variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
 )

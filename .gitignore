@@ -20,4 +20,4 @@ node_modules/
 /kotlin-js-store/wasm/yarn.lock
 # Generated Wasm files copied for deployment
 server/src/main/resources/static/
-/data/rooms/default.json
+**/data/

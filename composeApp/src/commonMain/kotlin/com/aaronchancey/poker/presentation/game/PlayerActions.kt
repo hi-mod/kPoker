@@ -1,4 +1,4 @@
-package com.aaronchancey.poker
+package com.aaronchancey.poker.presentation.game
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

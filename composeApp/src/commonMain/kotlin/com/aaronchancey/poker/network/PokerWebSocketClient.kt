@@ -1,19 +1,15 @@
 package com.aaronchancey.poker.network
 
+import com.aaronchancey.poker.di.AppModule
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.shared.message.ClientMessage
 import com.aaronchancey.poker.shared.message.ServerMessage
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
-import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.http.URLProtocol
 import io.ktor.http.encodedPath
-import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.websocket.close
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,7 +25,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 
 enum class ConnectionState {
     DISCONNECTED,
@@ -39,26 +34,8 @@ enum class ConnectionState {
 }
 
 class PokerWebSocketClient {
-    private val client = HttpClient {
-        install(WebSockets) {
-            contentConverter =
-                KotlinxWebsocketSerializationConverter(
-                    Json {
-                        ignoreUnknownKeys = true
-                        encodeDefaults = true
-                    },
-                )
-        }
-        install(ContentNegotiation) {
-            json(
-                Json {
-                    ignoreUnknownKeys = true
-                    encodeDefaults = true
-                },
-            )
-        }
-    }
 
+    private val client = AppModule.httpClient
     private var session: DefaultClientWebSocketSession? = null
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -154,7 +131,7 @@ class PokerWebSocketClient {
 
     suspend fun send(message: ClientMessage) {
         val currentSession = session
-        if (currentSession == null) { // || _connectionState.value != ConnectionState.CONNECTED) {
+        if (currentSession == null) {
             // Allow sending if session exists even if state update lags slightly
             _errors.emit(IllegalStateException("Not connected"))
             return

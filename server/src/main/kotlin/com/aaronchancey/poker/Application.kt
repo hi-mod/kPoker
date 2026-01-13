@@ -1,5 +1,6 @@
 package com.aaronchancey.poker
 
+import com.aaronchancey.poker.plugins.configureHTTP
 import com.aaronchancey.poker.plugins.configureMonitoring
 import com.aaronchancey.poker.plugins.configureRouting
 import com.aaronchancey.poker.plugins.configureSerialization
@@ -17,6 +18,7 @@ fun main() {
 fun Application.module() {
     configureSerialization()
     configureWebSockets()
+    configureHTTP()
     configureRouting()
     configureMonitoring()
 }

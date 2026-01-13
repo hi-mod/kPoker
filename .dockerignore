@@ -25,4 +25,4 @@ iosApp/
 # Test outputs
 **/test-results/
 **/test-reports/
-/data/rooms/default.json
+**/data/

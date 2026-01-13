@@ -18,21 +18,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.network.ConnectionState
+import com.aaronchancey.poker.presentation.game.GameEffect
+import com.aaronchancey.poker.presentation.game.GameIntent
+import com.aaronchancey.poker.presentation.game.GameUiState
+import com.aaronchancey.poker.presentation.game.GameViewModel
+import com.aaronchancey.poker.presentation.game.PlayerActions
+import com.aaronchancey.poker.presentation.room.RoomViewModel
+import com.aaronchancey.poker.presentation.room.RoomsScreen
 import com.russhwolf.settings.Settings
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -76,9 +79,11 @@ fun App(
         ) {
             when (uiState.connectionState) {
                 ConnectionState.DISCONNECTED -> {
-                    ConnectScreen(
+                    val roomViewModel = viewModel { RoomViewModel() }
+                    val roomState by roomViewModel.state.collectAsState()
+                    RoomsScreen(
+                        state = roomState,
                         onIntent = viewModel::onIntent,
-                        isLoading = uiState.isLoading,
                     )
                 }
 
@@ -88,12 +93,7 @@ fun App(
                 }
 
                 ConnectionState.CONNECTED, ConnectionState.RECONNECTING -> {
-                    if (uiState.roomInfo == null) {
-                        JoinRoomScreen(
-                            onIntent = viewModel::onIntent,
-                            isLoading = uiState.isLoading,
-                        )
-                    } else {
+                    if (uiState.roomInfo != null) {
                         GameScreen(
                             uiState = uiState,
                             onIntent = viewModel::onIntent,
@@ -124,80 +124,6 @@ fun App(
             ) {
                 CircularProgressIndicator()
             }
-        }
-    }
-}
-
-@Composable
-private fun ConnectScreen(
-    onIntent: (GameIntent) -> Unit,
-    isLoading: Boolean,
-) {
-    var host by remember { mutableStateOf("localhost") }
-    var port by remember { mutableStateOf("8080") }
-    var roomId by remember { mutableStateOf("default") }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text("Connect to Server", style = MaterialTheme.typography.headlineMedium)
-
-        OutlinedTextField(
-            value = host,
-            onValueChange = { host = it },
-            label = { Text("Host") },
-            enabled = !isLoading,
-        )
-
-        OutlinedTextField(
-            value = port,
-            onValueChange = { port = it },
-            label = { Text("Port") },
-            enabled = !isLoading,
-        )
-
-        OutlinedTextField(
-            value = roomId,
-            onValueChange = { roomId = it },
-            label = { Text("Room ID") },
-            enabled = !isLoading,
-        )
-
-        Button(
-            onClick = { onIntent(GameIntent.Connect(host, port.toIntOrNull() ?: 8080, roomId)) },
-            enabled = !isLoading,
-        ) {
-            Text("Connect")
-        }
-    }
-}
-
-@Composable
-private fun JoinRoomScreen(
-    onIntent: (GameIntent) -> Unit,
-    isLoading: Boolean,
-) {
-    var playerName by remember { mutableStateOf("") }
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text("Join Room", style = MaterialTheme.typography.headlineMedium)
-
-        OutlinedTextField(
-            value = playerName,
-            onValueChange = { playerName = it },
-            label = { Text("Player Name") },
-            enabled = !isLoading,
-        )
-
-        Button(
-            onClick = { onIntent(GameIntent.JoinRoom(playerName)) },
-            enabled = playerName.isNotBlank() && !isLoading,
-        ) {
-            Text("Join")
         }
     }
 }

@@ -1,3 +1,4 @@
+
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -50,6 +51,7 @@ kotlin {
             implementation(libs.kotlinx.compose.material3)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(projects.shared)
             implementation(projects.kPoker)
             implementation(libs.ktor.clientCore)
@@ -71,13 +73,10 @@ kotlin {
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
-            implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.clientCio)
         }
-        jsMain.dependencies {
-            implementation(libs.ktor.clientJs)
-        }
-        wasmJsMain.dependencies {
+        webMain.dependencies {
             implementation(libs.ktor.clientJs)
         }
     }
@@ -98,6 +97,9 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+    buildFeatures {
+        buildConfig = true
     }
     buildTypes {
         getByName("release") {

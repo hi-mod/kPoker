@@ -3,6 +3,7 @@ package com.aaronchancey.poker.routes
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.persistence.FilePersistenceManager
 import com.aaronchancey.poker.room.RoomManager
+import com.aaronchancey.poker.shared.model.GameVariant
 import com.aaronchancey.poker.ws.ConnectionManager
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationStopping
@@ -23,6 +24,7 @@ data class CreateRoomRequest(
     val bigBlind: ChipAmount = 2.0,
     val minBuyIn: ChipAmount = 40.0,
     val maxBuyIn: ChipAmount = 200.0,
+    val variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
 )
 
 fun Route.routeRooms() {
@@ -43,7 +45,7 @@ fun Route.routeRooms() {
 
     route("/rooms") {
         get {
-            val rooms = roomManager.listRooms()
+            val rooms = roomManager.listRooms().sortedBy { it.roomName }
             call.respond(rooms)
         }
 
@@ -59,6 +61,7 @@ fun Route.routeRooms() {
                 bigBlind = request.bigBlind,
                 minBuyIn = request.minBuyIn,
                 maxBuyIn = request.maxBuyIn,
+                variant = request.variant,
             )
 
             call.respond(HttpStatusCode.Created, room.getRoomInfo())

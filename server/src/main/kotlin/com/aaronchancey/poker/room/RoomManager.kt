@@ -3,10 +3,13 @@ package com.aaronchancey.poker.room
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.persistence.PersistenceManager
 import com.aaronchancey.poker.shared.message.RoomInfo
+import com.aaronchancey.poker.shared.model.GameVariant
 import com.aaronchancey.poker.ws.ConnectionManager
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.close
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,7 +27,65 @@ class RoomManager(
 
     init {
         restoreRooms()
+        startRoomMonitor()
         startFileWatcher()
+    }
+
+    private fun startRoomMonitor() {
+        scope.launch {
+            while (isActive) {
+                try {
+                    GameVariant.entries.forEach { variant ->
+                        manageVariantCapacity(variant)
+                    }
+                } catch (e: Exception) {
+                    println("Error in room monitor: ${e.message}")
+                    e.printStackTrace()
+                }
+                delay(10.seconds)
+            }
+        }
+    }
+
+    private fun manageVariantCapacity(variant: GameVariant) {
+        val variantRooms = rooms.values.filter { it.variant == variant }
+
+        // 1. Ensure Capacity: If no rooms or all are full, create one
+        // We consider a room "full" if it has reached maxPlayers.
+        // We want at least one room where a player can sit.
+        val availableRooms = variantRooms.filter { it.getRoomInfo().playerCount < it.maxPlayers }
+        if (availableRooms.isEmpty()) {
+            createAutoRoom(variant)
+        }
+
+        // 2. Garbage Collection: If > 1 empty room, remove extras
+        // An "empty" room has 0 players.
+        val emptyRooms = variantRooms.filter { it.getRoomInfo().playerCount == 0 }
+        if (emptyRooms.size > 1) {
+            // Keep the one created most recently (or just arbitrary), remove others.
+            // rooms is a map, order isn't guaranteed, but we can just drop(1).
+            // Let's sort by roomId to be deterministic
+            val roomsToRemove = emptyRooms.sortedBy { it.roomId }.drop(1)
+            roomsToRemove.forEach { room ->
+                println("Garbage collecting empty room: ${room.roomName} (${room.roomId})")
+                removeRoom(room.roomId)
+            }
+        }
+    }
+
+    private fun createAutoRoom(variant: GameVariant) {
+        val uuid = UUID.randomUUID().toString()
+        val shortId = uuid.take(8)
+        val roomId = "${variant.name.lowercase().replace("_", "-")}-$shortId"
+        val roomName = "${variant.displayName} $shortId"
+
+        println("Auto-creating room: $roomName")
+        createRoom(
+            roomId = roomId,
+            roomName = roomName,
+            variant = variant,
+            // Use defaults for blinds/buyins defined in createRoom
+        )
     }
 
     private fun configureRoom(room: ServerRoom) {
@@ -46,6 +107,7 @@ class RoomManager(
                 bigBlind = data.bigBlind,
                 minBuyIn = data.minBuyIn,
                 maxBuyIn = data.maxBuyIn,
+                variant = data.variant,
                 connectionManager = connectionManager,
                 initialGameState = data.gameState,
             )
@@ -146,6 +208,7 @@ class RoomManager(
             bigBlind = data.bigBlind,
             minBuyIn = data.minBuyIn,
             maxBuyIn = data.maxBuyIn,
+            variant = data.variant,
             connectionManager = connectionManager,
             initialGameState = data.gameState,
         )
@@ -178,6 +241,7 @@ class RoomManager(
         bigBlind: ChipAmount = 2.0,
         minBuyIn: ChipAmount = 40.0,
         maxBuyIn: ChipAmount = 200.0,
+        variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
     ): ServerRoom {
         val room = ServerRoom(
             roomId = roomId,
@@ -187,6 +251,7 @@ class RoomManager(
             bigBlind = bigBlind,
             minBuyIn = minBuyIn,
             maxBuyIn = maxBuyIn,
+            variant = variant,
             connectionManager = connectionManager,
         )
         configureRoom(room)
