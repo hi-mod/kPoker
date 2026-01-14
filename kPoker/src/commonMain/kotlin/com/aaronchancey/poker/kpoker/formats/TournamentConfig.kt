@@ -16,6 +16,7 @@ data class PayoutStructure(
 )
 
 data class TournamentConfig(
+    override val minDenomination: ChipAmount,
     override val minPlayers: Int,
     override val maxPlayers: Int,
     val buyIn: ChipAmount,
@@ -46,6 +47,7 @@ data class TournamentConfig(
             buyIn: ChipAmount,
             startingChips: ChipAmount = 1500.0,
         ): TournamentConfig = TournamentConfig(
+            minDenomination = 1.0,
             minPlayers = players,
             maxPlayers = players,
             buyIn = buyIn,

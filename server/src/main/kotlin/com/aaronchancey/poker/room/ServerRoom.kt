@@ -31,6 +31,7 @@ import kotlinx.coroutines.sync.withLock
 class ServerRoom(
     val roomId: String,
     val roomName: String,
+    val minDenomination: ChipAmount = 0.1,
     val maxPlayers: Int = 9,
     val smallBlind: ChipAmount = 1.0,
     val bigBlind: ChipAmount = 2.0,
@@ -42,14 +43,14 @@ class ServerRoom(
 ) {
     private val mutex = Mutex()
     private val bettingStructure: BettingStructure = when (variant) {
-        GameVariant.OMAHA_PL, GameVariant.OMAHA_HILO_PL -> BettingStructure.potLimit(smallBlind, bigBlind)
-        GameVariant.TEXAS_HOLDEM_NL -> BettingStructure.noLimit(smallBlind, bigBlind)
+        GameVariant.OMAHA_PL, GameVariant.OMAHA_HILO_PL -> BettingStructure.potLimit(smallBlind, bigBlind, minDenomination = minDenomination)
+        GameVariant.TEXAS_HOLDEM_NL -> BettingStructure.noLimit(smallBlind, bigBlind, minDenomination = minDenomination)
     }
 
     private var game: PokerGame = when (variant) {
-        GameVariant.OMAHA_PL -> OmahaGame.potLimit(smallBlind, bigBlind)
-        GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(smallBlind, bigBlind)
-        GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(smallBlind, bigBlind)
+        GameVariant.OMAHA_PL -> OmahaGame.potLimit(smallBlind, bigBlind, minDenomination = minDenomination)
+        GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(smallBlind, bigBlind, minDenomination = minDenomination)
+        GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(smallBlind, bigBlind, minDenomination = minDenomination)
     }
 
     private val scope = CoroutineScope(Dispatchers.Default)
@@ -111,6 +112,7 @@ class ServerRoom(
         maxBuyIn = maxBuyIn,
         variant = variant,
         gameState = game.currentState,
+        minDenomination = minDenomination,
     )
 
     fun getGameState(): GameState = game.currentState
@@ -177,7 +179,7 @@ class ServerRoom(
         game.addEventListener(listener)
     }
 
-    private suspend fun broadcastVisibleGameState() {
+    suspend fun broadcastVisibleGameState() {
         val fullState = game.currentState
         connectionManager.getConnections(roomId).forEach { connection ->
             val visibleState = getVisibleGameState(fullState, connection.playerId)

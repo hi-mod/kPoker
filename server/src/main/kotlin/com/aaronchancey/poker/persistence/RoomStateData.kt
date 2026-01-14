@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 data class RoomStateData(
     val roomId: String,
     val roomName: String,
+    val minDenomination: ChipAmount,
     val maxPlayers: Int,
     val smallBlind: ChipAmount,
     val bigBlind: ChipAmount,

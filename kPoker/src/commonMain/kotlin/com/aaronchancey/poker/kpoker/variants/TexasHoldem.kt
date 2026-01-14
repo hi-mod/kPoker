@@ -100,10 +100,40 @@ class TexasHoldemGame(
     }
 
     companion object {
-        fun noLimit(smallBlind: ChipAmount, bigBlind: ChipAmount): TexasHoldemGame = TexasHoldemGame(BettingStructure.noLimit(smallBlind, bigBlind))
+        fun noLimit(
+            smallBlind: ChipAmount,
+            bigBlind: ChipAmount,
+            minDenomination: ChipAmount = 1.0,
+        ): TexasHoldemGame = TexasHoldemGame(
+            BettingStructure.noLimit(
+                smallBlind,
+                bigBlind,
+                minDenomination = minDenomination,
+            ),
+        )
 
-        fun potLimit(smallBlind: ChipAmount, bigBlind: ChipAmount): TexasHoldemGame = TexasHoldemGame(BettingStructure.potLimit(smallBlind, bigBlind))
+        fun potLimit(
+            smallBlind: ChipAmount,
+            bigBlind: ChipAmount,
+            minDenomination: ChipAmount = 1.0,
+        ): TexasHoldemGame = TexasHoldemGame(
+            BettingStructure.potLimit(
+                smallBlind,
+                bigBlind,
+                minDenomination = minDenomination,
+            ),
+        )
 
-        fun fixedLimit(smallBlind: ChipAmount, bigBlind: ChipAmount): TexasHoldemGame = TexasHoldemGame(BettingStructure.fixedLimit(smallBlind, bigBlind))
+        fun fixedLimit(
+            smallBlind: ChipAmount,
+            bigBlind: ChipAmount,
+            minDenomination: ChipAmount = 1.0,
+        ): TexasHoldemGame = TexasHoldemGame(
+            BettingStructure.fixedLimit(
+                smallBlind,
+                bigBlind,
+                minDenomination = minDenomination,
+            ),
+        )
     }
 }

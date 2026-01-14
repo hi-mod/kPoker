@@ -2,6 +2,8 @@ package com.aaronchancey.poker.kpoker.betting
 
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -71,7 +73,8 @@ data class ActionRequest(
     val minimumRaise: ChipAmount,
     val maximumBet: ChipAmount,
     val amountToCall: ChipAmount,
-    val timeLimit: Int = 30, // seconds
+    val timeLimit: Duration = 30.seconds,
+    val minimumDenomination: ChipAmount,
 )
 
 @Serializable

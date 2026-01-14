@@ -212,8 +212,29 @@ class OmahaGame(
     }
 
     companion object {
-        fun potLimit(smallBlind: ChipAmount, bigBlind: ChipAmount): OmahaGame = OmahaGame(BettingStructure.potLimit(smallBlind, bigBlind))
+        fun potLimit(
+            smallBlind: ChipAmount,
+            bigBlind: ChipAmount,
+            minDenomination: ChipAmount = 1.0,
+        ): OmahaGame = OmahaGame(
+            BettingStructure.potLimit(
+                smallBlind,
+                bigBlind,
+                minDenomination = minDenomination,
+            ),
+        )
 
-        fun potLimitHiLo(smallBlind: ChipAmount, bigBlind: ChipAmount): OmahaGame = OmahaGame(BettingStructure.potLimit(smallBlind, bigBlind), isHiLo = true)
+        fun potLimitHiLo(
+            smallBlind: ChipAmount,
+            bigBlind: ChipAmount,
+            minDenomination: ChipAmount = 1.0,
+        ): OmahaGame = OmahaGame(
+            BettingStructure.potLimit(
+                smallBlind,
+                bigBlind,
+                minDenomination = minDenomination,
+            ),
+            isHiLo = true,
+        )
     }
 }

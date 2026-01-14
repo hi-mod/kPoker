@@ -63,6 +63,7 @@ internal fun PlayerActions(
             }
             if (actionType == ActionType.BET || actionType == ActionType.RAISE) {
                 BetActionContent(
+                    minDenomination = uiState.availableActions.minimumDenomination,
                     minimumBet = uiState.availableActions.minimumBet,
                     minimumRaise = uiState.availableActions.minimumRaise,
                     maximumBet = uiState.availableActions.maximumBet,
@@ -76,22 +77,33 @@ internal fun PlayerActions(
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun BetActionContent(
+    minDenomination: ChipAmount,
     minimumBet: ChipAmount,
     minimumRaise: ChipAmount,
     maximumBet: ChipAmount,
     onBetAmountChange: (ChipAmount) -> Unit,
 ) {
     Column {
+        val rangeStart = (minimumBet + minimumRaise).toFloat()
+        val rangeEnd = maximumBet.toFloat()
+        val safeDenomination = if (minDenomination > 0.0) minDenomination else 0.1
+        val steps = if (rangeEnd > rangeStart) {
+            maxOf(0, ((rangeEnd - rangeStart) / safeDenomination).toInt() - 1)
+        } else {
+            0
+        }
+
         val sliderState = rememberSliderState(
-            value = (minimumBet + minimumRaise).toFloat(),
-            valueRange = (minimumBet + minimumRaise).toFloat()..maximumBet.toFloat(),
+            value = rangeStart,
+            steps = steps,
+            valueRange = rangeStart..rangeEnd,
         )
-        val textFieldState = rememberTextFieldState((minimumBet + minimumRaise).toString())
+        val textFieldState = rememberTextFieldState(rangeStart.toString())
         sliderState.onValueChange = {
-            val rounded = (it * 100).roundToInt() / 100.0
-            sliderState.value = rounded.toFloat()
-            textFieldState.setTextAndPlaceCursorAtEnd(rounded.toString())
-            onBetAmountChange(it.toDouble())
+            val snappedValue = (it / safeDenomination).roundToInt() * safeDenomination
+            sliderState.value = snappedValue.toFloat()
+            textFieldState.setTextAndPlaceCursorAtEnd(snappedValue.toString())
+            onBetAmountChange(snappedValue)
         }
         LaunchedEffect(textFieldState) {
             snapshotFlow { textFieldState.text.toString() }.collectLatest {
@@ -155,10 +167,11 @@ private fun PlayerActionsPreview() {
             ActionType.RAISE,
             ActionType.ALL_IN,
         ),
-        amountToCall = 50.0,
         minimumBet = 100.0,
         minimumRaise = 50.0,
         maximumBet = 100.0,
+        amountToCall = 50.0,
+        minimumDenomination = 1.0,
     )
     val uiState = GameUiState(
         isLoading = false,

@@ -100,7 +100,8 @@ private suspend fun handleClientMessage(
 
             // Send room info and current state
             session.sendSerialized<ServerMessage>(ServerMessage.RoomJoined(room.getRoomInfo()))
-            session.sendSerialized<ServerMessage>(ServerMessage.GameStateUpdate(room.getGameState()))
+            room.broadcastVisibleGameState()
+            // session.sendSerialized<ServerMessage>(ServerMessage.GameStateUpdate(room.getGameState()))
 
             // If it's this player's turn, send the action request
             room.getActionRequest()?.let { actionRequest ->

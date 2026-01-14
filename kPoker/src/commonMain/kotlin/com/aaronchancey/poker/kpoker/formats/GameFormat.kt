@@ -12,9 +12,11 @@ interface GameFormatConfig {
     val format: GameFormat
     val minPlayers: Int
     val maxPlayers: Int
+    val minDenomination: ChipAmount
 }
 
 data class CashGameConfig(
+    override val minDenomination: ChipAmount,
     override val minPlayers: Int = 2,
     override val maxPlayers: Int = 9,
     val smallBlind: ChipAmount,

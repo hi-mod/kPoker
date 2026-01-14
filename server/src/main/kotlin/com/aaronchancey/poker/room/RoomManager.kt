@@ -1,5 +1,6 @@
 package com.aaronchancey.poker.room
 
+import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.persistence.PersistenceManager
 import com.aaronchancey.poker.shared.message.RoomInfo
@@ -90,7 +91,7 @@ class RoomManager(
 
     private fun configureRoom(room: ServerRoom) {
         room.addGameEventListener { event ->
-            if (event !is com.aaronchancey.poker.kpoker.events.GameEvent.ChatMessage) {
+            if (event !is GameEvent.ChatMessage) {
                 saveRoom(room.roomId)
             }
         }
@@ -102,6 +103,7 @@ class RoomManager(
             val room = ServerRoom(
                 roomId = data.roomId,
                 roomName = data.roomName,
+                minDenomination = data.minDenomination,
                 maxPlayers = data.maxPlayers,
                 smallBlind = data.smallBlind,
                 bigBlind = data.bigBlind,
@@ -174,7 +176,7 @@ class RoomManager(
                 connections.forEach {
                     try {
                         it.session.close(CloseReason(CloseReason.Codes.GOING_AWAY, "Room deleted"))
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         // Ignore
                     }
                 }
@@ -194,7 +196,7 @@ class RoomManager(
             connections.forEach {
                 try {
                     it.session.close(CloseReason(CloseReason.Codes.SERVICE_RESTART, "Room reloaded"))
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Ignore
                 }
             }
@@ -203,6 +205,7 @@ class RoomManager(
         val newRoom = ServerRoom(
             roomId = data.roomId,
             roomName = data.roomName,
+            minDenomination = data.minDenomination,
             maxPlayers = data.maxPlayers,
             smallBlind = data.smallBlind,
             bigBlind = data.bigBlind,
@@ -241,11 +244,13 @@ class RoomManager(
         bigBlind: ChipAmount = 2.0,
         minBuyIn: ChipAmount = 40.0,
         maxBuyIn: ChipAmount = 200.0,
+        minDenomination: ChipAmount = 1.0,
         variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
     ): ServerRoom {
         val room = ServerRoom(
             roomId = roomId,
             roomName = roomName,
+            minDenomination = minDenomination,
             maxPlayers = maxPlayers,
             smallBlind = smallBlind,
             bigBlind = bigBlind,
@@ -261,35 +266,6 @@ class RoomManager(
     }
 
     fun getRoom(roomId: String): ServerRoom? = rooms[roomId]
-
-    fun getRoomOrCreate(
-        roomId: String,
-        roomName: String = "Room $roomId",
-    ): ServerRoom = rooms.getOrPut(roomId) {
-        val room = ServerRoom(
-            roomId = roomId,
-            roomName = roomName,
-            connectionManager = connectionManager,
-        )
-        configureRoom(room)
-        // We call saveRoom explicitly to persist it and set timestamp
-        // But getOrPut returns before we can call saveRoom if we put logic here.
-        // Actually getOrPut takes a lambda to CREATE the value.
-        // So we can do:
-        // persistenceManager.saveRoom(room.getRoomStateData())
-        // BUT we need to set timestamp too.
-        // Let's just call saveRoom(roomId) after creation in the caller?
-        // No, getRoomOrCreate is atomic-ish.
-
-        // Let's simplify:
-        persistenceManager.saveRoom(room.getRoomStateData())
-        val file = persistenceManager.getRoomFile(roomId)
-        if (file.exists()) {
-            roomFileTimestamps[roomId] = file.lastModified()
-        }
-
-        room
-    }
 
     fun listRooms(): List<RoomInfo> = rooms.values.map { it.getRoomInfo() }
 
