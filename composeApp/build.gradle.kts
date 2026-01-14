@@ -76,7 +76,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.clientCio)
         }
-        webMain.dependencies {
+        wasmJsMain.dependencies {
             implementation(libs.ktor.clientJs)
         }
     }
