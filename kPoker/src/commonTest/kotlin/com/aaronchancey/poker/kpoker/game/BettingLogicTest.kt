@@ -16,30 +16,18 @@ import kotlin.test.assertEquals
 class BettingLogicTest {
 
     class DummyEvaluator : HandEvaluator {
-        override fun evaluate(cards: List<Card>): EvaluatedHand = EvaluatedHand(HandRank.HIGH_CARD, emptyList(), emptyList())
-        override fun findBestHand(cards: List<Card>, handSize: Int): EvaluatedHand = EvaluatedHand(HandRank.HIGH_CARD, emptyList(), emptyList())
+        override fun evaluate(cards: List<Card>): EvaluatedHand = EvaluatedHand(HandRank.HIGH_CARD, cards)
+        override fun findBestHand(cards: List<Card>, handSize: Int): List<EvaluatedHand> = listOf(EvaluatedHand(HandRank.HIGH_CARD, cards.take(5)))
+        override fun findBestHand(holeCards: List<Card>, communityCards: List<Card>): List<EvaluatedHand> = listOf(EvaluatedHand(HandRank.HIGH_CARD, (holeCards + communityCards).take(5)))
     }
 
-    class TestGame(bettingStructure: BettingStructure) : PokerGame(bettingStructure, DummyEvaluator()) {
-        override val variantName: String = "Test"
-        override val holeCardCount: Int = 2
-        override val usesCommunityCards: Boolean = true
-
-        override fun dealHoleCards() {
-            var t = currentState.table
-            t.occupiedSeats.forEach { seat ->
-                if (seat.playerState != null) {
-                    t = t.updatePlayerState(seat.playerState!!.player.id) {
-                        it.copy(status = PlayerStatus.ACTIVE)
-                    }
-                }
-            }
-            updateTable(t)
-        }
-
+    class TestGame(structure: BettingStructure) : PokerGame(structure, DummyEvaluator()) {
+        override val gameVariant: GameVariant = GameVariant.TEXAS_HOLDEM
+        override val variantName = "Test"
+        override val holeCardCount = 2
+        override val usesCommunityCards = true
+        override fun dealHoleCards() {}
         override fun evaluateHands(): List<Winner> = emptyList()
-
-        public override fun processAction(action: Action): GameState = super.processAction(action)
     }
 
     @Test
@@ -92,7 +80,7 @@ class BettingLogicTest {
 
         // Pre-flop.
         // Play until Flop.
-        while (game.currentState.phase == com.aaronchancey.poker.kpoker.game.GamePhase.PRE_FLOP) {
+        while (game.currentState.phase == GamePhase.PRE_FLOP) {
             val actor = game.currentState.currentActor ?: break
             val toCall = game.currentState.bettingRound!!.currentBet - actor.currentBet
             val amount = minOf(toCall, actor.chips)

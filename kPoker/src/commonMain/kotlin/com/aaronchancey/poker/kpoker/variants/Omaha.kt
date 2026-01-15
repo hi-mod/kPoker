@@ -6,9 +6,10 @@ import com.aaronchancey.poker.kpoker.core.Collections.combinations
 import com.aaronchancey.poker.kpoker.core.EvaluatedHand
 import com.aaronchancey.poker.kpoker.core.Rank
 import com.aaronchancey.poker.kpoker.evaluation.LoHandEvaluator
-import com.aaronchancey.poker.kpoker.evaluation.StandardHandEvaluator
+import com.aaronchancey.poker.kpoker.evaluation.OmahaHandEvaluator
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.game.GamePhase
+import com.aaronchancey.poker.kpoker.game.GameVariant
 import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.game.Winner
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -38,10 +39,11 @@ object OmahaHiLoVariant : PokerVariant {
 class OmahaGame(
     bettingStructure: BettingStructure,
     private val isHiLo: Boolean = false,
-) : PokerGame(bettingStructure, StandardHandEvaluator()) {
+) : PokerGame(bettingStructure, OmahaHandEvaluator()) {
 
     private val loEvaluator = LoHandEvaluator()
 
+    override val gameVariant = if (isHiLo) GameVariant.OMAHA_HI_LO else GameVariant.OMAHA
     override val variantName = if (isHiLo) OmahaHiLoVariant.name else OmahaVariant.name
     override val holeCardCount = OmahaVariant.holeCardCount
     override val usesCommunityCards = OmahaVariant.usesCommunityCards

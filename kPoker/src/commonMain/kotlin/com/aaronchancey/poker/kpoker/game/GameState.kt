@@ -28,6 +28,7 @@ enum class GamePhase {
 @Serializable
 data class GameState(
     val table: Table,
+    val variant: GameVariant = GameVariant.TEXAS_HOLDEM,
     val phase: GamePhase = GamePhase.WAITING,
     val deck: Deck = Deck.standard(),
     val communityCards: List<Card> = emptyList(),

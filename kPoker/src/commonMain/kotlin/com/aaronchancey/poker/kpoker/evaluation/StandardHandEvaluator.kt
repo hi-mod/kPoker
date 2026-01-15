@@ -13,11 +13,14 @@ class StandardHandEvaluator : HandEvaluator {
         return evaluateFiveCardHand(cards)
     }
 
-    override fun findBestHand(cards: List<Card>, handSize: Int): EvaluatedHand {
+    override fun findBestHand(cards: List<Card>, handSize: Int): List<EvaluatedHand> {
         require(cards.size >= handSize) { "Need at least $handSize cards" }
-        return combinations(cards, handSize).maxOfOrNull { evaluateFiveCardHand(it) }
+        val best = combinations(cards, handSize).maxOfOrNull { evaluateFiveCardHand(it) }
             ?: throw IllegalStateException("No valid hand found")
+        return listOf(best)
     }
+
+    override fun findBestHand(holeCards: List<Card>, communityCards: List<Card>): List<EvaluatedHand> = findBestHand(holeCards + communityCards)
 
     private fun evaluateFiveCardHand(cards: List<Card>): EvaluatedHand {
         val sorted = cards.sortedByDescending { it.rank.value }

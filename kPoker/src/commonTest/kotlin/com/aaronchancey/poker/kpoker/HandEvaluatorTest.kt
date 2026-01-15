@@ -92,7 +92,7 @@ class HandEvaluatorTest {
     @Test
     fun testFindBestHandFromSeven() {
         val cards = cards("As", "Ks", "Qs", "Js", "Ts", "2h", "3d")
-        val result = evaluator.findBestHand(cards, 5)
+        val result = evaluator.findBestHand(cards, 5).first()
         assertEquals(HandRank.ROYAL_FLUSH, result.rank)
     }
 

@@ -6,8 +6,10 @@ import com.aaronchancey.poker.config.AppConfig
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.evaluation.HandEvaluator
+import com.aaronchancey.poker.kpoker.evaluation.HandEvaluatorFactory
 import com.aaronchancey.poker.kpoker.evaluation.StandardHandEvaluator
 import com.aaronchancey.poker.kpoker.game.GameState
+import com.aaronchancey.poker.kpoker.game.GameVariant
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.network.ConnectionState
@@ -58,17 +60,38 @@ class GameViewModel(
         val error = values[6] as String?
 
         settings.putString("playerId", playerId)
-        val cards = gameState?.communityCards?.plus(
-            gameState.activePlayers.firstOrNull { it.player.id == playerId }?.holeCards
-                ?: emptyList(),
-        )
+
+        val communityCards = gameState?.communityCards ?: emptyList()
+        val holeCards = gameState?.activePlayers?.firstOrNull { it.player.id == playerId }?.holeCards
             ?: emptyList()
-        val handDescription = if (cards.size >= 5) {
-            val hand = handEvaluator.findBestHand(cards)
-            hand.description()
+
+        val handDescription = if (communityCards.size >= 3 && holeCards.isNotEmpty()) {
+            try {
+                val variant = gameState?.variant ?: GameVariant.TEXAS_HOLDEM
+                val evaluator = HandEvaluatorFactory.getEvaluator(variant)
+
+                val bestHands = if (variant == GameVariant.TEXAS_HOLDEM) {
+                    val allCards = holeCards + communityCards
+                    if (allCards.size >= 5) {
+                        evaluator.findBestHand(allCards, 5)
+                    } else {
+                        emptyList()
+                    }
+                } else {
+                    if (holeCards.size >= 2 && communityCards.size >= 3) {
+                        evaluator.findBestHand(holeCards, communityCards)
+                    } else {
+                        emptyList()
+                    }
+                }
+                bestHands.joinToString(", ") { it.description() }
+            } catch (_: Exception) {
+                ""
+            }
         } else {
             ""
         }
+
         state.copy(
             connectionState = connectionState,
             handDescription = handDescription,

@@ -4,6 +4,7 @@ import com.aaronchancey.poker.kpoker.betting.BettingStructure
 import com.aaronchancey.poker.kpoker.evaluation.StandardHandEvaluator
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.game.GamePhase
+import com.aaronchancey.poker.kpoker.game.GameVariant
 import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.game.Winner
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -23,6 +24,7 @@ class TexasHoldemGame(
     bettingStructure: BettingStructure,
 ) : PokerGame(bettingStructure, StandardHandEvaluator()) {
 
+    override val gameVariant = GameVariant.TEXAS_HOLDEM
     override val variantName = TexasHoldemVariant.name
     override val holeCardCount = TexasHoldemVariant.holeCardCount
     override val usesCommunityCards = TexasHoldemVariant.usesCommunityCards
@@ -66,7 +68,8 @@ class TexasHoldemGame(
         // Evaluate each player's best hand
         val playerHands = playersInHand.map { player ->
             val allCards = player.holeCards + state.communityCards
-            val bestHand = handEvaluator.findBestHand(allCards, 5)
+            // findBestHand now returns a List, take the first/only one
+            val bestHand = handEvaluator.findBestHand(allCards, 5).first()
             player to bestHand
         }
 

@@ -21,7 +21,19 @@ abstract class PokerGame(
     protected val bettingStructure: BettingStructure,
     protected val handEvaluator: HandEvaluator,
 ) {
+    abstract val gameVariant: GameVariant
+
     protected var state: GameState = GameState(Table.create("1", "Default", 9))
+
+    // Called after subclass init (careful with abstract props in init)
+    // But we can't easily init state with abstract prop in var declaration.
+    // Instead, we trust initialize() or we use an `init` block that might run before subclass prop is set?
+    // No, init blocks run before subclass fields.
+    // So we can't use gameVariant in the initial assignment if it's abstract.
+    // However, `initialize` is the standard way to set up the game.
+    // The default value above will use the default variant (Texas Holdem).
+    // We can rely on `initialize` to overwrite it.
+
     protected val bettingManager = BettingManager(bettingStructure)
     protected val eventListeners = mutableListOf<(GameEvent) -> Unit>()
 
@@ -45,15 +57,14 @@ abstract class PokerGame(
 
     // Common game flow
     open fun initialize(table: Table) {
-        state = GameState(table = table)
+        state = GameState(table = table, variant = gameVariant)
         emit(GameEvent.GameInitialized(state))
     }
 
     open fun restoreState(gameState: GameState) {
-        state = gameState
-        // We might want a different event for restoration, but GameInitialized is probably fine for now
-        // or just silent restoration if the server is just coming back up.
-        // Let's emit a state update to be safe.
+        // Ensure the restored state has the correct variant for this Game instance
+        // This fixes issues where state is deserialized with default variant (Texas Hold'em)
+        state = gameState.copy(variant = gameVariant)
         emit(GameEvent.GameInitialized(state))
     }
 

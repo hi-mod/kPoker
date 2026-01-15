@@ -13,14 +13,30 @@ class LoHandEvaluator : HandEvaluator {
         return evaluateLoHand(cards)
     }
 
-    override fun findBestHand(cards: List<Card>, handSize: Int): EvaluatedHand {
+    override fun findBestHand(cards: List<Card>, handSize: Int): List<EvaluatedHand> {
         require(cards.size >= handSize) { "Need at least $handSize cards" }
-        return combinations(cards, handSize)
+
+        val comparator = Comparator<EvaluatedHand> { h1, h2 ->
+            val v1 = h1.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }.sortedDescending()
+            val v2 = h2.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }.sortedDescending()
+
+            for (i in v1.indices) {
+                if (i >= v2.size) break
+                val diff = v1[i].compareTo(v2[i])
+                if (diff != 0) return@Comparator diff
+            }
+            0
+        }
+
+        val best = combinations(cards, handSize)
             .map { evaluateLoHand(it) }
             .filter { isQualifyingLow(it) }
-            .minOrNull()
-            ?: EvaluatedHand(HandRank.HIGH_CARD, emptyList()) // No qualifying low
+            .minWithOrNull(comparator)
+
+        return if (best != null) listOf(best) else emptyList()
     }
+
+    override fun findBestHand(holeCards: List<Card>, communityCards: List<Card>): List<EvaluatedHand> = findBestHand(holeCards + communityCards)
 
     private fun evaluateLoHand(cards: List<Card>): EvaluatedHand {
         // For lo hands, Ace is low (value 1)

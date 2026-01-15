@@ -5,5 +5,6 @@ import com.aaronchancey.poker.kpoker.core.EvaluatedHand
 
 interface HandEvaluator {
     fun evaluate(cards: List<Card>): EvaluatedHand
-    fun findBestHand(cards: List<Card>, handSize: Int = 5): EvaluatedHand
+    fun findBestHand(cards: List<Card>, handSize: Int = 5): List<EvaluatedHand>
+    fun findBestHand(holeCards: List<Card>, communityCards: List<Card>): List<EvaluatedHand>
 }

@@ -2,7 +2,6 @@ package com.aaronchancey.poker.kpoker.core
 
 object Collections {
     fun <T> combinations(list: List<T>, k: Int): Sequence<List<T>> = sequence {
-        println("Generating combinations of $k from list of size ${list.size}")
         val n = list.size
         val indices = IntArray(k)
 
