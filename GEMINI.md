@@ -21,6 +21,18 @@ The project is structured into four main Gradle modules:
     *   **Purpose:** The core poker engine library.
     *   **Nature:** Pure Kotlin Multiplatform, **NO UI dependencies**.
     *   **Contents:** Game logic, rules, state management (`GameState`), hand evaluation (`HandEvaluator`), and room management.
+    *   **Internal Structure:**
+        *   `betting/`: Betting actions, rounds, and validation (`Action`, `BettingManager`).
+        *   `core/`: Fundamental primitives (`Card`, `Deck`, `Rank`, `Suit`).
+        *   `evaluation/`: Hand evaluation algorithms (`HandEvaluator`).
+        *   `game/`: Game state and flow (`PokerGame`, `GameState`, `GamePhase`).
+        *   `player/`: Player management (`Player`, `Table`, `PotManager`).
+        *   `room/`: Multi-player room management (`Room`, `SeatManager`).
+        *   `variants/`: Poker variants (`PokerVariant`, `TexasHoldem`).
+    *   **Design Patterns:**
+        *   **Immutable State:** `GameState` is immutable; transitions create new instances.
+        *   **Event-Driven:** Uses `GameEvent` for state changes.
+        *   **Strategy Pattern:** `PokerVariant` interface for pluggable rules.
     *   **Dependencies:** `kotlinx.serialization` for state persistence/networking.
 
 2.  **`composeApp`** (`/composeApp`)
@@ -48,7 +60,9 @@ The project is structured into four main Gradle modules:
 *   **Networking:** Ktor v3.3.3 (Client & Server)
 *   **Serialization:** Kotlinx Serialization v1.9.0
 *   **Coroutines:** Kotlinx Coroutines v1.10.2
-*   **Build System:** Gradle (Kotlin DSL)
+*   **Settings:** Multiplatform Settings v1.3.0
+*   **Testing:** MockK v1.14.7, `kotlin.test`
+*   **Build System:** Gradle (Kotlin DSL) v8.12.0 (AGP)
 
 ## Build & Run Instructions
 
@@ -106,12 +120,14 @@ The project is structured into four main Gradle modules:
 2.  **State Management:**
     *   Game state in `kPoker` is generally **immutable**.
     *   Use `copy()` to create modified state instances.
+    *   **Visibility:** `Room.getVisibleGameState(playerId)` is used to filter sensitive information (e.g., hiding other players' hole cards) before sending state to clients.
 3.  **Dependency Management:**
     *   All dependencies are defined in `gradle/libs.versions.toml`.
     *   Add new dependencies there first, then reference them in `build.gradle.kts`.
 4.  **Testing:**
     *   Write unit tests for all game logic in `kPoker/src/commonTest`.
     *   Use `kotlin.test` assertions.
+    *   **Card Notation:** Tests use shorthand strings like `"As"` (Ace of Spades), `"Kh"` (King of Hearts), `"10d"` (Ten of Diamonds) via `Card.fromString()`. Valid suits are `s, h, d, c`.
 
 ## Directory Shortcuts
 

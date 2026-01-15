@@ -4,7 +4,27 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-This is a **Kotlin Multiplatform** poker application supporting Android, iOS, Web (JS/Wasm), Desktop (JVM), and Server platforms. The project uses **Compose Multiplatform** for UI across all platforms and **Ktor** for the server.
+This is a **full-stack Kotlin Multiplatform** poker application supporting Android, iOS, Web (JS/Wasm), Desktop (JVM), and Server platforms. The project uses **Compose Multiplatform** for UI across all client platforms and **Ktor** for the backend server with WebSocket support for real-time multiplayer gameplay.
+
+### Current Status
+The application is a **working multiplayer poker game** with:
+- ✅ Real-time multiplayer via WebSockets
+- ✅ Server-side game state management and persistence
+- ✅ Client-server architecture with room-based gameplay
+- ✅ Deployed to Google Cloud Run (both server and web client)
+- ✅ Server crash recovery (game state persistence)
+- ✅ UI with card visuals and player actions
+- ✅ Betting system with chip denominations
+
+### Technology Stack
+- **Language**: Kotlin 2.3.0
+- **UI Framework**: Compose Multiplatform 1.9.3
+- **Server Framework**: Ktor 3.3.3 (WebSockets, CORS, Content Negotiation)
+- **Serialization**: kotlinx-serialization 1.9.0
+- **Concurrency**: kotlinx-coroutines 1.10.2
+- **Build Tool**: Gradle with Version Catalogs
+- **Deployment**: Docker + Google Cloud Run
+- **Testing**: kotlin.test, MockK 1.14.7
 
 ## Common Commands
 
