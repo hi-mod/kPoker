@@ -1,0 +1,55 @@
+<svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 1200 700"
+        width="1200"
+        height="700"
+>
+    <!-- Outer shadow -->
+    <ellipse
+            cx="600"
+            cy="350"
+            rx="560"
+            ry="300"
+            fill="#000000"
+            opacity="0.15"
+    />
+
+    <!-- Wooden rail -->
+    <ellipse
+            cx="600"
+            cy="330"
+            rx="560"
+            ry="290"
+            fill="#7a4a24"
+    />
+
+    <!-- Rail highlight -->
+    <ellipse
+            cx="600"
+            cy="320"
+            rx="530"
+            ry="265"
+            fill="#8f5a2a"
+    />
+
+    <!-- Felt background -->
+    <ellipse
+            cx="600"
+            cy="320"
+            rx="500"
+            ry="240"
+            fill="#1f6b3a"
+    />
+
+    <!-- Felt inner border -->
+    <ellipse
+            cx="600"
+            cy="320"
+            rx="470"
+            ry="215"
+            fill="none"
+            stroke="#d2b56f"
+            stroke-width="4"
+            opacity="0.6"
+    />
+</svg>

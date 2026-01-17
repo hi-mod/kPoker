@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -26,16 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.aaronchancey.poker.kpoker.game.GameState
-import com.aaronchancey.poker.kpoker.player.PlayerStatus
 import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.presentation.game.GameEffect
 import com.aaronchancey.poker.presentation.game.GameIntent
 import com.aaronchancey.poker.presentation.game.GameUiState
 import com.aaronchancey.poker.presentation.game.GameViewModel
-import com.aaronchancey.poker.presentation.game.PlayerActions
-import com.aaronchancey.poker.presentation.game.components.DealtCardView
-import com.aaronchancey.poker.presentation.game.components.PlayingCard
+import com.aaronchancey.poker.presentation.game.components.ShowPlayers
 import com.aaronchancey.poker.presentation.room.RoomViewModel
 import com.aaronchancey.poker.presentation.room.RoomsScreen
 import com.russhwolf.settings.Settings
@@ -91,6 +86,7 @@ fun App(
             ConnectionState.CONNECTED, ConnectionState.RECONNECTING -> {
                 if (uiState.roomInfo != null) {
                     GameScreen(
+                        modifier = Modifier.fillMaxSize(),
                         uiState = uiState,
                         onIntent = viewModel::onIntent,
                     )
@@ -125,11 +121,12 @@ fun App(
 
 @Composable
 private fun GameScreen(
+    modifier: Modifier = Modifier,
     uiState: GameUiState,
     onIntent: (GameIntent) -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         uiState.roomInfo?.let { room ->
@@ -144,24 +141,17 @@ private fun GameScreen(
 
         uiState.gameState?.let { state ->
             Text("Phase: ${state.phase}")
-            Text("Community Cards:")
-            Row {
-                state.communityCards.forEach { card ->
-                    PlayingCard(
-                        modifier = Modifier.requiredHeight(100.dp),
-                        card = card,
-                    )
-                }
-            }
             Text("Pot: ${state.totalPot}")
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Display seats
-            Seats(state, uiState.gameState, uiState, onIntent)
+            ShowPlayers(
+                isLoading = uiState.isLoading,
+                uiState = uiState,
+                onTakeSeat = { onIntent(GameIntent.TakeSeat(it, 100.0)) },
+                onIntent = onIntent,
+            )
         }
-
-        Spacer(modifier = Modifier.weight(1f))
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
@@ -176,53 +166,6 @@ private fun GameScreen(
                 enabled = !uiState.isLoading,
             ) {
                 Text("Disconnect")
-            }
-        }
-    }
-}
-
-@Composable
-private fun Seats(
-    state: GameState,
-    gameState: GameState,
-    uiState: GameUiState,
-    onIntent: (GameIntent) -> Unit,
-) {
-    state.table.seats.forEach { seat ->
-        val playerState = seat.playerState
-        if (playerState != null) {
-            val text = buildString {
-                append("Seat ${seat.number}: ${playerState.player.name} - ")
-                if (playerState.status == PlayerStatus.WAITING) {
-                    append("(Waiting for next hand) ")
-                }
-                append("${playerState.chips} chips - Bet: ${playerState.currentBet} ")
-                if (playerState.isDealer) {
-                    append("(Dealer) ")
-                }
-                if (gameState.winners.find { it.playerId == playerState.player.id } != null) {
-                    append("Winner!")
-                }
-                if (uiState.playerId == playerState.player.id) {
-                    append(uiState.handDescription)
-                }
-            }
-            Text(text)
-            Row {
-                playerState.dealtCards.forEach { dealtCard ->
-                    DealtCardView(
-                        modifier = Modifier.requiredHeight(100.dp),
-                        dealtCard = dealtCard,
-                    )
-                }
-            }
-            PlayerActions(playerState, uiState, onIntent)
-        } else {
-            Button(
-                onClick = { onIntent(GameIntent.TakeSeat(seat.number, 100.0)) },
-                enabled = !uiState.isLoading,
-            ) {
-                Text("Take Seat ${seat.number}")
             }
         }
     }

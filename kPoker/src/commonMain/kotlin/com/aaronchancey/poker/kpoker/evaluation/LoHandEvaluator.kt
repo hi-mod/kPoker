@@ -6,7 +6,7 @@ import com.aaronchancey.poker.kpoker.core.EvaluatedHand
 import com.aaronchancey.poker.kpoker.core.HandRank
 import com.aaronchancey.poker.kpoker.core.Rank
 
-class LoHandEvaluator : HandEvaluator {
+class LoHandEvaluator : HandEvaluator() {
 
     override fun evaluate(cards: List<Card>): EvaluatedHand {
         require(cards.size == 5) { "Lo hand evaluation requires exactly 5 cards" }
@@ -29,7 +29,7 @@ class LoHandEvaluator : HandEvaluator {
         }
 
         val best = combinations(cards, handSize)
-            .map { evaluateLoHand(it) }
+            .map { evaluateLoHand(it) as EvaluatedHand }
             .filter { isQualifyingLow(it) }
             .minWithOrNull(comparator)
 

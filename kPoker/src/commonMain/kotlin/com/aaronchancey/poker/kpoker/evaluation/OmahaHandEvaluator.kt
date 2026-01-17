@@ -6,7 +6,7 @@ import com.aaronchancey.poker.kpoker.core.EvaluatedHand
 
 class OmahaHandEvaluator(
     private val baseEvaluator: HandEvaluator = StandardHandEvaluator(),
-) : HandEvaluator {
+) : HandEvaluator() {
 
     override fun evaluate(cards: List<Card>): EvaluatedHand = baseEvaluator.evaluate(cards)
 
@@ -33,5 +33,19 @@ class OmahaHandEvaluator(
         }
 
         return if (bestHand != null) listOf(bestHand) else emptyList()
+    }
+
+    /**
+     * Omaha partial evaluation respects the "must use exactly 2 hole cards" rule.
+     * Evaluates all 2-card combinations and returns the best one.
+     */
+    override fun evaluatePartial(cards: List<Card>): EvaluatedHand? {
+        if (cards.isEmpty()) return null
+        if (cards.size <= 2) return baseEvaluator.evaluatePartial(cards)
+
+        // With 3+ hole cards, find best 2-card combination
+        return combinations(cards, 2)
+            .mapNotNull { baseEvaluator.evaluatePartial(it) }
+            .maxOrNull()
     }
 }

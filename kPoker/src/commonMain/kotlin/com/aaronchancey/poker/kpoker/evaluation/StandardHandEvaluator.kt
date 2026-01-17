@@ -6,7 +6,7 @@ import com.aaronchancey.poker.kpoker.core.EvaluatedHand
 import com.aaronchancey.poker.kpoker.core.HandRank
 import com.aaronchancey.poker.kpoker.core.Rank
 
-class StandardHandEvaluator : HandEvaluator {
+class StandardHandEvaluator : HandEvaluator() {
 
     override fun evaluate(cards: List<Card>): EvaluatedHand {
         require(cards.size == 5) { "Standard hand evaluation requires exactly 5 cards" }
@@ -36,56 +36,14 @@ class StandardHandEvaluator : HandEvaluator {
             }
         }
 
-        val rankGroups = cards.groupBy { it.rank }.values.sortedByDescending { it.size }
-        val groupSizes = rankGroups.map { it.size }
+        // Check flush before rank groups (flush beats straight, trips, two pair, pair)
+        if (isFlush) return EvaluatedHand(HandRank.FLUSH, sorted)
 
-        return when {
-            groupSizes[0] == 4 -> {
-                EvaluatedHand(
-                    HandRank.FOUR_OF_A_KIND,
-                    rankGroups[0],
-                    rankGroups.drop(1).flatten(),
-                )
-            }
+        // Check straight before rank groups (straight beats trips, two pair, pair)
+        if (isStraight) return EvaluatedHand(HandRank.STRAIGHT, sorted)
 
-            groupSizes[0] == 3 && groupSizes[1] == 2 -> {
-                EvaluatedHand(
-                    HandRank.FULL_HOUSE,
-                    rankGroups[0] + rankGroups[1],
-                )
-            }
-
-            isFlush -> EvaluatedHand(HandRank.FLUSH, sorted)
-
-            isStraight -> EvaluatedHand(HandRank.STRAIGHT, sorted)
-
-            groupSizes[0] == 3 -> {
-                EvaluatedHand(
-                    HandRank.THREE_OF_A_KIND,
-                    rankGroups[0],
-                    rankGroups.drop(1).flatten().sortedByDescending { it.rank.value },
-                )
-            }
-
-            groupSizes[0] == 2 && groupSizes[1] == 2 -> {
-                val pairs = rankGroups.take(2).sortedByDescending { it[0].rank.value }
-                EvaluatedHand(
-                    HandRank.TWO_PAIR,
-                    pairs.flatten(),
-                    rankGroups.drop(2).flatten(),
-                )
-            }
-
-            groupSizes[0] == 2 -> {
-                EvaluatedHand(
-                    HandRank.ONE_PAIR,
-                    rankGroups[0],
-                    rankGroups.drop(1).flatten().sortedByDescending { it.rank.value },
-                )
-            }
-
-            else -> EvaluatedHand(HandRank.HIGH_CARD, sorted.take(1), sorted.drop(1))
-        }
+        // Delegate to shared rank-grouping logic for pairs/trips/quads/full house
+        return evaluateByRankGroups(cards)
     }
 
     private fun isStraight(sorted: List<Card>): Boolean {

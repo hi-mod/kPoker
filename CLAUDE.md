@@ -6,6 +6,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Full-stack Kotlin Multiplatform poker application targeting Android, iOS, Web (JS/Wasm), Desktop (JVM), and Server. Uses **Compose Multiplatform** for shared UI and **Ktor** for backend server with WebSocket support for real-time multiplayer.
 
+## Provably Fair Deck (Future Goal)
+
+A core architectural goal is implementing **end-to-end card encryption** with a **provably fair deck** system. This ensures trustless gameplay where:
+
+1. **No party sees cards prematurely** - Cards remain encrypted until legitimately revealed (deal, showdown)
+2. **Server cannot cheat** - The server never has access to unencrypted card values
+3. **Players can verify fairness** - Cryptographic proofs allow post-game verification that the deck was shuffled honestly
+4. **Collusion-resistant** - Even colluding players cannot gain information about unrevealed cards
+
+### Cryptographic Approach
+
+The system will use **Mental Poker** protocols (e.g., SRA or similar commutative encryption schemes):
+
+- Each player contributes to deck encryption with their own key
+- Cards can only be decrypted when all required parties cooperate
+- Shuffle verification via zero-knowledge proofs or commit-reveal schemes
+- End-of-hand key revelation for full audit trail
+
+### Design Considerations
+
+- Encryption logic should live in `kPoker/` as platform-agnostic Kotlin
+- Consider using Kotlin Multiplatform crypto libraries (e.g., `kotlinx-crypto` or bindings to libsodium)
+- `EncryptedDeck` and `EncryptedCard` types to distinguish from plaintext `Deck`/`Card`
+- Protocol messages in `shared/` for key exchange and encrypted card transfers
+- Graceful degradation: support both trusted-server mode (current) and provably-fair mode
+
 ## Build & Run Commands
 
 ```bash

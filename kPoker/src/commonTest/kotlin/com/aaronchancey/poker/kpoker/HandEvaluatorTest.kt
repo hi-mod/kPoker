@@ -102,4 +102,65 @@ class HandEvaluatorTest {
         val straight = evaluator.evaluate(cards("9h", "8s", "7d", "6c", "5h"))
         assertTrue(flush > straight)
     }
+
+    // Partial hand evaluation tests (pre-flop)
+
+    @Test
+    fun testPartialEmptyReturnsNull() {
+        val result = evaluator.evaluatePartial(emptyList())
+        assertEquals(null, result)
+    }
+
+    @Test
+    fun testPartialSingleCard() {
+        val result = evaluator.evaluatePartial(cards("As"))
+        assertEquals(HandRank.HIGH_CARD, result?.rank)
+        assertEquals(1, result?.cards?.size)
+    }
+
+    @Test
+    fun testPartialTwoCardsHighCard() {
+        val result = evaluator.evaluatePartial(cards("As", "Kh"))
+        assertEquals(HandRank.HIGH_CARD, result?.rank)
+        assertEquals("A", result?.cards?.first()?.rank?.symbol)
+    }
+
+    @Test
+    fun testPartialPocketPair() {
+        val result = evaluator.evaluatePartial(cards("Ah", "As"))
+        assertEquals(HandRank.ONE_PAIR, result?.rank)
+        assertEquals(2, result?.cards?.size)
+    }
+
+    @Test
+    fun testPartialThreeOfAKind() {
+        val result = evaluator.evaluatePartial(cards("Ah", "As", "Ad"))
+        assertEquals(HandRank.THREE_OF_A_KIND, result?.rank)
+        assertEquals(3, result?.cards?.size)
+    }
+
+    @Test
+    fun testPartialFourCards_TwoPair() {
+        val result = evaluator.evaluatePartial(cards("Ah", "As", "Kh", "Ks"))
+        assertEquals(HandRank.TWO_PAIR, result?.rank)
+    }
+
+    @Test
+    fun testPartialFourCards_FourOfAKind() {
+        val result = evaluator.evaluatePartial(cards("Ah", "As", "Ad", "Ac"))
+        assertEquals(HandRank.FOUR_OF_A_KIND, result?.rank)
+    }
+
+    @Test
+    fun testPartialFourCards_PairWithKickers() {
+        val result = evaluator.evaluatePartial(cards("Ah", "As", "Kh", "Qd"))
+        assertEquals(HandRank.ONE_PAIR, result?.rank)
+        assertEquals(2, result?.kickers?.size)
+    }
+
+    @Test
+    fun testPartialFiveOrMoreDelegatesToEvaluate() {
+        val result = evaluator.evaluatePartial(cards("Ah", "Kh", "Qh", "Jh", "Th"))
+        assertEquals(HandRank.ROYAL_FLUSH, result?.rank)
+    }
 }

@@ -39,12 +39,16 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlayerActions(
+    modifier: Modifier = Modifier,
     playerState: PlayerState,
     uiState: GameUiState,
     onIntent: (GameIntent) -> Unit,
 ) {
     if (playerState.hasActed || uiState.availableActions?.playerId != playerState.player.id) return
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         uiState.availableActions.validActions.forEach { actionType ->
             var betAmount: ChipAmount by remember {
                 mutableDoubleStateOf(uiState.availableActions.minimumBet + uiState.availableActions.minimumRaise)

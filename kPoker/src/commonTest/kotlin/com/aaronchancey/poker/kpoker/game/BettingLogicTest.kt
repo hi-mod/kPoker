@@ -15,7 +15,7 @@ import kotlin.test.assertEquals
 
 class BettingLogicTest {
 
-    class DummyEvaluator : HandEvaluator {
+    class DummyEvaluator : HandEvaluator() {
         override fun evaluate(cards: List<Card>): EvaluatedHand = EvaluatedHand(HandRank.HIGH_CARD, cards)
         override fun findBestHand(cards: List<Card>, handSize: Int): List<EvaluatedHand> = listOf(EvaluatedHand(HandRank.HIGH_CARD, cards.take(5)))
         override fun findBestHand(holeCards: List<Card>, communityCards: List<Card>): List<EvaluatedHand> = listOf(EvaluatedHand(HandRank.HIGH_CARD, (holeCards + communityCards).take(5)))

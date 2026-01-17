@@ -1,6 +1,7 @@
 package com.aaronchancey.poker.kpoker.evaluation
 
 import com.aaronchancey.poker.kpoker.core.Card
+import com.aaronchancey.poker.kpoker.core.HandRank
 import com.aaronchancey.poker.kpoker.core.Rank
 import com.aaronchancey.poker.kpoker.core.Suit
 import com.aaronchancey.poker.kpoker.game.GameVariant
@@ -11,6 +12,7 @@ import kotlin.test.assertTrue
 class OmahaHiLoTest {
 
     private val evaluator = HandEvaluatorFactory.getEvaluator(GameVariant.OMAHA_HI_LO)
+    private val omahaEvaluator = HandEvaluatorFactory.getEvaluator(GameVariant.OMAHA)
 
     @Test
     fun `no low hand if board has fewer than 3 low cards`() {
@@ -41,5 +43,48 @@ class OmahaHiLoTest {
         assertTrue(result[0].description().contains("Pair"), "High hand should be a Pair")
 
         // If low hand was found, size would be 2.
+    }
+
+    @Test
+    fun `partial evaluation with trip sevens should be pair not trips`() {
+        // In Omaha you can only use 2 hole cards, so 7-7-7-J is a pair, not trips
+        val holeCards = listOf(
+            Card(Rank.SEVEN, Suit.HEARTS),
+            Card(Rank.SEVEN, Suit.SPADES),
+            Card(Rank.SEVEN, Suit.DIAMONDS),
+            Card(Rank.JACK, Suit.CLUBS),
+        )
+
+        val result = evaluator.evaluatePartial(holeCards)
+
+        assertEquals(HandRank.ONE_PAIR, result?.rank, "Should be ONE_PAIR, not THREE_OF_A_KIND")
+    }
+
+    @Test
+    fun `omaha partial evaluation with trip sevens should be pair not trips`() {
+        val holeCards = listOf(
+            Card(Rank.SEVEN, Suit.HEARTS),
+            Card(Rank.SEVEN, Suit.SPADES),
+            Card(Rank.SEVEN, Suit.DIAMONDS),
+            Card(Rank.JACK, Suit.CLUBS),
+        )
+
+        val result = omahaEvaluator.evaluatePartial(holeCards)
+
+        assertEquals(HandRank.ONE_PAIR, result?.rank, "Should be ONE_PAIR, not THREE_OF_A_KIND")
+    }
+
+    @Test
+    fun `omaha partial with four of same rank is still just a pair`() {
+        val holeCards = listOf(
+            Card(Rank.ACE, Suit.HEARTS),
+            Card(Rank.ACE, Suit.SPADES),
+            Card(Rank.ACE, Suit.DIAMONDS),
+            Card(Rank.ACE, Suit.CLUBS),
+        )
+
+        val result = omahaEvaluator.evaluatePartial(holeCards)
+
+        assertEquals(HandRank.ONE_PAIR, result?.rank, "Four aces in Omaha hole cards is still just a pair")
     }
 }

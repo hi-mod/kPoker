@@ -62,26 +62,32 @@ class GameViewModel(
         val holeCards = gameState?.activePlayers?.firstOrNull { it.player.id == playerId }?.holeCards
             ?: emptyList()
 
-        val handDescription = if (communityCards.size >= 3 && holeCards.isNotEmpty()) {
+        val handDescription = if (holeCards.isNotEmpty()) {
             try {
                 val variant = gameState?.variant ?: GameVariant.TEXAS_HOLDEM
                 val evaluator = HandEvaluatorFactory.getEvaluator(variant)
 
-                val bestHands = if (variant == GameVariant.TEXAS_HOLDEM) {
-                    val allCards = holeCards + communityCards
-                    if (allCards.size >= 5) {
-                        evaluator.findBestHand(allCards, 5)
+                if (communityCards.size >= 3) {
+                    // Post-flop: full hand evaluation
+                    val bestHands = if (variant == GameVariant.TEXAS_HOLDEM) {
+                        val allCards = holeCards + communityCards
+                        if (allCards.size >= 5) {
+                            evaluator.findBestHand(allCards, 5)
+                        } else {
+                            emptyList()
+                        }
                     } else {
-                        emptyList()
+                        if (holeCards.size >= 2 && communityCards.size >= 3) {
+                            evaluator.findBestHand(holeCards, communityCards)
+                        } else {
+                            emptyList()
+                        }
                     }
+                    bestHands.joinToString(", ") { it.description() }
                 } else {
-                    if (holeCards.size >= 2 && communityCards.size >= 3) {
-                        evaluator.findBestHand(holeCards, communityCards)
-                    } else {
-                        emptyList()
-                    }
+                    // Pre-flop: partial evaluation of hole cards only
+                    evaluator.evaluatePartial(holeCards)?.description() ?: ""
                 }
-                bestHands.joinToString(", ") { it.description() }
             } catch (_: Exception) {
                 ""
             }

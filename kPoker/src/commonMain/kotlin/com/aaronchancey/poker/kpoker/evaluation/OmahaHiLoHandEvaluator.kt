@@ -5,7 +5,7 @@ import com.aaronchancey.poker.kpoker.core.Collections.combinations
 import com.aaronchancey.poker.kpoker.core.EvaluatedHand
 import com.aaronchancey.poker.kpoker.core.Rank
 
-class OmahaHiLoHandEvaluator : HandEvaluator {
+class OmahaHiLoHandEvaluator : HandEvaluator() {
     private val highEvaluator = OmahaHandEvaluator()
     private val loEvaluator = LoHandEvaluator()
 
@@ -17,6 +17,11 @@ class OmahaHiLoHandEvaluator : HandEvaluator {
     override fun findBestHand(cards: List<Card>, handSize: Int): List<EvaluatedHand> {
         // Ambiguous, defaulting to High evaluation
         return highEvaluator.findBestHand(cards, handSize)
+    }
+
+    override fun evaluatePartial(cards: List<Card>): EvaluatedHand? {
+        // Delegate to high evaluator which respects Omaha's 2-card rule
+        return highEvaluator.evaluatePartial(cards)
     }
 
     override fun findBestHand(holeCards: List<Card>, communityCards: List<Card>): List<EvaluatedHand> {
