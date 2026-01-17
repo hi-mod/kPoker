@@ -1,8 +1,16 @@
-package com.aaronchancey.poker.kpoker.room
+package com.aaronchancey.poker.room
 
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.Table
+
+/**
+ * Manages seat reservations for a poker room.
+ *
+ * Reservations are server-side network concerns - they hold a seat while
+ * a player confirms their buy-in amount over a potentially slow connection.
+ * Reservations expire after a configurable duration (default 60 seconds).
+ */
 
 data class SeatReservation(
     val seatNumber: Int,

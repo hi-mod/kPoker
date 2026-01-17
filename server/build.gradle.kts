@@ -37,38 +37,3 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
 }
-
-/*configure<AppEngineAppYamlExtension> {
-    stage {
-        setArtifact("build/libs/${project.name}-all.jar")
-    }
-    deploy {
-        version = "GCLOUD_CONFIG"
-        projectId = "GCLOUD_CONFIG"
-    }
-}*/
-
-// Check for WASM_DEBUG env var.
-// Default to production for safety/deployments.
-/*val isWasmDebug = System.getenv("WASM_DEBUG") == "true"
-val skipClientBuild = project.hasProperty("skipClientBuild")
-
-if (!skipClientBuild) {
-    println("WASM Debug Mode: $isWasmDebug")
-    // Correct task names based on 'gradle :composeApp:tasks' output
-    val wasmSimpleTaskName = if (isWasmDebug) "wasmJsBrowserDevelopmentExecutableDistribution" else "wasmJsBrowserDistribution"
-    val wasmDistPath = if (isWasmDebug) "composeApp/build/dist/wasmJs/developmentExecutable" else "composeApp/build/dist/wasmJs/productionExecutable"
-    val wasmDistDir = project.rootDir.resolve(wasmDistPath)
-
-    val composeAppProject = project(":composeApp")
-    val wasmTaskProvider = composeAppProject.tasks.named(wasmSimpleTaskName)
-
-    tasks.named<ProcessResources>("processResources") {
-        dependsOn(wasmTaskProvider)
-
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        from(wasmDistDir) {
-            into("static")
-        }
-    }
-}*/

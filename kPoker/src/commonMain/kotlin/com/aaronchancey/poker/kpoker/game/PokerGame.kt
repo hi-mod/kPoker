@@ -8,6 +8,8 @@ import com.aaronchancey.poker.kpoker.betting.BettingRoundType
 import com.aaronchancey.poker.kpoker.betting.BettingStructure
 import com.aaronchancey.poker.kpoker.betting.BlindType
 import com.aaronchancey.poker.kpoker.core.Deck
+import com.aaronchancey.poker.kpoker.dealing.CardDealer
+import com.aaronchancey.poker.kpoker.dealing.StandardDealer
 import com.aaronchancey.poker.kpoker.evaluation.HandEvaluator
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -20,6 +22,7 @@ import com.aaronchancey.poker.kpoker.player.Table
 abstract class PokerGame(
     protected val bettingStructure: BettingStructure,
     protected val handEvaluator: HandEvaluator,
+    protected val cardDealer: CardDealer = StandardDealer(),
 ) {
     abstract val gameVariant: GameVariant
 
@@ -52,8 +55,23 @@ abstract class PokerGame(
     abstract val holeCardCount: Int
     abstract val usesCommunityCards: Boolean
 
-    abstract fun dealHoleCards()
     abstract fun evaluateHands(): List<Winner>
+
+    /**
+     * Deal hole cards to all active players using the [CardDealer].
+     * Override in subclasses only if variant needs custom dealing behavior.
+     */
+    open fun dealHoleCards() {
+        state = state.withPhase(GamePhase.DEALING)
+
+        val result = cardDealer.dealHoleCards(state, holeCardCount)
+        state = result.updatedState
+
+        // Emit events for each player's dealt cards
+        result.dealtCards.forEach { (playerId, cards) ->
+            emit(GameEvent.HoleCardsDealt(playerId, cards))
+        }
+    }
 
     // Common game flow
     open fun initialize(table: Table) {
@@ -418,24 +436,21 @@ abstract class PokerGame(
     }
 
     protected open fun dealFlop() {
-        state.deck.burn()
-        val flop = state.deck.deal(3)
-        state = state.addCommunityCards(flop)
-        emit(GameEvent.CommunityCardsDealt(flop))
+        val result = cardDealer.dealCommunityCards(state, count = 3, burnFirst = true)
+        state = result.updatedState
+        emit(GameEvent.CommunityCardsDealt(result.cards))
     }
 
     protected open fun dealTurn() {
-        state.deck.burn()
-        val turn = state.deck.deal(1)
-        state = state.addCommunityCards(turn)
-        emit(GameEvent.CommunityCardsDealt(turn))
+        val result = cardDealer.dealCommunityCards(state, count = 1, burnFirst = true)
+        state = result.updatedState
+        emit(GameEvent.CommunityCardsDealt(result.cards))
     }
 
     protected open fun dealRiver() {
-        state.deck.burn()
-        val river = state.deck.deal(1)
-        state = state.addCommunityCards(river)
-        emit(GameEvent.CommunityCardsDealt(river))
+        val result = cardDealer.dealCommunityCards(state, count = 1, burnFirst = true)
+        state = result.updatedState
+        emit(GameEvent.CommunityCardsDealt(result.cards))
     }
 
     protected open fun finishHand() {

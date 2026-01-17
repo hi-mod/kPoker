@@ -7,14 +7,11 @@ import com.aaronchancey.poker.kpoker.core.EvaluatedHand
 import com.aaronchancey.poker.kpoker.core.Rank
 import com.aaronchancey.poker.kpoker.evaluation.LoHandEvaluator
 import com.aaronchancey.poker.kpoker.evaluation.OmahaHandEvaluator
-import com.aaronchancey.poker.kpoker.events.GameEvent
-import com.aaronchancey.poker.kpoker.game.GamePhase
 import com.aaronchancey.poker.kpoker.game.GameVariant
 import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.game.Winner
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerState
-import com.aaronchancey.poker.kpoker.player.PlayerStatus
 
 object OmahaVariant : PokerVariant {
     override val name = "Omaha"
@@ -47,26 +44,6 @@ class OmahaGame(
     override val variantName = if (isHiLo) OmahaHiLoVariant.name else OmahaVariant.name
     override val holeCardCount = OmahaVariant.holeCardCount
     override val usesCommunityCards = OmahaVariant.usesCommunityCards
-
-    override fun dealHoleCards() {
-        state = state.withPhase(GamePhase.DEALING)
-
-        var table = state.table
-
-        for (seat in state.table.occupiedSeats) {
-            if (seat.playerState != null) {
-                val cards = state.deck.deal(holeCardCount)
-                table = table.updateSeat(seat.number) { s ->
-                    s.updatePlayerState { ps ->
-                        ps.withHoleCards(cards).withStatus(PlayerStatus.ACTIVE)
-                    }
-                }
-                emit(GameEvent.HoleCardsDealt(seat.playerState.player.id, cards))
-            }
-        }
-
-        state = state.withTable(table)
-    }
 
     override fun evaluateHands(): List<Winner> {
         val playersInHand = state.table.getPlayersInHand()

@@ -107,3 +107,18 @@ gcloud run deploy poker-server --image gcr.io/kpoker-483701/poker-server --platf
 ```
 
 Server runs on port 8080 (configurable via `PORT` env var). Game state persists to `/data/rooms/` for crash recovery.
+
+## Language & Documentation
+
+- **Primary language:** Kotlin
+- **Documentation:** Always use KDoc for public APIs and non-trivial functions
+- **Testing:** Always write unit tests for new functionality
+
+## Kotlin Conventions
+
+- Prefer `callbackFlow`, `suspendCoroutine`, or `suspendCancellableCoroutine` over callback-based APIs
+- Convert callback patterns to coroutine-friendly flows when possible
+- `Modifier` parameter is ALWAYS first in Composable function declarations and calls
+- Always use named parameters when putting parameters on separate lines.
+- Generally try to avoid using init blocks
+- Definitely avoid init blocks on view models as they make them very hard to test

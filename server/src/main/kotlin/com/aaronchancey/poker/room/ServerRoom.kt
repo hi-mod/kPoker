@@ -2,9 +2,7 @@ package com.aaronchancey.poker.room
 
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
-import com.aaronchancey.poker.kpoker.betting.BettingStructure
 import com.aaronchancey.poker.kpoker.events.GameEvent
-import com.aaronchancey.poker.kpoker.game.GamePhase
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -15,6 +13,8 @@ import com.aaronchancey.poker.kpoker.player.Seat
 import com.aaronchancey.poker.kpoker.player.Table
 import com.aaronchancey.poker.kpoker.variants.OmahaGame
 import com.aaronchancey.poker.kpoker.variants.TexasHoldemGame
+import com.aaronchancey.poker.kpoker.visibility.StandardVisibility
+import com.aaronchancey.poker.kpoker.visibility.VisibilityService
 import com.aaronchancey.poker.persistence.RoomStateData
 import com.aaronchancey.poker.shared.message.RoomInfo
 import com.aaronchancey.poker.shared.message.ServerMessage
@@ -28,41 +28,95 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/**
+ * Server-side room that manages a poker game instance.
+ *
+ * Responsibilities:
+ * - Game lifecycle (wraps PokerGame)
+ * - Spectator management
+ * - Seat reservations (via SeatManager)
+ * - Visibility filtering (via VisibilityService)
+ * - Broadcasting state to connected clients
+ */
 class ServerRoom(
-    val roomId: String,
-    val roomName: String,
-    val minDenomination: ChipAmount = 0.1,
-    val maxPlayers: Int = 9,
-    val smallBlind: ChipAmount = 1.0,
-    val bigBlind: ChipAmount = 2.0,
-    val minBuyIn: ChipAmount = 40.0,
-    val maxBuyIn: ChipAmount = 200.0,
-    val variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
+    val config: RoomConfig,
     private val connectionManager: ConnectionManager,
+    private val visibilityService: VisibilityService = StandardVisibility(),
     initialGameState: GameState? = null,
 ) {
+    // Convenience accessors for backwards compatibility
+    val roomId: String get() = config.roomId
+    val roomName: String get() = config.roomName
+    val maxPlayers: Int get() = config.maxPlayers
+    val smallBlind: ChipAmount get() = config.smallBlind
+    val bigBlind: ChipAmount get() = config.bigBlind
+    val minBuyIn: ChipAmount get() = config.minBuyIn
+    val maxBuyIn: ChipAmount get() = config.maxBuyIn
+    val minDenomination: ChipAmount get() = config.minDenomination
+    val variant: GameVariant get() = config.variant
+
     private val mutex = Mutex()
-    private val bettingStructure: BettingStructure = when (variant) {
-        GameVariant.OMAHA_PL, GameVariant.OMAHA_HILO_PL -> BettingStructure.potLimit(smallBlind, bigBlind, minDenomination = minDenomination)
-        GameVariant.TEXAS_HOLDEM_NL -> BettingStructure.noLimit(smallBlind, bigBlind, minDenomination = minDenomination)
-    }
-
-    private var game: PokerGame = when (variant) {
-        GameVariant.OMAHA_PL -> OmahaGame.potLimit(smallBlind, bigBlind, minDenomination = minDenomination)
-        GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(smallBlind, bigBlind, minDenomination = minDenomination)
-        GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(smallBlind, bigBlind, minDenomination = minDenomination)
-    }
-
     private val scope = CoroutineScope(Dispatchers.Default)
+    private val spectators = mutableMapOf<PlayerId, RoomParticipant.Spectator>()
+    private val seatManager = SeatManager(config.maxPlayers, config.reservationDurationMs)
+    private var game: PokerGame = createGame()
+
+    val spectatorCount: Int get() = spectators.size
+    val playerCount: Int get() = game.currentState.table.playerCount
+
+    val participants: List<RoomParticipant>
+        get() = spectators.values.toList() +
+            game.currentState.table.occupiedSeats.mapNotNull { seat ->
+                seat.playerState?.let { ps ->
+                    RoomParticipant.SeatedPlayer(ps.player, seat.number, ps.chips)
+                }
+            }
 
     init {
         if (initialGameState != null) {
             game.restoreState(initialGameState)
         } else {
-            val initialTable = Table.create(roomId, roomName, maxPlayers)
-            game.initialize(initialTable)
+            game.initialize(Table.create(config.roomId, config.roomName, config.maxPlayers))
         }
+        setupEventListeners()
+    }
 
+    /** Secondary constructor for backwards compatibility. */
+    constructor(
+        roomId: String,
+        roomName: String,
+        minDenomination: ChipAmount = 0.1,
+        maxPlayers: Int = 9,
+        smallBlind: ChipAmount = 1.0,
+        bigBlind: ChipAmount = 2.0,
+        minBuyIn: ChipAmount = 40.0,
+        maxBuyIn: ChipAmount = 200.0,
+        variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
+        connectionManager: ConnectionManager,
+        initialGameState: GameState? = null,
+    ) : this(
+        config = RoomConfig(
+            roomId = roomId,
+            roomName = roomName,
+            maxPlayers = maxPlayers,
+            smallBlind = smallBlind,
+            bigBlind = bigBlind,
+            minBuyIn = minBuyIn,
+            maxBuyIn = maxBuyIn,
+            minDenomination = minDenomination,
+            variant = variant,
+        ),
+        connectionManager = connectionManager,
+        initialGameState = initialGameState,
+    )
+
+    private fun createGame(): PokerGame = when (config.variant) {
+        GameVariant.OMAHA_PL -> OmahaGame.potLimit(smallBlind, bigBlind, minDenomination)
+        GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(smallBlind, bigBlind, minDenomination)
+        GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(smallBlind, bigBlind, minDenomination)
+    }
+
+    private fun setupEventListeners() {
         game.addEventListener { event ->
             scope.launch {
                 connectionManager.broadcast(roomId, ServerMessage.GameEventOccurred(event))
@@ -71,11 +125,7 @@ class ServerRoom(
                 when (event) {
                     is GameEvent.TurnChanged -> {
                         game.getActionRequest()?.let { actionRequest ->
-                            connectionManager.sendTo(
-                                roomId,
-                                event.playerId,
-                                ServerMessage.ActionRequired(actionRequest),
-                            )
+                            connectionManager.sendTo(roomId, event.playerId, ServerMessage.ActionRequired(actionRequest))
                         }
                     }
 
@@ -84,81 +134,121 @@ class ServerRoom(
                         startHandIfReady()
                     }
 
-                    else -> Unit /* No additional action needed for other events */
+                    else -> Unit
                 }
             }
         }
     }
 
-    fun getRoomInfo(): RoomInfo = RoomInfo(
-        roomId = roomId,
-        roomName = roomName,
-        maxPlayers = maxPlayers,
-        smallBlind = smallBlind,
-        bigBlind = bigBlind,
-        minBuyIn = minBuyIn,
-        maxBuyIn = maxBuyIn,
-        playerCount = game.currentState.table.playerCount,
-        variant = variant,
-    )
+    // === Spectator Management ===
 
-    fun getRoomStateData(): RoomStateData = RoomStateData(
-        roomId = roomId,
-        roomName = roomName,
-        maxPlayers = maxPlayers,
-        smallBlind = smallBlind,
-        bigBlind = bigBlind,
-        minBuyIn = minBuyIn,
-        maxBuyIn = maxBuyIn,
-        variant = variant,
-        gameState = game.currentState,
-        minDenomination = minDenomination,
-    )
+    suspend fun joinAsSpectator(player: Player): Result<Unit> = mutex.withLock {
+        when {
+            !config.allowSpectators -> Result.failure(IllegalStateException("Spectators not allowed"))
 
-    fun getGameState(): GameState = game.currentState
+            spectators.size >= config.maxSpectators -> Result.failure(IllegalStateException("Spectator limit reached"))
 
-    fun getActionRequest(): ActionRequest? = game.getActionRequest()
+            isPlayerInRoom(player.id) -> Result.failure(IllegalStateException("Player already in room"))
 
-    suspend fun seatPlayer(playerId: PlayerId, playerName: String, seatNumber: Int, buyIn: ChipAmount): Result<Unit> = mutex.withLock {
+            else -> {
+                spectators[player.id] = RoomParticipant.Spectator(player)
+                Result.success(Unit)
+            }
+        }
+    }
+
+    fun isPlayerInRoom(playerId: PlayerId): Boolean = spectators.containsKey(playerId) || game.currentState.table.getPlayerSeat(playerId) != null
+
+    // === Seat Reservations ===
+
+    suspend fun getAvailableSeats(currentTime: Long = System.currentTimeMillis()): List<Int> = mutex.withLock {
+        seatManager.getAvailableSeats(game.currentState.table, currentTime)
+    }
+
+    suspend fun getSeatInfo(currentTime: Long = System.currentTimeMillis()): List<SeatInfo> = mutex.withLock {
+        seatManager.getSeatInfo(game.currentState.table, currentTime)
+    }
+
+    suspend fun reserveSeat(playerId: PlayerId, seatNumber: Int, currentTime: Long = System.currentTimeMillis()): SeatSelectionResult = mutex.withLock {
+        when {
+            !isPlayerInRoom(playerId) -> SeatSelectionResult.PlayerNotInRoom(playerId)
+
+            game.currentState.table.getPlayerSeat(playerId) != null ->
+                SeatSelectionResult.AlreadySeated(game.currentState.table.getPlayerSeat(playerId)!!.number)
+
+            else -> seatManager.reserveSeat(seatNumber, playerId, game.currentState.table, currentTime)
+        }
+    }
+
+    // === Seating ===
+
+    suspend fun seatPlayer(
+        playerId: PlayerId,
+        playerName: String,
+        seatNumber: Int,
+        buyIn: ChipAmount,
+        currentTime: Long = System.currentTimeMillis(),
+    ): Result<Unit> = mutex.withLock {
         try {
+            if (buyIn < config.minBuyIn) {
+                return@withLock Result.failure(IllegalArgumentException("Buy-in below minimum: ${config.minBuyIn}"))
+            }
+            val actualBuyIn = minOf(buyIn, config.maxBuyIn)
+
+            val seat = game.currentState.table.getSeat(seatNumber)
+            if (seat?.isOccupied == true) {
+                return@withLock Result.failure(IllegalStateException("Seat occupied"))
+            }
+
+            val hasReservation = seatManager.hasReservation(seatNumber, playerId, currentTime)
+            val seatInfo = seatManager.getSeatInfo(game.currentState.table, currentTime).find { it.number == seatNumber }
+            if (seatInfo?.status == SeatStatus.RESERVED && !hasReservation) {
+                return@withLock Result.failure(IllegalStateException("Seat reserved by another player"))
+            }
+
+            spectators.remove(playerId)
+            seatManager.consumeReservation(seatNumber, playerId)
+
             val player = Player(playerId, playerName)
-            val playerState = PlayerState(player, buyIn)
-            val currentTable = game.currentState.table
-            val newTable = currentTable.sitPlayer(seatNumber, playerState)
+            val newTable = game.currentState.table.sitPlayer(seatNumber, PlayerState(player, actualBuyIn))
             game.updateTable(newTable)
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun standPlayer(playerId: PlayerId): Result<ChipAmount> {
-        return mutex.withLock {
-            try {
-                val currentTable = game.currentState.table
-                val seat = currentTable.getPlayerSeat(playerId)
-                    ?: return@withLock Result.failure(IllegalStateException("Player not seated"))
-                val chips = seat.playerState?.chips ?: 0.0
-                val newTable = currentTable.standPlayer(playerId)
-                game.updateTable(newTable)
-                Result.success(chips)
-            } catch (e: Exception) {
-                Result.failure(e)
+    suspend fun standPlayer(playerId: PlayerId): Result<ChipAmount> = mutex.withLock {
+        try {
+            val seat = game.currentState.table.getPlayerSeat(playerId)
+                ?: return@withLock Result.failure(IllegalStateException("Player not seated"))
+
+            val chips = seat.playerState?.chips ?: 0.0
+            val player = seat.playerState?.player
+
+            game.updateTable(game.currentState.table.standPlayer(playerId))
+            seatManager.cancelReservation(playerId)
+
+            if (player != null && config.allowSpectators) {
+                spectators[playerId] = RoomParticipant.Spectator(player)
             }
+
+            Result.success(chips)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
-    suspend fun performAction(playerId: PlayerId, action: Action): Result<Unit> {
-        return mutex.withLock {
-            try {
-                if (action.playerId != playerId) {
-                    return@withLock Result.failure(IllegalArgumentException("Action playerId mismatch"))
-                }
-                game.processAction(action)
-                Result.success(Unit)
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
+    // === Game Operations ===
+
+    suspend fun performAction(playerId: PlayerId, action: Action): Result<Unit> = mutex.withLock {
+        try {
+            require(action.playerId == playerId) { "Action playerId mismatch" }
+            game.processAction(action)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
@@ -171,39 +261,52 @@ class ServerRoom(
         }
     }
 
-    fun isPlayerSeated(playerId: PlayerId): Boolean = game.currentState.table.getPlayerSeat(playerId) != null
-
-    fun getPlayerSeat(playerId: PlayerId): Seat? = game.currentState.table.getPlayerSeat(playerId)
-
-    fun addGameEventListener(listener: (GameEvent) -> Unit) {
-        game.addEventListener(listener)
-    }
+    // === Broadcasting ===
 
     suspend fun broadcastVisibleGameState() {
         val fullState = game.currentState
         connectionManager.getConnections(roomId).forEach { connection ->
-            val visibleState = getVisibleGameState(fullState, connection.playerId)
+            val visibleState = if (isPlayerSeated(connection.playerId)) {
+                visibilityService.getVisibleState(fullState, connection.playerId)
+            } else {
+                visibilityService.getSpectatorView(fullState)
+            }
             connectionManager.sendTo(roomId, connection.playerId, ServerMessage.GameStateUpdate(visibleState))
         }
     }
 
-    private fun getVisibleGameState(gameState: GameState, viewerId: PlayerId): GameState {
-        val visibleTable = gameState.table.copy(
-            seats = gameState.table.seats.map { seat ->
-                val playerState = seat.playerState
-                when {
-                    playerState == null -> seat
+    // === Query Methods ===
 
-                    playerState.player.id == viewerId -> seat
+    fun isPlayerSeated(playerId: PlayerId): Boolean = game.currentState.table.getPlayerSeat(playerId) != null
+    fun getPlayerSeat(playerId: PlayerId): Seat? = game.currentState.table.getPlayerSeat(playerId)
+    fun getGameState(): GameState = game.currentState
+    fun getActionRequest(): ActionRequest? = game.getActionRequest()
+    fun addGameEventListener(listener: (GameEvent) -> Unit) = game.addEventListener(listener)
 
-                    gameState.phase == GamePhase.SHOWDOWN -> seat
+    // === Info Methods ===
 
-                    else -> seat.copy(
-                        playerState = playerState.copy(holeCards = emptyList()),
-                    )
-                }
-            },
-        )
-        return gameState.copy(table = visibleTable)
-    }
+    fun getRoomInfo(): RoomInfo = RoomInfo(
+        roomId = config.roomId,
+        roomName = config.roomName,
+        maxPlayers = config.maxPlayers,
+        smallBlind = config.smallBlind,
+        bigBlind = config.bigBlind,
+        minBuyIn = config.minBuyIn,
+        maxBuyIn = config.maxBuyIn,
+        playerCount = playerCount,
+        variant = config.variant,
+    )
+
+    fun getRoomStateData(): RoomStateData = RoomStateData(
+        roomId = config.roomId,
+        roomName = config.roomName,
+        maxPlayers = config.maxPlayers,
+        smallBlind = config.smallBlind,
+        bigBlind = config.bigBlind,
+        minBuyIn = config.minBuyIn,
+        maxBuyIn = config.maxBuyIn,
+        variant = config.variant,
+        gameState = game.currentState,
+        minDenomination = config.minDenomination,
+    )
 }

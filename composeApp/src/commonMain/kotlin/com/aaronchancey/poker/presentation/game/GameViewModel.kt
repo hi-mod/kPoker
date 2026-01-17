@@ -5,9 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.aaronchancey.poker.config.AppConfig
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
-import com.aaronchancey.poker.kpoker.evaluation.HandEvaluator
 import com.aaronchancey.poker.kpoker.evaluation.HandEvaluatorFactory
-import com.aaronchancey.poker.kpoker.evaluation.StandardHandEvaluator
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.game.GameVariant
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -35,7 +33,6 @@ import kotlinx.coroutines.withTimeout
 class GameViewModel(
     private val settings: Settings,
     private val repository: PokerRepository = PokerRepository(),
-    private val handEvaluator: HandEvaluator = StandardHandEvaluator(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GameUiState())
