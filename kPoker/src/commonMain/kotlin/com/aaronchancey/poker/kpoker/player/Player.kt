@@ -1,5 +1,6 @@
 package com.aaronchancey.poker.kpoker.player
 
+import com.aaronchancey.poker.kpoker.core.DealtCard
 import kotlinx.serialization.Serializable
 
 typealias PlayerId = String
@@ -27,6 +28,7 @@ data class PlayerState(
     val player: Player,
     val chips: ChipAmount,
     val holeCards: List<com.aaronchancey.poker.kpoker.core.Card> = emptyList(),
+    val dealtCards: List<DealtCard> = emptyList(),
     val status: PlayerStatus = PlayerStatus.WAITING,
     val currentBet: ChipAmount = 0.0,
     val totalBetThisRound: ChipAmount = 0.0,
@@ -43,11 +45,22 @@ data class PlayerState(
     fun withStatus(newStatus: PlayerStatus) = copy(status = newStatus)
     fun withBet(amount: ChipAmount) = copy(currentBet = amount, totalBetThisRound = totalBetThisRound + amount)
     fun withHoleCards(cards: List<com.aaronchancey.poker.kpoker.core.Card>) = copy(holeCards = cards)
+
+    /**
+     * Sets the dealt cards with visibility information.
+     * Also keeps holeCards in sync by extracting non-null card values.
+     */
+    fun withDealtCards(dealt: List<DealtCard>) = copy(
+        dealtCards = dealt,
+        holeCards = dealt.mapNotNull { it.card },
+    )
+
     fun clearBet() = copy(currentBet = 0.0)
     fun markActed() = copy(hasActed = true)
     fun resetForNewRound() = copy(hasActed = false, currentBet = 0.0, totalBetThisRound = 0.0)
     fun resetForNewHand() = copy(
         holeCards = emptyList(),
+        dealtCards = emptyList(),
         status = PlayerStatus.WAITING,
         currentBet = 0.0,
         totalBetThisRound = 0.0,

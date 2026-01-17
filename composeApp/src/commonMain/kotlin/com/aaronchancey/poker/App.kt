@@ -34,6 +34,7 @@ import com.aaronchancey.poker.presentation.game.GameIntent
 import com.aaronchancey.poker.presentation.game.GameUiState
 import com.aaronchancey.poker.presentation.game.GameViewModel
 import com.aaronchancey.poker.presentation.game.PlayerActions
+import com.aaronchancey.poker.presentation.game.components.DealtCardView
 import com.aaronchancey.poker.presentation.game.components.PlayingCard
 import com.aaronchancey.poker.presentation.room.RoomViewModel
 import com.aaronchancey.poker.presentation.room.RoomsScreen
@@ -208,10 +209,10 @@ private fun Seats(
             }
             Text(text)
             Row {
-                playerState.holeCards.forEach { card ->
-                    PlayingCard(
+                playerState.dealtCards.forEach { dealtCard ->
+                    DealtCardView(
                         modifier = Modifier.requiredHeight(100.dp),
-                        card = card,
+                        dealtCard = dealtCard,
                     )
                 }
             }

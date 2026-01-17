@@ -1,6 +1,7 @@
 package com.aaronchancey.poker.kpoker.dealing
 
 import com.aaronchancey.poker.kpoker.core.Card
+import com.aaronchancey.poker.kpoker.core.CardVisibility
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.PlayerId
 
@@ -20,9 +21,16 @@ interface CardDealer {
      *
      * @param state Current game state containing the table and deck
      * @param cardsPerPlayer Number of hole cards per player (2 for Hold'em, 4 for Omaha)
+     * @param visibilityPattern Optional pattern specifying visibility for each card position.
+     *        For example, `[PRIVATE, PRIVATE, PUBLIC]` for Stud where third card is face-up.
+     *        If null, all cards are dealt face-down (PRIVATE).
      * @return Result containing updated state and map of dealt cards per player
      */
-    fun dealHoleCards(state: GameState, cardsPerPlayer: Int): DealResult.HoleCards
+    fun dealHoleCards(
+        state: GameState,
+        cardsPerPlayer: Int,
+        visibilityPattern: List<CardVisibility>? = null,
+    ): DealResult.HoleCards
 
     /**
      * Deal community cards (flop, turn, river).
