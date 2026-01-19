@@ -1,4 +1,4 @@
-package com.aaronchancey.poker.presentation.game.components
+package com.aaronchancey.poker.presentation.room.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -43,9 +43,9 @@ import androidx.compose.ui.unit.sp
 import com.aaronchancey.poker.kpoker.core.Card
 import com.aaronchancey.poker.kpoker.core.DealtCard
 import com.aaronchancey.poker.kpoker.player.PlayerState
-import com.aaronchancey.poker.presentation.game.GameIntent
-import com.aaronchancey.poker.presentation.game.GameUiState
-import com.aaronchancey.poker.presentation.game.PlayerActions
+import com.aaronchancey.poker.presentation.room.PlayerActions
+import com.aaronchancey.poker.presentation.room.RoomIntent
+import com.aaronchancey.poker.presentation.room.RoomUiState
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -85,9 +85,9 @@ private fun LayoutCenteredAt(
 fun ShowPlayers(
     modifier: Modifier = Modifier,
     isLoading: Boolean,
-    uiState: GameUiState,
+    uiState: RoomUiState,
     onTakeSeat: (Int) -> Unit,
-    onIntent: (GameIntent) -> Unit,
+    onIntent: (RoomIntent) -> Unit,
 ) = Column(
     modifier = modifier.fillMaxSize(),
     horizontalAlignment = Alignment.CenterHorizontally,

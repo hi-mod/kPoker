@@ -1,4 +1,4 @@
-package com.aaronchancey.poker.presentation.game
+package com.aaronchancey.poker.presentation.room
 
 enum class SoundType {
     CARD_DEAL,

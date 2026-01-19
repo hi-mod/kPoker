@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onEach
 
 class PokerRepository(
-    private val client: PokerWebSocketClient = PokerWebSocketClient(),
+    private val client: PokerWebSocketClient,
 ) {
     private val _playerId = MutableStateFlow<PlayerId?>(null)
     val playerId: StateFlow<PlayerId?> = _playerId.asStateFlow()
@@ -129,7 +129,15 @@ class PokerRepository(
         _error.value = null
     }
 
+    /**
+     * Acknowledges that the RECONNECTED state has been handled.
+     * Call this after auto-rejoining the room.
+     */
+    fun acknowledgeReconnected() {
+        client.acknowledgeReconnected()
+    }
+
     fun close() {
-        client.close()
+        client.closeConnection()
     }
 }

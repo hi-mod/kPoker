@@ -1,4 +1,4 @@
-package com.aaronchancey.poker.presentation.game.components
+package com.aaronchancey.poker.presentation.room.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable

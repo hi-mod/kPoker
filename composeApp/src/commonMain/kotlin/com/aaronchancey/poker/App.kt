@@ -21,45 +21,40 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aaronchancey.poker.network.ConnectionState
-import com.aaronchancey.poker.presentation.game.GameEffect
-import com.aaronchancey.poker.presentation.game.GameIntent
-import com.aaronchancey.poker.presentation.game.GameUiState
-import com.aaronchancey.poker.presentation.game.GameViewModel
-import com.aaronchancey.poker.presentation.game.components.ShowPlayers
+import com.aaronchancey.poker.presentation.lobby.Lobby
+import com.aaronchancey.poker.presentation.lobby.LobbyIntent
+import com.aaronchancey.poker.presentation.lobby.LobbyViewModel
+import com.aaronchancey.poker.presentation.room.RoomEffect
+import com.aaronchancey.poker.presentation.room.RoomIntent
+import com.aaronchancey.poker.presentation.room.RoomParams
+import com.aaronchancey.poker.presentation.room.RoomUiState
 import com.aaronchancey.poker.presentation.room.RoomViewModel
-import com.aaronchancey.poker.presentation.room.RoomsScreen
-import com.russhwolf.settings.Settings
+import com.aaronchancey.poker.presentation.room.components.ShowPlayers
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.annotation.KoinExperimentalAPI
+import org.koin.core.parameter.parametersOf
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+/**
+ * Single-window App composable for platforms like Android.
+ *
+ * Uses internal navigation state to switch between Lobby and Room screens.
+ * RoomViewModel is created with RoomParams when a room is selected.
+ */
+@OptIn(
+    ExperimentalMaterial3ExpressiveApi::class,
+    KoinExperimentalAPI::class,
+    kotlin.uuid.ExperimentalUuidApi::class,
+)
 @Composable
-fun App(
-    settings: Settings,
-    viewModel: GameViewModel = viewModel { GameViewModel(settings) },
-) = MaterialExpressiveTheme {
-    val uiState by viewModel.uiState.collectAsState()
-
-    // Handle side effects
-    LaunchedEffect(Unit) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is GameEffect.ShowToast -> {
-                    // Platform-specific toast implementation
-                }
-
-                is GameEffect.NavigateToLobby -> {
-                    // Navigation handling
-                }
-
-                is GameEffect.PlaySound -> {
-                    // Sound playback
-                }
-            }
-        }
+fun App() = MaterialExpressiveTheme {
+    // Track current room params - null means show lobby
+    var currentRoomParams: RoomParams? by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(null)
     }
 
     Column(
@@ -68,53 +63,102 @@ fun App(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        when (uiState.connectionState) {
-            ConnectionState.DISCONNECTED -> {
-                val roomViewModel = viewModel { RoomViewModel() }
-                val roomState by roomViewModel.state.collectAsState()
-                RoomsScreen(
-                    state = roomState,
-                    onIntent = viewModel::onIntent,
-                )
-            }
+        val roomParams = currentRoomParams
+        if (roomParams == null) {
+            // Show Lobby - rooms are fetched automatically via onStart in LobbyViewModel
+            val lobbyViewModel = koinViewModel<LobbyViewModel>()
+            val lobbyState by lobbyViewModel.state.collectAsState()
 
-            ConnectionState.CONNECTING -> {
-                CircularProgressIndicator()
-                Text("Connecting...")
-            }
-
-            ConnectionState.CONNECTED, ConnectionState.RECONNECTING -> {
-                if (uiState.roomInfo != null) {
-                    GameScreen(
-                        modifier = Modifier.fillMaxSize(),
-                        uiState = uiState,
-                        onIntent = viewModel::onIntent,
+            Lobby(
+                state = lobbyState,
+                onJoinRoom = { roomInfo, playerName ->
+                    val playerId = kotlin.uuid.Uuid.random().toString()
+                    currentRoomParams = RoomParams(
+                        roomId = roomInfo.roomId,
+                        playerName = playerName,
+                        playerId = playerId,
                     )
+                },
+                onRefresh = { lobbyViewModel.onIntent(LobbyIntent.RefreshRooms) },
+            )
+        } else {
+            // Show Room
+            val viewModel = koinViewModel<RoomViewModel>(
+                key = roomParams.roomId,
+                parameters = { parametersOf(roomParams) },
+            )
+            val uiState by viewModel.uiState.collectAsState()
+
+            // Handle side effects
+            LaunchedEffect(Unit) {
+                viewModel.effects.collect { effect ->
+                    when (effect) {
+                        is RoomEffect.ShowToast -> {
+                            // Platform-specific toast implementation
+                        }
+
+                        is RoomEffect.NavigateToLobby -> {
+                            currentRoomParams = null
+                        }
+
+                        is RoomEffect.PlaySound -> {
+                            // Sound playback
+                        }
+                    }
                 }
             }
-        }
 
-        uiState.error?.let { error ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Error: $error",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(16.dp),
-                )
-            }
-            Button(onClick = { viewModel.onIntent(GameIntent.ClearError) }) {
-                Text("Dismiss")
-            }
-        }
-    }
+            when (uiState.connectionState) {
+                ConnectionState.DISCONNECTED,
+                ConnectionState.CONNECTING,
+                -> {
+                    CircularProgressIndicator()
+                    Text("Connecting...")
+                }
 
-    if (uiState.isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator()
+                ConnectionState.RECONNECTING -> {
+                    CircularProgressIndicator()
+                    Text("Reconnecting...")
+                }
+
+                ConnectionState.RECONNECTED,
+                ConnectionState.CONNECTED,
+                -> {
+                    if (uiState.roomInfo != null) {
+                        GameScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            uiState = uiState,
+                            onIntent = viewModel::onIntent,
+                        )
+                    } else {
+                        CircularProgressIndicator()
+                        Text("Loading room...")
+                    }
+                }
+            }
+
+            uiState.error?.let { error ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Error: $error",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+                Button(onClick = { viewModel.onIntent(RoomIntent.ClearError) }) {
+                    Text("Dismiss")
+                }
+            }
+
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }
@@ -122,8 +166,8 @@ fun App(
 @Composable
 private fun GameScreen(
     modifier: Modifier = Modifier,
-    uiState: GameUiState,
-    onIntent: (GameIntent) -> Unit,
+    uiState: RoomUiState,
+    onIntent: (RoomIntent) -> Unit,
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
@@ -148,21 +192,21 @@ private fun GameScreen(
             ShowPlayers(
                 isLoading = uiState.isLoading,
                 uiState = uiState,
-                onTakeSeat = { onIntent(GameIntent.TakeSeat(it, 100.0)) },
+                onTakeSeat = { onIntent(RoomIntent.TakeSeat(it, 100.0)) },
                 onIntent = onIntent,
             )
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
-                onClick = { onIntent(GameIntent.LeaveSeat) },
+                onClick = { onIntent(RoomIntent.LeaveSeat) },
                 enabled = !uiState.isLoading,
             ) {
                 Text("Leave Seat")
             }
             Spacer(modifier = Modifier.width(8.dp))
             Button(
-                onClick = { onIntent(GameIntent.Disconnect) },
+                onClick = { onIntent(RoomIntent.Disconnect) },
                 enabled = !uiState.isLoading,
             ) {
                 Text("Disconnect")

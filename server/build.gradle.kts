@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ktor)
     alias(libs.plugins.gradleup.shadow)
-    alias(libs.plugins.google.gcloud.tools.appengine)
     application
 }
 

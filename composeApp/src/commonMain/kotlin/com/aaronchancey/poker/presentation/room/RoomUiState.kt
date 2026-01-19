@@ -1,4 +1,4 @@
-package com.aaronchancey.poker.presentation.game
+package com.aaronchancey.poker.presentation.room
 
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.game.GameState
@@ -6,8 +6,7 @@ import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.shared.message.RoomInfo
 
-// State
-data class GameUiState(
+data class RoomUiState(
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     val playerId: PlayerId? = null,
     val handDescription: String = "",

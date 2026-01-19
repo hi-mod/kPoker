@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -43,14 +44,17 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
-            implementation(libs.kotlinx.compose.material3)
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation("org.jetbrains.compose.runtime:runtime:1.10.0")
+            implementation("org.jetbrains.compose.foundation:foundation:1.10.0")
+            implementation("org.jetbrains.compose.ui:ui:1.10.0")
+            implementation("org.jetbrains.compose.components:components-resources:1.10.0")
+            implementation("org.jetbrains.compose.ui:ui-tooling-preview:1.10.0")
+            implementation("org.jetbrains.compose.material3:material3:1.9.0-alpha04")
+            implementation(libs.jetbrains.navigation3.ui)
+            implementation(libs.jetbrains.material3.adaptive.navigation3)
+            implementation(libs.jetbrains.lifecycle.viewmodel.navigation3)
+            implementation(libs.androidx.lifecycle.viewmodel.compose)
+            implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.kotlinx.coroutines.core)
             implementation(projects.shared)
             implementation(projects.kPoker)
@@ -59,14 +63,20 @@ kotlin {
             implementation(libs.ktor.clientContentNegotiation)
             implementation(libs.ktor.clientSerializationJson)
             implementation(libs.multiplatformSettings)
+            implementation(libs.kotlinx.serializationJson)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.koin.compose.navigation3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
         androidMain.dependencies {
-            implementation(compose.preview)
+            implementation("org.jetbrains.compose.ui:ui-tooling-preview:1.10.0")
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.clientOkhttp)
+            implementation(libs.koin.android)
         }
         iosMain.dependencies {
             implementation(libs.ktor.clientDarwin)

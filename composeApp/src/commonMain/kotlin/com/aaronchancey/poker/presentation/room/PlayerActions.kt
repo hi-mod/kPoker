@@ -1,4 +1,4 @@
-package com.aaronchancey.poker.presentation.game
+package com.aaronchancey.poker.presentation.room
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,21 +28,18 @@ import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.betting.ActionType
 import com.aaronchancey.poker.kpoker.player.ChipAmount
-import com.aaronchancey.poker.kpoker.player.Player
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
-import com.aaronchancey.poker.kpoker.player.PlayerStatus
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlayerActions(
     modifier: Modifier = Modifier,
     playerState: PlayerState,
-    uiState: GameUiState,
-    onIntent: (GameIntent) -> Unit,
+    uiState: RoomUiState,
+    onIntent: (RoomIntent) -> Unit,
 ) {
     if (playerState.hasActed || uiState.availableActions?.playerId != playerState.player.id) return
     Row(
@@ -135,7 +132,7 @@ private fun actionClick(
     playerId: PlayerId,
     actionType: ActionType,
     availableActions: ActionRequest,
-    onIntent: (GameIntent) -> Unit,
+    onIntent: (RoomIntent) -> Unit,
     betAmount: ChipAmount,
 ): () -> Unit = {
     val action: Action = when (actionType) {
@@ -146,45 +143,5 @@ private fun actionClick(
         ActionType.RAISE -> Action.Raise(playerId, betAmount - availableActions.amountToCall, betAmount)
         ActionType.ALL_IN -> Action.AllIn(playerId, availableActions.maximumBet)
     }
-    onIntent(GameIntent.PerformAction(action))
-}
-
-@Preview
-@Composable
-private fun PlayerActionsPreview() {
-    val playerState = PlayerState(
-        player = Player(
-            id = "player1",
-            name = "Alice",
-        ),
-        chips = 1000.0,
-        holeCards = emptyList(),
-        isDealer = false,
-        hasActed = false,
-        status = PlayerStatus.ACTIVE,
-    )
-    val availableActions = ActionRequest(
-        playerId = "player1",
-        validActions = setOf(
-            ActionType.FOLD,
-            ActionType.CALL,
-            ActionType.RAISE,
-            ActionType.ALL_IN,
-        ),
-        minimumBet = 100.0,
-        minimumRaise = 50.0,
-        maximumBet = 100.0,
-        amountToCall = 50.0,
-        minimumDenomination = 1.0,
-    )
-    val uiState = GameUiState(
-        isLoading = false,
-        availableActions = availableActions,
-        gameState = null,
-    )
-    PlayerActions(
-        playerState = playerState,
-        uiState = uiState,
-        onIntent = {},
-    )
+    onIntent(RoomIntent.PerformAction(action))
 }

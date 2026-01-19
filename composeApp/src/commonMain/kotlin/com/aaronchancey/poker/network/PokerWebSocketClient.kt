@@ -1,9 +1,9 @@
 package com.aaronchancey.poker.network
 
-import com.aaronchancey.poker.di.AppModule
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.shared.message.ClientMessage
 import com.aaronchancey.poker.shared.message.ServerMessage
+import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
@@ -26,16 +26,38 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+/**
+ * Connection state for the WebSocket client.
+ *
+ * State transitions:
+ * - DISCONNECTED → CONNECTING (initial connect)
+ * - CONNECTING → CONNECTED (success) or RECONNECTING (failure)
+ * - CONNECTED → RECONNECTING (connection lost)
+ * - RECONNECTING → RECONNECTED (success) or stays RECONNECTING (retry)
+ * - RECONNECTED → CONNECTED (after auto-rejoin handled by ViewModel)
+ * - Any → DISCONNECTED (intentional disconnect)
+ */
 enum class ConnectionState {
+    /** Not connected and not trying to connect */
     DISCONNECTED,
+
+    /** Initial connection attempt */
     CONNECTING,
+
+    /** Successfully connected */
     CONNECTED,
+
+    /** Lost connection, attempting to reconnect */
     RECONNECTING,
+
+    /** Successfully reconnected after connection loss - signals ViewModel to auto-rejoin */
+    RECONNECTED,
 }
 
-class PokerWebSocketClient {
+class PokerWebSocketClient(
+    private val client: HttpClient,
+) {
 
-    private val client = AppModule.httpClient
     private var session: DefaultClientWebSocketSession? = null
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
@@ -54,6 +76,12 @@ class PokerWebSocketClient {
     private var currentRoomId: String? = null
     private var shouldBeConnected = false
 
+    /** Tracks if this is a reconnection attempt (had a previous successful connection) */
+    private var hasConnectedBefore = false
+
+    /** Current backoff delay in milliseconds */
+    private var backoffMs = INITIAL_BACKOFF_MS
+
     fun connect(host: String, port: Int, roomId: String, playerId: PlayerId) {
         currentHost = host
         currentPort = port
@@ -70,7 +98,11 @@ class PokerWebSocketClient {
 
     private suspend fun connectLoop() {
         while (shouldBeConnected && currentCoroutineContext().isActive) {
-            _connectionState.value = if (playerId == null) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
+            _connectionState.value = if (hasConnectedBefore) {
+                ConnectionState.RECONNECTING
+            } else {
+                ConnectionState.CONNECTING
+            }
 
             try {
                 val host = currentHost ?: return
@@ -88,18 +120,25 @@ class PokerWebSocketClient {
                     }
                 }
 
-                _connectionState.value = ConnectionState.CONNECTED
+                // Connection successful - reset backoff
+                backoffMs = INITIAL_BACKOFF_MS
 
-                // If we are reconnecting (have a playerId), we might need to re-join automatically
-                // But the server handles re-sending state on JoinRoom.
-                // The client app likely watches connectionState and re-sends JoinRoom if needed.
-                // However, capturing the Welcome message is crucial.
+                // Emit RECONNECTED if this was a reconnection, so ViewModel can auto-rejoin
+                _connectionState.value = if (hasConnectedBefore) {
+                    ConnectionState.RECONNECTED
+                } else {
+                    hasConnectedBefore = true
+                    ConnectionState.CONNECTED
+                }
 
                 listenMessages()
-            } catch (_: Exception) {
-                // Connection failed
-                _connectionState.value = ConnectionState.RECONNECTING // or DISCONNECTED
-                delay(3000) // Wait before retrying
+            } catch (e: Exception) {
+                println("WebSocket connection failed: ${e.message}")
+                _connectionState.value = ConnectionState.RECONNECTING
+
+                // Exponential backoff: 1s → 2s → 4s → 8s → ... → max 30s
+                delay(backoffMs)
+                backoffMs = (backoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
             }
         }
     }
@@ -116,8 +155,8 @@ class PokerWebSocketClient {
 
                 _messages.emit(message)
             }
-        } catch (_: Exception) {
-            // Disconnected
+        } catch (e: Exception) {
+            println("WebSocket disconnected: ${e.message}")
         } finally {
             currentSession.close()
             session = null
@@ -129,10 +168,19 @@ class PokerWebSocketClient {
         }
     }
 
+    /**
+     * Acknowledges that the ViewModel has handled the RECONNECTED state.
+     * Transitions from RECONNECTED → CONNECTED.
+     */
+    fun acknowledgeReconnected() {
+        if (_connectionState.value == ConnectionState.RECONNECTED) {
+            _connectionState.value = ConnectionState.CONNECTED
+        }
+    }
+
     suspend fun send(message: ClientMessage) {
         val currentSession = session
         if (currentSession == null) {
-            // Allow sending if session exists even if state update lags slightly
             _errors.emit(IllegalStateException("Not connected"))
             return
         }
@@ -147,13 +195,26 @@ class PokerWebSocketClient {
 
     suspend fun disconnect() {
         shouldBeConnected = false
+        hasConnectedBefore = false
+        backoffMs = INITIAL_BACKOFF_MS
         session?.close()
         session = null
         _connectionState.value = ConnectionState.DISCONNECTED
     }
 
+    fun closeConnection() {
+        scope.launch {
+            disconnect()
+        }
+    }
+
     fun close() {
         scope.cancel()
         client.close()
+    }
+
+    companion object {
+        private const val INITIAL_BACKOFF_MS = 1000L
+        private const val MAX_BACKOFF_MS = 30_000L
     }
 }
