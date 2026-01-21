@@ -48,7 +48,13 @@ internal fun PlayerActions(
     ) {
         uiState.availableActions.validActions.forEach { actionType ->
             var betAmount: ChipAmount by remember {
-                mutableDoubleStateOf(uiState.availableActions.minimumBet + uiState.availableActions.minimumRaise)
+                mutableDoubleStateOf(
+                    if (uiState.availableActions.validActions.contains(ActionType.BET)) {
+                        uiState.availableActions.minimumBet
+                    } else {
+                        uiState.availableActions.minimumBet + uiState.availableActions.minimumRaise
+                    },
+                )
             }
             Button(
                 onClick = actionClick(
@@ -65,8 +71,7 @@ internal fun PlayerActions(
             if (actionType == ActionType.BET || actionType == ActionType.RAISE) {
                 BetActionContent(
                     minDenomination = uiState.availableActions.minimumDenomination,
-                    minimumBet = uiState.availableActions.minimumBet,
-                    minimumRaise = uiState.availableActions.minimumRaise,
+                    minimumBet = betAmount,
                     maximumBet = uiState.availableActions.maximumBet,
                     onBetAmountChange = { betAmount = it },
                 )
@@ -80,12 +85,11 @@ internal fun PlayerActions(
 private fun BetActionContent(
     minDenomination: ChipAmount,
     minimumBet: ChipAmount,
-    minimumRaise: ChipAmount,
     maximumBet: ChipAmount,
     onBetAmountChange: (ChipAmount) -> Unit,
 ) {
     Column {
-        val rangeStart = (minimumBet + minimumRaise).toFloat()
+        val rangeStart = minimumBet.toFloat()
         val rangeEnd = maximumBet.toFloat()
         val safeDenomination = if (minDenomination > 0.0) minDenomination else 0.1
         val steps = if (rangeEnd > rangeStart) {
@@ -109,7 +113,7 @@ private fun BetActionContent(
         LaunchedEffect(textFieldState) {
             snapshotFlow { textFieldState.text.toString() }.collectLatest {
                 if (sliderState.value != it.toFloatOrNull()) {
-                    sliderState.value = it.toFloatOrNull() ?: (minimumBet + minimumRaise).toFloat()
+                    sliderState.value = it.toFloatOrNull() ?: minimumBet.toFloat()
                     onBetAmountChange(sliderState.value.toDouble())
                 }
             }
