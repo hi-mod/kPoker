@@ -63,13 +63,20 @@ class LobbyViewModel(
      * Called on app launch via onStart.
      */
     private fun checkSavedRoom() {
-        val savedRoomId = settings.getStringOrNull(RoomViewModel.KEY_CURRENT_ROOM_ID) ?: return
+        val savedRoomId = settings.getStringOrNull(RoomViewModel.KEY_CURRENT_ROOM_ID)
+        println("[LobbyViewModel] checkSavedRoom: savedRoomId=$savedRoomId")
+
+        if (savedRoomId == null) {
+            println("[LobbyViewModel] checkSavedRoom: No saved room found, skipping auto-rejoin")
+            return
+        }
+
         val savedRoomName = settings.getString(RoomViewModel.KEY_CURRENT_ROOM_NAME, "")
         val savedPlayerName = settings.getString(RoomViewModel.KEY_PLAYER_NAME, "")
-        val playerId = settings.getString(
-            RoomViewModel.KEY_PLAYER_ID,
-            Uuid.generateV4().toString(),
-        )
+        val existingPlayerId = settings.getStringOrNull(RoomViewModel.KEY_PLAYER_ID)
+        val playerId = existingPlayerId ?: Uuid.generateV4().toString()
+
+        println("[LobbyViewModel] checkSavedRoom: Found saved session - roomName=$savedRoomName, playerName=$savedPlayerName, existingPlayerId=$existingPlayerId, usingPlayerId=$playerId")
 
         val request = RoomWindowRequest(
             roomId = savedRoomId,
@@ -78,6 +85,7 @@ class LobbyViewModel(
             playerId = playerId,
         )
         _state.update { it.copy(openRooms = it.openRooms + request) }
+        println("[LobbyViewModel] checkSavedRoom: Added request to openRooms")
     }
 
     /**
@@ -85,10 +93,12 @@ class LobbyViewModel(
      * Adds the room to openRooms state, which the platform layer renders as a window.
      */
     private fun handleJoinRoom(intent: LobbyIntent.JoinRoom) {
-        val playerId = settings.getString(
-            RoomViewModel.KEY_PLAYER_ID,
-            Uuid.generateV4().toString(),
-        )
+        println("[LobbyViewModel] handleJoinRoom: roomId=${intent.roomId}, roomName=${intent.roomName}, playerName=${intent.playerName}")
+
+        val existingPlayerId = settings.getStringOrNull(RoomViewModel.KEY_PLAYER_ID)
+        val playerId = existingPlayerId ?: Uuid.generateV4().toString()
+
+        println("[LobbyViewModel] handleJoinRoom: existingPlayerId=$existingPlayerId, usingPlayerId=$playerId")
 
         // Save player name for convenience
         settings.putString(RoomViewModel.KEY_PLAYER_NAME, intent.playerName)
@@ -100,6 +110,7 @@ class LobbyViewModel(
             playerId = playerId,
         )
         _state.update { it.copy(openRooms = it.openRooms + request) }
+        println("[LobbyViewModel] handleJoinRoom: Added request to openRooms, count=${_state.value.openRooms.size}")
     }
 
     /**
@@ -107,11 +118,13 @@ class LobbyViewModel(
      * Removes the room from openRooms state.
      */
     private fun handleCloseRoom(roomId: String) {
+        println("[LobbyViewModel] handleCloseRoom: roomId=$roomId, openRooms before=${_state.value.openRooms.map { it.roomId }}")
         settings.remove(RoomViewModel.KEY_CURRENT_ROOM_ID)
         settings.remove(RoomViewModel.KEY_CURRENT_ROOM_NAME)
         _state.update { state ->
             state.copy(openRooms = state.openRooms.filterNot { it.roomId == roomId }.toSet())
         }
+        println("[LobbyViewModel] handleCloseRoom: Removed room, openRooms after=${_state.value.openRooms.map { it.roomId }}")
     }
 
     /**

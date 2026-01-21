@@ -146,8 +146,10 @@ class RoomViewModel(
     private fun startConnectionObservation() {
         if (observationStarted) return
         observationStarted = true
+        println("[RoomViewModel] startConnectionObservation: Starting for roomId=${params.roomId}")
         viewModelScope.launch {
             repository.connectionState.collect { state ->
+                println("[RoomViewModel] connectionState changed: $state")
                 if (state == ConnectionState.RECONNECTED) {
                     handleAutoRejoin()
                 }
@@ -162,15 +164,24 @@ class RoomViewModel(
     private fun joinRoom() {
         if (joinStarted) return
         joinStarted = true
+        println("[RoomViewModel] joinRoom: Starting - roomId=${params.roomId}, playerName=${params.playerName}, playerId=${params.playerId}")
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                println("[RoomViewModel] joinRoom: Connecting to ${AppConfig.wsHost}:${AppConfig.wsPort}")
                 repository.connect(AppConfig.wsHost, AppConfig.wsPort, params.roomId, params.playerId)
+                println("[RoomViewModel] joinRoom: Waiting for connection...")
                 withTimeout(10.seconds) {
                     repository.connectionState.first { it == ConnectionState.CONNECTED }
                 }
+                println("[RoomViewModel] joinRoom: Connected! Sending JoinRoom message")
                 repository.joinRoom(params.playerName)
                 saveSession(params.roomId, params.playerName)
+                println("[RoomViewModel] joinRoom: Successfully joined room")
+            } catch (e: Exception) {
+                println("[RoomViewModel] joinRoom: FAILED - ${e::class.simpleName}: ${e.message}")
+                // Surface the error to the user
+                _uiState.update { it.copy(error = "Failed to join room: ${e.message}") }
             } finally {
                 _uiState.update { it.copy(isLoading = false) }
             }
@@ -182,12 +193,18 @@ class RoomViewModel(
      * Uses saved session data to restore the player's state.
      */
     private suspend fun handleAutoRejoin() {
+        println("[RoomViewModel] handleAutoRejoin: Triggered for roomId=${params.roomId}")
         val playerName = settings.getStringOrNull(KEY_PLAYER_NAME)
+        val playerId = settings.getStringOrNull(KEY_PLAYER_ID)
+        println("[RoomViewModel] handleAutoRejoin: savedPlayerName=$playerName, savedPlayerId=$playerId")
         if (playerName != null) {
-            println("Auto-rejoining room with player name: $playerName")
+            println("[RoomViewModel] handleAutoRejoin: Sending JoinRoom with playerName=$playerName")
             repository.joinRoom(playerName)
+        } else {
+            println("[RoomViewModel] handleAutoRejoin: No saved playerName, skipping JoinRoom")
         }
         repository.acknowledgeReconnected()
+        println("[RoomViewModel] handleAutoRejoin: Acknowledged reconnection")
     }
 
     private fun handleLeaveRoom() = viewModelScope.launch {
@@ -236,12 +253,15 @@ class RoomViewModel(
      * This allows the app to restore the session after a restart.
      */
     private fun saveSession(roomId: String, playerName: String) {
+        val roomName = uiState.value.roomInfo?.roomName
+        println("[RoomViewModel] saveSession: roomId=$roomId, playerName=$playerName, roomName=$roomName")
         settings.putString(KEY_CURRENT_ROOM_ID, roomId)
         settings.putString(KEY_PLAYER_NAME, playerName)
         // Room name is set when we receive RoomJoined message
-        uiState.value.roomInfo?.roomName?.let {
+        roomName?.let {
             settings.putString(KEY_CURRENT_ROOM_NAME, it)
         }
+        println("[RoomViewModel] saveSession: Saved session to settings")
     }
 
     /**

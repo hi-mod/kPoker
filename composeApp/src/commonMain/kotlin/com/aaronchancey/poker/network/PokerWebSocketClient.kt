@@ -83,13 +83,17 @@ class PokerWebSocketClient(
     private var backoffMs = INITIAL_BACKOFF_MS
 
     fun connect(host: String, port: Int, roomId: String, playerId: PlayerId) {
+        println("[WebSocketClient] connect: host=$host, port=$port, roomId=$roomId, playerId=$playerId")
         currentHost = host
         currentPort = port
         currentRoomId = roomId
         this.playerId = playerId
         shouldBeConnected = true
 
-        if (_connectionState.value == ConnectionState.CONNECTED) return
+        if (_connectionState.value == ConnectionState.CONNECTED) {
+            println("[WebSocketClient] connect: Already connected, skipping")
+            return
+        }
 
         scope.launch {
             connectLoop()
@@ -97,23 +101,35 @@ class PokerWebSocketClient(
     }
 
     private suspend fun connectLoop() {
+        println("[WebSocketClient] connectLoop: Starting, hasConnectedBefore=$hasConnectedBefore")
         while (shouldBeConnected && currentCoroutineContext().isActive) {
-            _connectionState.value = if (hasConnectedBefore) {
-                ConnectionState.RECONNECTING
-            } else {
-                ConnectionState.CONNECTING
-            }
+            val newState = if (hasConnectedBefore) ConnectionState.RECONNECTING else ConnectionState.CONNECTING
+            println("[WebSocketClient] connectLoop: Setting state to $newState")
+            _connectionState.value = newState
 
             try {
-                val host = currentHost ?: return
-                val port = currentPort ?: return
-                val roomId = currentRoomId ?: return
+                val host = currentHost ?: run {
+                    println("[WebSocketClient] connectLoop: No host configured, exiting")
+                    return
+                }
+                val port = currentPort ?: run {
+                    println("[WebSocketClient] connectLoop: No port configured, exiting")
+                    return
+                }
+                val roomId = currentRoomId ?: run {
+                    println("[WebSocketClient] connectLoop: No roomId configured, exiting")
+                    return
+                }
+
+                val protocol = if (port == 443) URLProtocol.WSS else URLProtocol.WS
+                val wsUrl = "${protocol.name.lowercase()}://$host:$port/ws/room/$roomId?playerId=$playerId"
+                println("[WebSocketClient] connectLoop: Connecting to $wsUrl")
 
                 session = client.webSocketSession {
                     url.host = host
                     url.port = port
                     url.encodedPath = "/ws/room/$roomId"
-                    url.protocol = if (port == 443) URLProtocol.WSS else URLProtocol.WS
+                    url.protocol = protocol
 
                     if (playerId != null) {
                         url.parameters.append("playerId", playerId!!)
@@ -122,49 +138,62 @@ class PokerWebSocketClient(
 
                 // Connection successful - reset backoff
                 backoffMs = INITIAL_BACKOFF_MS
+                println("[WebSocketClient] connectLoop: WebSocket session established")
 
                 // Emit RECONNECTED if this was a reconnection, so ViewModel can auto-rejoin
-                _connectionState.value = if (hasConnectedBefore) {
+                val connectedState = if (hasConnectedBefore) {
                     ConnectionState.RECONNECTED
                 } else {
                     hasConnectedBefore = true
                     ConnectionState.CONNECTED
                 }
+                println("[WebSocketClient] connectLoop: Setting state to $connectedState")
+                _connectionState.value = connectedState
 
                 listenMessages()
             } catch (e: Exception) {
-                println("WebSocket connection failed: ${e.message}")
+                println("[WebSocketClient] connectLoop: Connection FAILED - ${e::class.simpleName}: ${e.message}")
                 _connectionState.value = ConnectionState.RECONNECTING
 
                 // Exponential backoff: 1s → 2s → 4s → 8s → ... → max 30s
+                println("[WebSocketClient] connectLoop: Waiting ${backoffMs}ms before retry")
                 delay(backoffMs)
                 backoffMs = (backoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
             }
         }
+        println("[WebSocketClient] connectLoop: Exiting, shouldBeConnected=$shouldBeConnected")
     }
 
     private suspend fun listenMessages() {
-        val currentSession = session ?: return
+        val currentSession = session ?: run {
+            println("[WebSocketClient] listenMessages: No session, exiting")
+            return
+        }
+        println("[WebSocketClient] listenMessages: Starting message loop")
         try {
             while (true) {
                 val message = currentSession.receiveDeserialized<ServerMessage>()
 
                 if (message is ServerMessage.Welcome) {
+                    val oldPlayerId = playerId
                     playerId = message.playerId
+                    println("[WebSocketClient] listenMessages: Received Welcome - serverPlayerId=${message.playerId}, wasUsingPlayerId=$oldPlayerId")
+                } else if (message is ServerMessage.Error) {
+                    println("[WebSocketClient] listenMessages: Received Error - code=${message.code}, message=${message.message}")
+                } else if (message is ServerMessage.RoomJoined) {
+                    println("[WebSocketClient] listenMessages: Received RoomJoined - roomName=${message.roomInfo.roomName}")
                 }
 
                 _messages.emit(message)
             }
         } catch (e: Exception) {
-            println("WebSocket disconnected: ${e.message}")
+            println("[WebSocketClient] listenMessages: Disconnected - ${e::class.simpleName}: ${e.message}")
         } finally {
             currentSession.close()
             session = null
-            if (shouldBeConnected) {
-                _connectionState.value = ConnectionState.RECONNECTING
-            } else {
-                _connectionState.value = ConnectionState.DISCONNECTED
-            }
+            val finalState = if (shouldBeConnected) ConnectionState.RECONNECTING else ConnectionState.DISCONNECTED
+            println("[WebSocketClient] listenMessages: Session closed, setting state to $finalState")
+            _connectionState.value = finalState
         }
     }
 

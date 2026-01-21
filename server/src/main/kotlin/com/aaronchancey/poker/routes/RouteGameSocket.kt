@@ -27,16 +27,23 @@ fun Route.routeGameSocket() {
             ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing roomId"))
 
         val room = roomManager.getRoom(roomId)
-            ?: return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Room not found"))
+        if (room == null) {
+            application.log.warn("[GameSocket] Room not found: roomId=$roomId")
+            return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Room not found"))
+        }
 
         // Reuse existing playerId if provided, otherwise generate new
         val requestedPlayerId = call.parameters["playerId"]
-        val playerId = if (!requestedPlayerId.isNullOrBlank()) requestedPlayerId else UUID.randomUUID().toString()
+        val isReturningPlayer = !requestedPlayerId.isNullOrBlank()
+        val playerId = if (isReturningPlayer) requestedPlayerId!! else UUID.randomUUID().toString()
+
+        application.log.info("[GameSocket] Connection opened: roomId=$roomId, requestedPlayerId=$requestedPlayerId, assignedPlayerId=$playerId, isReturningPlayer=$isReturningPlayer")
 
         var playerName = "Player-${playerId.take(4)}"
         var isJoined = false
 
         // Send welcome message
+        application.log.info("[GameSocket] Sending Welcome: playerId=$playerId")
         sendSerialized<ServerMessage>(ServerMessage.Welcome(playerId))
 
         try {
@@ -56,17 +63,21 @@ fun Route.routeGameSocket() {
                         playerName = name
                         isJoined = true
                     },
+                    log = application.log,
                 )
             }
         } catch (_: ClosedReceiveChannelException) {
-            // Client disconnected
+            application.log.info("[GameSocket] Client disconnected (channel closed): playerId=$playerId, roomId=$roomId")
         } catch (e: Exception) {
+            application.log.error("[GameSocket] Error: playerId=$playerId, roomId=$roomId, error=${e.message}")
             sendSerialized<ServerMessage>(ServerMessage.Error("INTERNAL_ERROR", e.message ?: "Unknown error"))
         } finally {
             // Cleanup on disconnect
+            application.log.info("[GameSocket] Cleaning up: playerId=$playerId, roomId=$roomId, wasJoined=$isJoined")
             if (isJoined) {
                 connectionManager.removeConnection(roomId, playerId)
                 connectionManager.broadcast(roomId, ServerMessage.PlayerDisconnected(playerId))
+                application.log.info("[GameSocket] Player disconnected broadcast sent: playerId=$playerId")
 
                 // NOTE: We do NOT stand the player up here anymore.
                 // This allows them to reconnect and resume their seat.
@@ -86,10 +97,13 @@ private suspend fun handleClientMessage(
     session: WebSocketServerSession,
     isJoined: Boolean,
     onJoined: (String) -> Unit,
+    log: org.slf4j.Logger,
 ) {
     when (message) {
         is ClientMessage.JoinRoom -> {
+            log.info("[GameSocket] JoinRoom: playerId=$playerId, requestedName=${message.playerName}, alreadyJoined=$isJoined, roomId=$roomId")
             if (isJoined) {
+                log.warn("[GameSocket] JoinRoom rejected - already joined: playerId=$playerId")
                 session.sendSerialized<ServerMessage>(ServerMessage.Error("ALREADY_JOINED", "Already joined room"))
                 return
             }
@@ -97,6 +111,7 @@ private suspend fun handleClientMessage(
             val connection = PlayerConnection(playerId, message.playerName, session)
             connectionManager.addConnection(roomId, connection)
             onJoined(message.playerName)
+            log.info("[GameSocket] JoinRoom success: playerId=$playerId, playerName=${message.playerName}")
 
             // Send room info and current state
             session.sendSerialized<ServerMessage>(ServerMessage.RoomJoined(room.getRoomInfo()))
@@ -106,6 +121,7 @@ private suspend fun handleClientMessage(
             // If it's this player's turn, send the action request
             room.getActionRequest()?.let { actionRequest ->
                 if (actionRequest.playerId == playerId) {
+                    log.info("[GameSocket] Sending pending action request to rejoined player: playerId=$playerId")
                     session.sendSerialized<ServerMessage>(ServerMessage.ActionRequired(actionRequest))
                 }
             }
