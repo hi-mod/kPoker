@@ -7,6 +7,8 @@ import com.aaronchancey.poker.kpoker.betting.BettingRound
 import com.aaronchancey.poker.kpoker.betting.BettingRoundType
 import com.aaronchancey.poker.kpoker.betting.BettingStructure
 import com.aaronchancey.poker.kpoker.betting.BlindType
+import com.aaronchancey.poker.kpoker.betting.ShowdownActionType
+import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.core.Deck
 import com.aaronchancey.poker.kpoker.dealing.CardDealer
 import com.aaronchancey.poker.kpoker.dealing.StandardDealer
@@ -17,6 +19,7 @@ import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.PlayerStatus
 import com.aaronchancey.poker.kpoker.player.PotManager
+import com.aaronchancey.poker.kpoker.player.ShowdownStatus
 import com.aaronchancey.poker.kpoker.player.Table
 
 abstract class PokerGame(
@@ -349,6 +352,11 @@ abstract class PokerGame(
             is Action.PostBlind -> {
                 // Already handled in postBlind()
             }
+
+            is Action.Show, is Action.Muck, is Action.Collect -> {
+                // Showdown actions are handled by processShowdownAction, not applyAction
+                throw IllegalStateException("Showdown actions must use processShowdownAction")
+            }
         }
 
         val newRound = round.copy(actions = round.actions + action)
@@ -378,6 +386,9 @@ abstract class PokerGame(
 
         val newPotManager = state.potManager.collectBets(playerBets)
 
+        // Preserve last aggressor for showdown ordering (if this is the final round)
+        val lastAggressor = state.bettingRound?.lastAggressorId
+
         // Reset player bets for next round
         var table = state.table
         for (seat in table.occupiedSeats) {
@@ -390,6 +401,7 @@ abstract class PokerGame(
             .withPotManager(newPotManager)
             .withBettingRound(null)
             .withCurrentActor(null)
+            .withShowdownAggressor(lastAggressor)
 
         // Check if hand should continue
         val playersRemaining = state.table.getPlayersInHand()
@@ -454,8 +466,249 @@ abstract class PokerGame(
     }
 
     protected open fun finishHand() {
+        val playersInHand = state.table.getPlayersInHand()
+
+        // If only one player remains (everyone else folded), they win without showing
+        if (playersInHand.size <= 1) {
+            awardPotToLastPlayer()
+            return
+        }
+
+        // Multiple players - enter showdown reveal phase
         state = state.withPhase(GamePhase.SHOWDOWN)
 
+        // Initialize all players in hand with PENDING showdown status
+        var table = state.table
+        for (player in playersInHand) {
+            table = table.updatePlayerState(player.player.id) {
+                it.withShowdownStatus(ShowdownStatus.PENDING)
+            }
+        }
+        state = state.withTable(table)
+
+        // Determine first player to show and set them as actor
+        val firstShowdownSeat = getFirstShowdownActorSeat()
+        state = state.withCurrentActor(firstShowdownSeat)
+
+        val actor = state.currentActor
+        if (actor != null) {
+            emit(GameEvent.TurnChanged(actor.player.id))
+        }
+    }
+
+    /**
+     * Award pot when only one player remains (all others folded).
+     * No showdown needed - winner doesn't have to show cards.
+     */
+    private fun awardPotToLastPlayer() {
+        state = state.withPhase(GamePhase.SHOWDOWN)
+
+        val lastPlayer = state.table.getPlayersInHand().firstOrNull()
+        if (lastPlayer != null) {
+            val amount = state.totalPot
+            val winners = listOf(
+                Winner(
+                    playerId = lastPlayer.player.id,
+                    amount = amount,
+                    handDescription = "Last player standing",
+                ),
+            )
+            state = state.withWinners(winners)
+
+            var table = state.table
+            table = table.updatePlayerState(lastPlayer.player.id) {
+                it.withChips(it.chips + amount)
+            }
+            state = state.withTable(table)
+        }
+
+        state = state.withPhase(GamePhase.HAND_COMPLETE)
+        emit(GameEvent.HandComplete(state.winners))
+    }
+
+    /**
+     * Determines the seat number of the first player who must act in showdown.
+     *
+     * Poker showdown order rules:
+     * - If there was a bet/raise on the river: last aggressor shows first (they must show)
+     * - If river was checked down: first active player left of dealer shows first
+     */
+    protected open fun getFirstShowdownActorSeat(): Int {
+        val playersInHand = state.table.occupiedSeats
+            .filter { it.playerState?.status in listOf(PlayerStatus.ACTIVE, PlayerStatus.ALL_IN) }
+            .sortedBy { it.number }
+
+        if (state.showdownAggressorId != null) {
+            return playersInHand
+                .firstOrNull { it.playerState?.player?.id == state.showdownAggressorId }
+                ?.number
+                ?: playersInHand.first().number
+        }
+
+        val dealerIndex = playersInHand.indexOfFirst { it.number == state.dealerSeatNumber }
+        val firstToActIndex = (dealerIndex + 1) % playersInHand.size
+        return playersInHand[firstToActIndex].number
+    }
+
+    /**
+     * Determines the next showdown actor seat after the current one.
+     * Cycles clockwise through players who still have PENDING showdown status.
+     */
+    protected fun getNextShowdownActorSeat(): Int? {
+        val pendingPlayers = state.table.occupiedSeats
+            .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
+            .map { it.number }
+            .sorted()
+
+        if (pendingPlayers.isEmpty()) return null
+
+        val currentSeat = state.currentActorSeatNumber ?: return pendingPlayers.first()
+        val currentIndex = pendingPlayers.indexOf(currentSeat)
+
+        // Find next player clockwise who hasn't acted
+        for (i in 1..pendingPlayers.size) {
+            val nextIndex = (currentIndex + i) % pendingPlayers.size
+            val candidate = pendingPlayers[nextIndex]
+            if (candidate != currentSeat) {
+                return candidate
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Process a showdown action (Show, Muck, or Collect).
+     */
+    open fun processShowdownAction(action: Action): GameState {
+        require(state.phase == GamePhase.SHOWDOWN) { "Not in showdown phase" }
+        require(action is Action.Show || action is Action.Muck || action is Action.Collect) {
+            "Invalid showdown action"
+        }
+
+        val playerState = state.table.seats
+            .mapNotNull { it.playerState }
+            .find { it.player.id == action.playerId }
+            ?: throw IllegalArgumentException("Player not found")
+
+        require(state.currentActor?.player?.id == action.playerId) {
+            "Not ${playerState.player.name}'s turn"
+        }
+
+        require(playerState.showdownStatus == ShowdownStatus.PENDING) {
+            "Player has already acted in showdown"
+        }
+
+        // Check if this player is the last one standing (all others mucked)
+        val pendingPlayers = state.table.occupiedSeats
+            .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
+        val shownPlayers = state.table.occupiedSeats
+            .filter { it.playerState?.showdownStatus == ShowdownStatus.SHOWN }
+        val isLastStanding = pendingPlayers.size == 1 && shownPlayers.isEmpty()
+
+        // Validate action is allowed
+        when (action) {
+            is Action.Muck -> {
+                val mustShow = state.showdownAggressorId == action.playerId
+                require(!mustShow) { "Last aggressor must show cards when called" }
+                require(!isLastStanding) { "Cannot muck when you've already won - use Show or Collect" }
+            }
+
+            is Action.Collect -> {
+                require(isLastStanding) { "Can only collect when all others have mucked" }
+            }
+
+            else -> { /* Show is always valid */ }
+        }
+
+        // Handle Collect immediately - award pot without revealing
+        if (action is Action.Collect) {
+            state = state.withLastAction(action)
+            emit(GameEvent.ActionTaken(action))
+            awardPotToLastShowdownPlayer(playerState)
+            return state
+        }
+
+        // Apply Show or Muck (Collect was handled above with early return)
+        val newStatus = when (action) {
+            is Action.Show -> ShowdownStatus.SHOWN
+            is Action.Muck -> ShowdownStatus.MUCKED
+        }
+
+        val table = state.table.updatePlayerState(action.playerId) {
+            it.withShowdownStatus(newStatus)
+        }
+        state = state.withTable(table).withLastAction(action)
+        emit(GameEvent.ActionTaken(action))
+
+        // Re-check after applying action
+        val remainingPending = state.table.occupiedSeats
+            .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
+        val nowShown = state.table.occupiedSeats
+            .filter { it.playerState?.showdownStatus == ShowdownStatus.SHOWN }
+
+        when {
+            remainingPending.isEmpty() -> {
+                // All players have acted - evaluate and complete
+                completeShowdown()
+            }
+
+            remainingPending.size == 1 && nowShown.isEmpty() -> {
+                // Only one player left and no one showed - give them choice to show or collect
+                val nextSeat = getNextShowdownActorSeat()
+                state = state.withCurrentActor(nextSeat)
+                if (nextSeat != null) {
+                    val nextActor = state.table.getSeat(nextSeat)?.playerState
+                    if (nextActor != null) {
+                        emit(GameEvent.TurnChanged(nextActor.player.id))
+                    }
+                }
+            }
+
+            else -> {
+                // Move to next player
+                val nextSeat = getNextShowdownActorSeat()
+                state = state.withCurrentActor(nextSeat)
+                if (nextSeat != null) {
+                    val nextActor = state.table.getSeat(nextSeat)?.playerState
+                    if (nextActor != null) {
+                        emit(GameEvent.TurnChanged(nextActor.player.id))
+                    }
+                }
+            }
+        }
+
+        return state
+    }
+
+    /**
+     * Awards pot to last remaining player in showdown when all others mucked.
+     * Player wins without being required to show cards.
+     */
+    private fun awardPotToLastShowdownPlayer(winner: PlayerState) {
+        val amount = state.totalPot
+        val winners = listOf(
+            Winner(
+                playerId = winner.player.id,
+                amount = amount,
+                handDescription = "Others mucked",
+            ),
+        )
+        state = state.withWinners(winners)
+
+        var table = state.table
+        table = table.updatePlayerState(winner.player.id) {
+            it.withChips(it.chips + amount)
+        }
+
+        state = state.withTable(table).withPhase(GamePhase.HAND_COMPLETE)
+        emit(GameEvent.HandComplete(winners))
+    }
+
+    /**
+     * Evaluates hands and awards pots after all showdown actions complete.
+     */
+    private fun completeShowdown() {
         val winners = evaluateHands()
         state = state.withWinners(winners)
 
@@ -469,6 +722,40 @@ abstract class PokerGame(
 
         state = state.withTable(table).withPhase(GamePhase.HAND_COMPLETE)
         emit(GameEvent.HandComplete(winners))
+    }
+
+    /**
+     * Gets the current showdown request for the active player.
+     */
+    fun getShowdownRequest(): ShowdownRequest? {
+        if (state.phase != GamePhase.SHOWDOWN) return null
+        val actor = state.currentActor ?: return null
+
+        // Check if player is last standing (all others mucked, no one showed)
+        val pendingPlayers = state.table.occupiedSeats
+            .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
+        val shownPlayers = state.table.occupiedSeats
+            .filter { it.playerState?.showdownStatus == ShowdownStatus.SHOWN }
+        val isLastStanding = pendingPlayers.size == 1 && shownPlayers.isEmpty()
+
+        val mustShow = state.showdownAggressorId == actor.player.id
+        val validActions = when {
+            // Last player standing: can show (optional reveal) or collect (take pot without showing)
+            isLastStanding -> setOf(ShowdownActionType.SHOW, ShowdownActionType.COLLECT)
+
+            // Aggressor must show
+            mustShow -> setOf(ShowdownActionType.SHOW)
+
+            // Others can show or muck
+            else -> setOf(ShowdownActionType.SHOW, ShowdownActionType.MUCK)
+        }
+
+        return ShowdownRequest(
+            playerId = actor.player.id,
+            validActions = validActions,
+            mustShow = mustShow,
+            isLastPlayerStanding = isLastStanding,
+        )
     }
 
     fun getActionRequest(): ActionRequest? {

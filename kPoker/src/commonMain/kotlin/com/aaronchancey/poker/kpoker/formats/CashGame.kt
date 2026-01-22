@@ -36,7 +36,7 @@ class CashGame(
                     applyRake(event.winners)
                 }
 
-                else -> {}
+                else -> Unit
             }
         }
     }

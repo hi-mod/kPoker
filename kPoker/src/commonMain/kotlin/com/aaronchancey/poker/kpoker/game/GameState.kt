@@ -39,6 +39,8 @@ data class GameState(
     val handNumber: Long = 0,
     val winners: List<Winner> = emptyList(),
     val lastAction: Action? = null,
+    /** Last aggressor from final betting round - determines showdown order */
+    val showdownAggressorId: PlayerId? = null,
 ) {
     val activePlayers: List<PlayerState> get() = table.getActivePlayers()
     val playersInHand: List<PlayerState> get() = table.getPlayersInHand()
@@ -58,6 +60,7 @@ data class GameState(
     fun withCurrentActor(seatNumber: Int?) = copy(currentActorSeatNumber = seatNumber)
     fun withLastAction(action: Action) = copy(lastAction = action)
     fun withWinners(winners: List<Winner>) = copy(winners = winners)
+    fun withShowdownAggressor(playerId: PlayerId?) = copy(showdownAggressorId = playerId)
     fun nextHand() = copy(
         phase = GamePhase.WAITING,
         communityCards = emptyList(),
@@ -66,6 +69,7 @@ data class GameState(
         winners = emptyList(),
         lastAction = null,
         handNumber = handNumber + 1,
+        showdownAggressorId = null,
     )
 }
 

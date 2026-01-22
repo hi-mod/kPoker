@@ -1,6 +1,7 @@
 package com.aaronchancey.poker.presentation.room
 
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.network.ConnectionState
@@ -15,4 +16,5 @@ data class RoomUiState(
     val availableActions: ActionRequest? = null,
     val error: String? = null,
     val isLoading: Boolean = false,
+    val showdown: ShowdownRequest? = null,
 )

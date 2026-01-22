@@ -55,6 +55,30 @@ sealed class Action {
         val amount: ChipAmount,
         val blindType: BlindType,
     ) : Action()
+
+    /**
+     * Player chooses to reveal their hole cards at showdown.
+     * Required to be eligible for pot.
+     */
+    @Serializable
+    @SerialName("show")
+    data class Show(override val playerId: PlayerId) : Action()
+
+    /**
+     * Player chooses to muck (hide) their hole cards at showdown.
+     * Forfeits claim to pot but keeps cards private.
+     */
+    @Serializable
+    @SerialName("muck")
+    data class Muck(override val playerId: PlayerId) : Action()
+
+    /**
+     * Player collects pot without revealing cards.
+     * Only valid when all other players have mucked (last player standing).
+     */
+    @Serializable
+    @SerialName("collect")
+    data class Collect(override val playerId: PlayerId) : Action()
 }
 
 @Serializable
@@ -86,3 +110,32 @@ enum class ActionType {
     RAISE,
     ALL_IN,
 }
+
+@Serializable
+enum class ShowdownActionType {
+    SHOW,
+    MUCK,
+
+    /** Collect pot without showing - only valid when all others mucked */
+    COLLECT,
+}
+
+/**
+ * Request for a showdown action from a player.
+ * @param playerId The player who must act
+ * @param validActions Available actions:
+ *   - SHOW: always available
+ *   - MUCK: available if not required to show (forfeits pot claim)
+ *   - COLLECT: available only when all others mucked (wins without showing)
+ * @param mustShow True if player was called and must show to claim pot
+ * @param isLastPlayerStanding True if all others mucked - player wins regardless
+ * @param timeLimit Time allowed for decision before auto-muck/auto-collect
+ */
+@Serializable
+data class ShowdownRequest(
+    val playerId: PlayerId,
+    val validActions: Set<ShowdownActionType>,
+    val mustShow: Boolean,
+    val isLastPlayerStanding: Boolean = false,
+    val timeLimit: Duration = 15.seconds,
+)

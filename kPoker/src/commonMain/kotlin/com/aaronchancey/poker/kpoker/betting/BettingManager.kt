@@ -104,6 +104,9 @@ class BettingManager(
         is Action.AllIn -> action.amount >= playerState.chips - EPSILON && action.amount <= playerState.chips + EPSILON
 
         is Action.PostBlind -> action.amount <= playerState.chips + EPSILON
+
+        // Showdown actions are validated by processShowdownAction, not here
+        is Action.Show, is Action.Muck, is Action.Collect -> false
     }
 
     companion object {

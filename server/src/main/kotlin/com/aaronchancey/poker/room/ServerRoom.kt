@@ -2,7 +2,9 @@ package com.aaronchancey.poker.room
 
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.events.GameEvent
+import com.aaronchancey.poker.kpoker.game.GamePhase
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -124,8 +126,15 @@ class ServerRoom(
 
                 when (event) {
                     is GameEvent.TurnChanged -> {
-                        game.getActionRequest()?.let { actionRequest ->
-                            connectionManager.sendTo(roomId, event.playerId, ServerMessage.ActionRequired(actionRequest))
+                        // Check if we're in showdown phase - send ShowdownRequired instead of ActionRequired
+                        if (game.currentState.phase == GamePhase.SHOWDOWN) {
+                            game.getShowdownRequest()?.let { showdownRequest ->
+                                connectionManager.sendTo(roomId, event.playerId, ServerMessage.ShowdownRequired(showdownRequest))
+                            }
+                        } else {
+                            game.getActionRequest()?.let { actionRequest ->
+                                connectionManager.sendTo(roomId, event.playerId, ServerMessage.ActionRequired(actionRequest))
+                            }
                         }
                     }
 
@@ -245,7 +254,13 @@ class ServerRoom(
     suspend fun performAction(playerId: PlayerId, action: Action): Result<Unit> = mutex.withLock {
         try {
             require(action.playerId == playerId) { "Action playerId mismatch" }
-            game.processAction(action)
+
+            // Route to appropriate handler based on action type
+            when (action) {
+                is Action.Show, is Action.Muck, is Action.Collect -> game.processShowdownAction(action)
+                else -> game.processAction(action)
+            }
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -281,6 +296,7 @@ class ServerRoom(
     fun getPlayerSeat(playerId: PlayerId): Seat? = game.currentState.table.getPlayerSeat(playerId)
     fun getGameState(): GameState = game.currentState
     fun getActionRequest(): ActionRequest? = game.getActionRequest()
+    fun getShowdownRequest(): ShowdownRequest? = game.getShowdownRequest()
     fun addGameEventListener(listener: (GameEvent) -> Unit) = game.addEventListener(listener)
 
     // === Info Methods ===

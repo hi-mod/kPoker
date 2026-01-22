@@ -8,6 +8,7 @@ import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.Player
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.PlayerStatus
+import com.aaronchancey.poker.kpoker.player.ShowdownStatus
 import com.aaronchancey.poker.kpoker.player.Table
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -40,6 +41,27 @@ class StandardVisibilityTest {
         return GameState(table = table, phase = GamePhase.FLOP)
     }
 
+    private fun createStateWithPlayersShown(): GameState {
+        var table = Table.create("test", "Test Table", 9)
+
+        // Player 1 with SHOWN status
+        val p1 = Player("p1", "Alice")
+        val p1Cards = listOf(createCard(Rank.ACE, Suit.SPADES), createCard(Rank.KING, Suit.SPADES))
+        table = table.sitPlayer(1, PlayerState(p1, chips = 100.0, holeCards = p1Cards, status = PlayerStatus.ACTIVE, showdownStatus = ShowdownStatus.SHOWN))
+
+        // Player 2 with SHOWN status
+        val p2 = Player("p2", "Bob")
+        val p2Cards = listOf(createCard(Rank.QUEEN, Suit.HEARTS), createCard(Rank.JACK, Suit.HEARTS))
+        table = table.sitPlayer(2, PlayerState(p2, chips = 100.0, holeCards = p2Cards, status = PlayerStatus.ACTIVE, showdownStatus = ShowdownStatus.SHOWN))
+
+        // Player 3 with SHOWN status
+        val p3 = Player("p3", "Charlie")
+        val p3Cards = listOf(createCard(Rank.TEN, Suit.DIAMONDS), createCard(Rank.NINE, Suit.DIAMONDS))
+        table = table.sitPlayer(3, PlayerState(p3, chips = 100.0, holeCards = p3Cards, status = PlayerStatus.ACTIVE, showdownStatus = ShowdownStatus.SHOWN))
+
+        return GameState(table = table, phase = GamePhase.SHOWDOWN)
+    }
+
     @Test
     fun getVisibleState_playerSeesOwnCards() {
         val state = createStateWithPlayers()
@@ -66,14 +88,40 @@ class StandardVisibilityTest {
 
     @Test
     fun getVisibleState_allCardsVisibleAtShowdown() {
-        val state = createStateWithPlayers().copy(phase = GamePhase.SHOWDOWN)
+        // Players must have SHOWN status for cards to be visible at showdown
+        val state = createStateWithPlayersShown().copy(phase = GamePhase.SHOWDOWN)
         val visibleState = visibility.getVisibleState(state, "p1")
 
-        // At showdown, all cards should be visible
+        // At showdown, cards visible for players who chose to SHOW
         visibleState.table.occupiedSeats.forEach { seat ->
             val ps = seat.playerState!!
-            assertEquals(2, ps.holeCards.size, "All cards visible at showdown for seat ${seat.number}")
+            assertEquals(2, ps.holeCards.size, "Cards visible at showdown for shown players at seat ${seat.number}")
         }
+    }
+
+    @Test
+    fun getVisibleState_muckedCardsHiddenAtShowdown() {
+        // Test that MUCKED players' cards remain hidden
+        var table = Table.create("test", "Test Table", 9)
+
+        val p1 = Player("p1", "Alice")
+        val p1Cards = listOf(createCard(Rank.ACE, Suit.SPADES), createCard(Rank.KING, Suit.SPADES))
+        table = table.sitPlayer(1, PlayerState(p1, chips = 100.0, holeCards = p1Cards, status = PlayerStatus.ACTIVE, showdownStatus = ShowdownStatus.SHOWN))
+
+        val p2 = Player("p2", "Bob")
+        val p2Cards = listOf(createCard(Rank.QUEEN, Suit.HEARTS), createCard(Rank.JACK, Suit.HEARTS))
+        table = table.sitPlayer(2, PlayerState(p2, chips = 100.0, holeCards = p2Cards, status = PlayerStatus.ACTIVE, showdownStatus = ShowdownStatus.MUCKED))
+
+        val state = GameState(table = table, phase = GamePhase.SHOWDOWN)
+        val visibleState = visibility.getVisibleState(state, "p1")
+
+        // P1 showed - their cards visible
+        val p1State = visibleState.table.getSeat(1)?.playerState!!
+        assertEquals(2, p1State.holeCards.size, "Shown player's cards visible")
+
+        // P2 mucked - their cards hidden
+        val p2State = visibleState.table.getSeat(2)?.playerState!!
+        assertTrue(p2State.holeCards.isEmpty(), "Mucked player's cards hidden")
     }
 
     @Test
@@ -111,14 +159,15 @@ class StandardVisibilityTest {
     }
 
     @Test
-    fun getSpectatorView_showsAllCardsAtShowdown() {
-        val state = createStateWithPlayers().copy(phase = GamePhase.SHOWDOWN)
+    fun getSpectatorView_showsShownCardsAtShowdown() {
+        // Players must have SHOWN status for cards to be visible
+        val state = createStateWithPlayersShown()
         val spectatorView = visibility.getSpectatorView(state)
 
-        // At showdown, spectator sees all cards
+        // At showdown, spectator sees cards for players who SHOWED
         spectatorView.table.occupiedSeats.forEach { seat ->
             val ps = seat.playerState!!
-            assertEquals(2, ps.holeCards.size, "Spectator sees cards at showdown")
+            assertEquals(2, ps.holeCards.size, "Spectator sees shown cards at showdown")
         }
     }
 

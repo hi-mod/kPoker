@@ -6,16 +6,18 @@ import com.aaronchancey.poker.kpoker.game.GamePhase
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
+import com.aaronchancey.poker.kpoker.player.ShowdownStatus
 
 /**
  * Standard visibility rules for traditional online poker.
  *
  * Rules:
  * - Players see their own hole cards at all times
- * - Other players' hole cards are hidden until showdown (unless PUBLIC visibility)
+ * - Other players' hole cards are hidden until they SHOW at showdown
  * - PUBLIC cards (face-up in Stud) are visible to everyone
  * - PRIVATE cards (face-down) show as hidden placeholders to opponents
- * - Spectators see only PUBLIC cards until showdown
+ * - Mucked cards remain hidden even after showdown
+ * - Spectators see only PUBLIC cards and SHOWN hands
  * - Community cards and betting information always visible
  *
  * This is the trust model where the server knows all cards but
@@ -24,17 +26,19 @@ import com.aaronchancey.poker.kpoker.player.PlayerState
 class StandardVisibility : VisibilityService {
 
     override fun getVisibleState(state: GameState, viewerId: PlayerId): GameState {
+        val isShowdownOrComplete = state.phase in listOf(GamePhase.SHOWDOWN, GamePhase.HAND_COMPLETE)
+
         val visibleTable = state.table.copy(
             seats = state.table.seats.map { seat ->
                 when {
                     // Empty seat - no change
                     seat.playerState == null -> seat
 
-                    // Viewer's own seat - show all cards
+                    // Viewer's own seat - always show all cards
                     seat.playerState.player.id == viewerId -> seat
 
-                    // Showdown - all cards visible
-                    state.phase == GamePhase.SHOWDOWN -> seat
+                    // Showdown/Complete: only show cards if player chose to SHOW
+                    isShowdownOrComplete && seat.playerState.showdownStatus == ShowdownStatus.SHOWN -> seat
 
                     // Filter other players' cards based on per-card visibility
                     else -> seat.copy(
@@ -48,14 +52,16 @@ class StandardVisibility : VisibilityService {
     }
 
     override fun getSpectatorView(state: GameState): GameState {
+        val isShowdownOrComplete = state.phase in listOf(GamePhase.SHOWDOWN, GamePhase.HAND_COMPLETE)
+
         val visibleTable = state.table.copy(
             seats = state.table.seats.map { seat ->
                 when {
                     // Empty seat - no change
                     seat.playerState == null -> seat
 
-                    // Showdown - all cards visible
-                    state.phase == GamePhase.SHOWDOWN -> seat
+                    // Showdown/Complete: only show cards if player chose to SHOW
+                    isShowdownOrComplete && seat.playerState.showdownStatus == ShowdownStatus.SHOWN -> seat
 
                     // Filter all players' cards based on per-card visibility
                     else -> seat.copy(

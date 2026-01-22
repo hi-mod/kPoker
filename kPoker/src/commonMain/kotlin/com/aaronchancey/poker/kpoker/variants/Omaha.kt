@@ -12,6 +12,7 @@ import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.game.Winner
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerState
+import com.aaronchancey.poker.kpoker.player.ShowdownStatus
 
 object OmahaVariant : PokerVariant {
     override val name = "Omaha"
@@ -48,6 +49,7 @@ class OmahaGame(
     override fun evaluateHands(): List<Winner> {
         val playersInHand = state.table.getPlayersInHand()
 
+        // If only one player remains, they win (no showdown needed)
         if (playersInHand.size == 1) {
             val winner = playersInHand.first()
             return listOf(
@@ -59,8 +61,22 @@ class OmahaGame(
             )
         }
 
-        // Evaluate best Omaha hand for each player (must use exactly 2 hole cards + 3 community)
-        val playerHiHands = playersInHand.map { player ->
+        // Only players who SHOWED their cards are eligible for pot
+        val showingPlayers = playersInHand.filter { it.showdownStatus == ShowdownStatus.SHOWN }
+
+        // If everyone mucked (shouldn't happen if rules enforced), give to first in hand
+        if (showingPlayers.isEmpty()) {
+            return listOf(
+                Winner(
+                    playerId = playersInHand.first().player.id,
+                    amount = state.totalPot,
+                    handDescription = "No shown hands",
+                ),
+            )
+        }
+
+        // Evaluate best Omaha hand for each showing player (must use exactly 2 hole cards + 3 community)
+        val playerHiHands = showingPlayers.map { player ->
             val bestHand = findBestOmahaHand(player.holeCards, state.communityCards)
             player to bestHand
         }
@@ -71,7 +87,7 @@ class OmahaGame(
             // Split pot: Hi and Lo
             val hiWinners = findBestHands(playerHiHands)
 
-            val playerLoHands = playersInHand.mapNotNull { player ->
+            val playerLoHands = showingPlayers.mapNotNull { player ->
                 val loHand = findBestOmahaLoHand(player.holeCards, state.communityCards)
                 if (loHand != null) player to loHand else null
             }

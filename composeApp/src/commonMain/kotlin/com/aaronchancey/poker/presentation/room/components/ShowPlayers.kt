@@ -119,8 +119,8 @@ fun ShowPlayers(
         }
 
         uiState.gameState?.table?.seats?.forEach { seat ->
-            val playerX = centerX + radiusX * cos(currentAngle.toRadians()).toFloat()
-            val playerY = centerY + radiusY * sin(currentAngle.toRadians()).toFloat()
+            val playerX = centerX + radiusX * cos(currentAngle).toFloat()
+            val playerY = centerY + radiusY * sin(currentAngle).toFloat()
 
             LayoutCenteredAt(x = playerX, y = playerY) {
                 val playerState = seat.playerState
@@ -141,8 +141,8 @@ fun ShowPlayers(
             if (currentBet > 0.0) {
                 val chipButtonFactorX = 0.5f
                 val chipButtonFactorY = 0.5f
-                val chipButtonX = centerX + radiusX * cos(currentAngle.toRadians()).toFloat() * chipButtonFactorX
-                val chipButtonY = centerY + radiusY * sin(currentAngle.toRadians()).toFloat() * chipButtonFactorY
+                val chipButtonX = centerX + radiusX * cos(currentAngle).toFloat() * chipButtonFactorX
+                val chipButtonY = centerY + radiusY * sin(currentAngle).toFloat() * chipButtonFactorY
                 WagerChips(
                     wager = currentBet,
                     chipOffsetX = chipButtonX,
@@ -153,14 +153,14 @@ fun ShowPlayers(
             if (seat.number == uiState.gameState.dealerSeatNumber) {
                 val dealerButtonFactorX = 0.72f // Adjust this value to move the dealer button
                 val dealerButtonFactorY = 0.72f // Adjust this value to move the dealer button
-                val dealerButtonX = centerX + radiusX * cos(currentAngle.toRadians()).toFloat() * dealerButtonFactorX
-                val dealerButtonY = centerY + radiusY * sin(currentAngle.toRadians()).toFloat() * dealerButtonFactorY
+                val dealerButtonX = centerX + radiusX * cos(currentAngle).toFloat() * dealerButtonFactorX
+                val dealerButtonY = centerY + radiusY * sin(currentAngle).toFloat() * dealerButtonFactorY
                 val size = screenSize / 18 // Adjust this value to change the size of the dealer button
                 LayoutCenteredAt(x = dealerButtonX, y = dealerButtonY) {
                     DealerButton(size = size)
                 }
             }
-            currentAngle += angleStep
+            currentAngle += angleStep.toRadians()
         }
     }
     uiState.gameState?.currentActor?.let { currentActor ->
@@ -408,4 +408,3 @@ private fun CommunityCards(
 }
 
 fun Double.toRadians(): Double = this / 180.0 * PI
-fun Double.toDegrees(): Double = this * 180.0 / PI

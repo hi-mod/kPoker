@@ -1,6 +1,7 @@
 package com.aaronchancey.poker.shared.message
 
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -30,6 +31,10 @@ sealed class ServerMessage {
     @Serializable
     @SerialName("action_required")
     data class ActionRequired(val request: ActionRequest) : ServerMessage()
+
+    @Serializable
+    @SerialName("showdown_required")
+    data class ShowdownRequired(val request: ShowdownRequest) : ServerMessage()
 
     @Serializable
     @SerialName("error")

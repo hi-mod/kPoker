@@ -2,6 +2,7 @@ package com.aaronchancey.poker.network
 
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -29,6 +30,9 @@ class PokerRepository(
 
     private val _availableActions = MutableStateFlow<ActionRequest?>(null)
     val availableActions: StateFlow<ActionRequest?> = _availableActions.asStateFlow()
+
+    private val _showDown = MutableStateFlow<ShowdownRequest?>(null)
+    val showDown: StateFlow<ShowdownRequest?> = _showDown.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -86,6 +90,10 @@ class PokerRepository(
 
             is ServerMessage.PlayerDisconnected -> {
                 // Could show notification
+            }
+
+            is ServerMessage.ShowdownRequired -> {
+                _showDown.value = message.request
             }
         }
     }

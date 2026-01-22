@@ -35,7 +35,7 @@ fun Route.routeGameSocket() {
         // Reuse existing playerId if provided, otherwise generate new
         val requestedPlayerId = call.parameters["playerId"]
         val isReturningPlayer = !requestedPlayerId.isNullOrBlank()
-        val playerId = if (isReturningPlayer) requestedPlayerId!! else UUID.randomUUID().toString()
+        val playerId = if (isReturningPlayer) requestedPlayerId else UUID.randomUUID().toString()
 
         application.log.info("[GameSocket] Connection opened: roomId=$roomId, requestedPlayerId=$requestedPlayerId, assignedPlayerId=$playerId, isReturningPlayer=$isReturningPlayer")
 
@@ -123,6 +123,13 @@ private suspend fun handleClientMessage(
                 if (actionRequest.playerId == playerId) {
                     log.info("[GameSocket] Sending pending action request to rejoined player: playerId=$playerId")
                     session.sendSerialized<ServerMessage>(ServerMessage.ActionRequired(actionRequest))
+                }
+            }
+
+            room.getShowdownRequest()?.let { showdownRequest ->
+                if (showdownRequest.playerId == playerId) {
+                    log.info("[GameSocket] Sending pending showdown request to rejoined player: playerId=$playerId")
+                    session.sendSerialized<ServerMessage>(ServerMessage.ShowdownRequired(showdownRequest))
                 }
             }
 

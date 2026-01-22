@@ -6,6 +6,7 @@ import com.aaronchancey.poker.kpoker.game.GameVariant
 import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.game.Winner
 import com.aaronchancey.poker.kpoker.player.ChipAmount
+import com.aaronchancey.poker.kpoker.player.ShowdownStatus
 
 object TexasHoldemVariant : PokerVariant {
     override val name = "Texas Hold'em"
@@ -29,7 +30,7 @@ class TexasHoldemGame(
     override fun evaluateHands(): List<Winner> {
         val playersInHand = state.table.getPlayersInHand()
 
-        // If only one player remains, they win
+        // If only one player remains, they win (no showdown needed)
         if (playersInHand.size == 1) {
             val winner = playersInHand.first()
             return listOf(
@@ -41,8 +42,22 @@ class TexasHoldemGame(
             )
         }
 
-        // Evaluate each player's best hand
-        val playerHands = playersInHand.map { player ->
+        // Only players who SHOWED their cards are eligible for pot
+        val showingPlayers = playersInHand.filter { it.showdownStatus == ShowdownStatus.SHOWN }
+
+        // If everyone mucked (shouldn't happen if rules enforced), give to first in hand
+        if (showingPlayers.isEmpty()) {
+            return listOf(
+                Winner(
+                    playerId = playersInHand.first().player.id,
+                    amount = state.totalPot,
+                    handDescription = "No shown hands",
+                ),
+            )
+        }
+
+        // Evaluate each showing player's best hand
+        val playerHands = showingPlayers.map { player ->
             val allCards = player.holeCards + state.communityCards
             // findBestHand now returns a List, take the first/only one
             val bestHand = handEvaluator.findBestHand(allCards, 5).first()

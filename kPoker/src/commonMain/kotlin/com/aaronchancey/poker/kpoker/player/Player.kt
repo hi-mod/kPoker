@@ -1,5 +1,6 @@
 package com.aaronchancey.poker.kpoker.player
 
+import com.aaronchancey.poker.kpoker.core.Card
 import com.aaronchancey.poker.kpoker.core.DealtCard
 import kotlinx.serialization.Serializable
 
@@ -23,11 +24,26 @@ enum class PlayerStatus {
     DISCONNECTED, // Lost connection
 }
 
+/**
+ * Tracks a player's showdown status during the reveal phase.
+ */
+@Serializable
+enum class ShowdownStatus {
+    /** Player hasn't acted yet in showdown */
+    PENDING,
+
+    /** Player chose to show their cards */
+    SHOWN,
+
+    /** Player chose to muck their cards */
+    MUCKED,
+}
+
 @Serializable
 data class PlayerState(
     val player: Player,
     val chips: ChipAmount,
-    val holeCards: List<com.aaronchancey.poker.kpoker.core.Card> = emptyList(),
+    val holeCards: List<Card> = emptyList(),
     val dealtCards: List<DealtCard> = emptyList(),
     val status: PlayerStatus = PlayerStatus.WAITING,
     val currentBet: ChipAmount = 0.0,
@@ -37,6 +53,7 @@ data class PlayerState(
     val isBigBlind: Boolean = false,
     val hasActed: Boolean = false,
     val timeBank: Int = 30, // seconds
+    val showdownStatus: ShowdownStatus? = null,
 ) {
     val isActive: Boolean get() = status == PlayerStatus.ACTIVE
     val canAct: Boolean get() = status == PlayerStatus.ACTIVE && !hasActed
@@ -58,6 +75,7 @@ data class PlayerState(
     fun clearBet() = copy(currentBet = 0.0)
     fun markActed() = copy(hasActed = true)
     fun resetForNewRound() = copy(hasActed = false, currentBet = 0.0, totalBetThisRound = 0.0)
+    fun withShowdownStatus(status: ShowdownStatus) = copy(showdownStatus = status)
     fun resetForNewHand() = copy(
         holeCards = emptyList(),
         dealtCards = emptyList(),
@@ -68,5 +86,6 @@ data class PlayerState(
         isDealer = false,
         isSmallBlind = false,
         isBigBlind = false,
+        showdownStatus = null,
     )
 }

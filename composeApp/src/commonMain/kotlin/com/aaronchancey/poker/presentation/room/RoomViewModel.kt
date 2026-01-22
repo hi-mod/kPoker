@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.aaronchancey.poker.config.AppConfig
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.evaluation.HandEvaluatorFactory
 import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.game.GameVariant
@@ -57,9 +58,10 @@ class RoomViewModel(
         repository.roomInfo, // 3
         repository.gameState, // 4
         repository.availableActions, // 5
-        repository.error, // 6
-        repository.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 7
-        repository.errors.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 8
+        repository.showDown, // 6
+        repository.error, // 7
+        repository.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 8
+        repository.errors.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 9
     ) { values ->
         val state = values[0] as RoomUiState
         val connectionState = values[1] as ConnectionState
@@ -67,7 +69,8 @@ class RoomViewModel(
         val roomInfo = values[3] as RoomInfo?
         val gameState = values[4] as GameState?
         val availableActions = values[5] as ActionRequest?
-        val error = values[6] as String?
+        val showDown = values[6] as ShowdownRequest?
+        val error = values[7] as String?
 
         settings.putString(KEY_PLAYER_ID, playerId)
 
@@ -115,6 +118,7 @@ class RoomViewModel(
             roomInfo = roomInfo,
             gameState = gameState,
             availableActions = availableActions,
+            showdown = showDown,
             error = error,
         )
     }

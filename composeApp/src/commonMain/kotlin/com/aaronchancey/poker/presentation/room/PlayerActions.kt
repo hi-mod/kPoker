@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.betting.ActionType
+import com.aaronchancey.poker.kpoker.betting.ShowdownActionType
+import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
@@ -41,7 +43,17 @@ internal fun PlayerActions(
     uiState: RoomUiState,
     onIntent: (RoomIntent) -> Unit,
 ) {
+    if (uiState.showdown != null && uiState.showdown.playerId == playerState.player.id) {
+        Showdown(
+            playerId = playerState.player.id,
+            showdownRequest = uiState.showdown,
+            onIntent = onIntent,
+        )
+        return
+    }
+
     if (playerState.hasActed || uiState.availableActions?.playerId != playerState.player.id) return
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -87,49 +99,47 @@ private fun BetActionContent(
     minimumBet: ChipAmount,
     maximumBet: ChipAmount,
     onBetAmountChange: (ChipAmount) -> Unit,
-) {
-    Column {
-        val rangeStart = minimumBet.toFloat()
-        val rangeEnd = maximumBet.toFloat()
-        val safeDenomination = if (minDenomination > 0.0) minDenomination else 0.1
-        val steps = if (rangeEnd > rangeStart) {
-            maxOf(0, ((rangeEnd - rangeStart) / safeDenomination).toInt() - 1)
-        } else {
-            0
-        }
+) = Column {
+    val rangeStart = minimumBet.toFloat()
+    val rangeEnd = maximumBet.toFloat()
+    val safeDenomination = if (minDenomination > 0.0) minDenomination else 0.1
+    val steps = if (rangeEnd > rangeStart) {
+        maxOf(0, ((rangeEnd - rangeStart) / safeDenomination).toInt() - 1)
+    } else {
+        0
+    }
 
-        val sliderState = rememberSliderState(
-            value = rangeStart,
-            steps = steps,
-            valueRange = rangeStart..rangeEnd,
-        )
-        val textFieldState = rememberTextFieldState(rangeStart.toString())
-        sliderState.onValueChange = {
-            val snappedValue = (it / safeDenomination).roundToInt() * safeDenomination
-            sliderState.value = snappedValue.toFloat()
-            textFieldState.setTextAndPlaceCursorAtEnd(snappedValue.toString())
-            onBetAmountChange(snappedValue)
-        }
-        LaunchedEffect(textFieldState) {
-            snapshotFlow { textFieldState.text.toString() }.collectLatest {
-                if (sliderState.value != it.toFloatOrNull()) {
-                    sliderState.value = it.toFloatOrNull() ?: minimumBet.toFloat()
-                    onBetAmountChange(sliderState.value.toDouble())
-                }
+    val sliderState = rememberSliderState(
+        value = rangeStart,
+        steps = steps,
+        valueRange = rangeStart..rangeEnd,
+    )
+    val textFieldState = rememberTextFieldState(rangeStart.toString())
+    sliderState.onValueChange = {
+        val snappedValue = (it / safeDenomination).roundToInt() * safeDenomination
+        sliderState.value = snappedValue.toFloat()
+        textFieldState.setTextAndPlaceCursorAtEnd(snappedValue.toString())
+        onBetAmountChange(snappedValue)
+    }
+    LaunchedEffect(textFieldState) {
+        snapshotFlow { textFieldState.text.toString() }.collectLatest {
+            if (sliderState.value != it.toFloatOrNull()) {
+                sliderState.value = it.toFloatOrNull() ?: minimumBet.toFloat()
+                onBetAmountChange(sliderState.value.toDouble())
             }
         }
-        TextField(
-            modifier = Modifier.widthIn(200.dp, 200.dp),
-            state = textFieldState,
-            label = { Text("Bet Amount") },
-            lineLimits = TextFieldLineLimits.SingleLine,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-        Slider(
-            modifier = Modifier.widthIn(200.dp, 200.dp),
-            state = sliderState,
-        )
     }
+    TextField(
+        modifier = Modifier.widthIn(200.dp, 200.dp),
+        state = textFieldState,
+        label = { Text("Bet Amount") },
+        lineLimits = TextFieldLineLimits.SingleLine,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+    )
+    Slider(
+        modifier = Modifier.widthIn(200.dp, 200.dp),
+        state = sliderState,
+    )
 }
 
 private fun actionClick(
@@ -148,4 +158,28 @@ private fun actionClick(
         ActionType.ALL_IN -> Action.AllIn(playerId, availableActions.maximumBet)
     }
     onIntent(RoomIntent.PerformAction(action))
+}
+
+@Composable
+internal fun Showdown(
+    modifier: Modifier = Modifier,
+    playerId: PlayerId,
+    showdownRequest: ShowdownRequest,
+    onIntent: (RoomIntent) -> Unit,
+) = Row(
+    modifier = modifier,
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+) {
+    showdownRequest.validActions.forEach { actionType ->
+        Button(onClick = {
+            val action = when (actionType) {
+                ShowdownActionType.MUCK -> Action.Muck(playerId)
+                ShowdownActionType.SHOW -> Action.Show(playerId)
+                ShowdownActionType.COLLECT -> Action.Collect(playerId)
+            }
+            onIntent(RoomIntent.PerformAction(action))
+        }) {
+            Text(actionType.name)
+        }
+    }
 }
