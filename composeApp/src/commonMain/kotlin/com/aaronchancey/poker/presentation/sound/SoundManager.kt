@@ -31,7 +31,7 @@ object SoundManager {
         }
 
         // TODO: Add sound files and mappings for these types
-        SoundType.CARD_DEAL -> "files/chips-stack-1.mp3"
+        SoundType.CARD_DEAL -> "files/riffle-card-shuffle.mp3"
 
         // Placeholder
         SoundType.YOUR_TURN -> "files/chips-stack-1.mp3"

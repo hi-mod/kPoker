@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aaronchancey.poker.domain.onSuccess
 import com.aaronchancey.poker.network.RoomClient
-import com.aaronchancey.poker.presentation.room.RoomViewModel
+import com.aaronchancey.poker.presentation.util.SettingKeys
 import com.aaronchancey.poker.window.RoomWindowRequest
 import com.russhwolf.settings.Settings
 import kotlin.uuid.ExperimentalUuidApi
@@ -34,9 +34,14 @@ class LobbyViewModel(
     private val _state = MutableStateFlow(LobbyState())
     val state = _state
         .asStateFlow()
+        .onStart { fetchSavedSettings() }
         .onStart { fetchRooms() }
         .onStart { checkSavedRoom() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LobbyState())
+
+    private fun fetchSavedSettings() {
+        _state.update { it.copy(playerName = settings.getString(SettingKeys.KEY_PLAYER_NAME, "")) }
+    }
 
     fun onIntent(intent: LobbyIntent) = when (intent) {
         is LobbyIntent.JoinRoom -> handleJoinRoom(intent)
@@ -63,7 +68,7 @@ class LobbyViewModel(
      * Called on app launch via onStart.
      */
     private fun checkSavedRoom() {
-        val savedRoomId = settings.getStringOrNull(RoomViewModel.KEY_CURRENT_ROOM_ID)
+        val savedRoomId = settings.getStringOrNull(SettingKeys.KEY_CURRENT_ROOM_ID)
         println("[LobbyViewModel] checkSavedRoom: savedRoomId=$savedRoomId")
 
         if (savedRoomId == null) {
@@ -71,9 +76,9 @@ class LobbyViewModel(
             return
         }
 
-        val savedRoomName = settings.getString(RoomViewModel.KEY_CURRENT_ROOM_NAME, "")
-        val savedPlayerName = settings.getString(RoomViewModel.KEY_PLAYER_NAME, "")
-        val existingPlayerId = settings.getStringOrNull(RoomViewModel.KEY_PLAYER_ID)
+        val savedRoomName = settings.getString(SettingKeys.KEY_CURRENT_ROOM_NAME, "")
+        val savedPlayerName = settings.getString(SettingKeys.KEY_PLAYER_NAME, "")
+        val existingPlayerId = settings.getStringOrNull(SettingKeys.KEY_PLAYER_ID)
         val playerId = existingPlayerId ?: Uuid.generateV4().toString()
 
         println("[LobbyViewModel] checkSavedRoom: Found saved session - roomName=$savedRoomName, playerName=$savedPlayerName, existingPlayerId=$existingPlayerId, usingPlayerId=$playerId")
@@ -95,13 +100,13 @@ class LobbyViewModel(
     private fun handleJoinRoom(intent: LobbyIntent.JoinRoom) {
         println("[LobbyViewModel] handleJoinRoom: roomId=${intent.roomId}, roomName=${intent.roomName}, playerName=${intent.playerName}")
 
-        val existingPlayerId = settings.getStringOrNull(RoomViewModel.KEY_PLAYER_ID)
+        val existingPlayerId = settings.getStringOrNull(SettingKeys.KEY_PLAYER_ID)
         val playerId = existingPlayerId ?: Uuid.generateV4().toString()
 
         println("[LobbyViewModel] handleJoinRoom: existingPlayerId=$existingPlayerId, usingPlayerId=$playerId")
 
         // Save player name for convenience
-        settings.putString(RoomViewModel.KEY_PLAYER_NAME, intent.playerName)
+        settings.putString(SettingKeys.KEY_PLAYER_NAME, intent.playerName)
 
         val request = RoomWindowRequest(
             roomId = intent.roomId,
@@ -119,8 +124,8 @@ class LobbyViewModel(
      */
     private fun handleCloseRoom(roomId: String) {
         println("[LobbyViewModel] handleCloseRoom: roomId=$roomId, openRooms before=${_state.value.openRooms.map { it.roomId }}")
-        settings.remove(RoomViewModel.KEY_CURRENT_ROOM_ID)
-        settings.remove(RoomViewModel.KEY_CURRENT_ROOM_NAME)
+        settings.remove(SettingKeys.KEY_CURRENT_ROOM_ID)
+        settings.remove(SettingKeys.KEY_CURRENT_ROOM_NAME)
         _state.update { state ->
             state.copy(openRooms = state.openRooms.filterNot { it.roomId == roomId }.toSet())
         }
@@ -131,7 +136,7 @@ class LobbyViewModel(
      * Clears the saved room session.
      */
     private fun clearSavedRoom() {
-        settings.remove(RoomViewModel.KEY_CURRENT_ROOM_ID)
-        settings.remove(RoomViewModel.KEY_CURRENT_ROOM_NAME)
+        settings.remove(SettingKeys.KEY_CURRENT_ROOM_ID)
+        settings.remove(SettingKeys.KEY_CURRENT_ROOM_NAME)
     }
 }

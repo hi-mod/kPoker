@@ -41,7 +41,7 @@ fun Lobby(
     ) {
         Spacer(modifier = Modifier.height(8.dp))
 
-        val playerNameState = rememberTextFieldState("")
+        val playerNameState = rememberTextFieldState(state.playerName)
         TextField(
             state = playerNameState,
             label = { Text("Enter your name") },

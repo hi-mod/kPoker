@@ -5,6 +5,7 @@ import com.aaronchancey.poker.window.RoomWindowRequest
 
 data class LobbyState(
     val isLoading: Boolean = false,
+    val playerName: String = "",
     val rooms: List<RoomInfo> = emptyList(),
     /** Currently open room windows - managed by ViewModel, rendered by platform layer */
     val openRooms: Set<RoomWindowRequest> = emptySet(),

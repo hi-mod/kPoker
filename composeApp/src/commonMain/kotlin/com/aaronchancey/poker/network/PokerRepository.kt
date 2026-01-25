@@ -1,90 +1,111 @@
 package com.aaronchancey.poker.network
 
 import com.aaronchancey.poker.kpoker.betting.Action
-import com.aaronchancey.poker.kpoker.betting.ActionRequest
-import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.events.GameEvent
-import com.aaronchancey.poker.kpoker.game.GameState
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.shared.message.ClientMessage
-import com.aaronchancey.poker.shared.message.RoomInfo
 import com.aaronchancey.poker.shared.message.ServerMessage
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
+/**
+ * Repository managing poker room session state and WebSocket communication.
+ *
+ * This repository is "self-activating": it internally processes messages from the WebSocket
+ * client and updates unified session state, eliminating the need for ViewModels to collect
+ * message flows just to trigger side effects.
+ *
+ * @property client The WebSocket client for server communication
+ */
 class PokerRepository(
     private val client: PokerWebSocketClient,
 ) {
-    private val _playerId = MutableStateFlow<PlayerId?>(null)
-    val playerId: StateFlow<PlayerId?> = _playerId.asStateFlow()
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
-    private val _roomInfo = MutableStateFlow<RoomInfo?>(null)
-    val roomInfo: StateFlow<RoomInfo?> = _roomInfo.asStateFlow()
+    private val _session = MutableStateFlow(RoomSession.Initial)
+    val session: StateFlow<RoomSession> = _session.asStateFlow()
 
-    private val _gameState = MutableStateFlow<GameState?>(null)
-    val gameState: StateFlow<GameState?> = _gameState.asStateFlow()
-
-    private val _availableActions = MutableStateFlow<ActionRequest?>(null)
-    val availableActions: StateFlow<ActionRequest?> = _availableActions.asStateFlow()
-
-    private val _showDown = MutableStateFlow<ShowdownRequest?>(null)
-    val showDown: StateFlow<ShowdownRequest?> = _showDown.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val _gameEvents = MutableSharedFlow<GameEvent>()
+    val gameEvents: SharedFlow<GameEvent> = _gameEvents.asSharedFlow()
 
     val connectionState = client.connectionState
 
-    val messages: Flow<ServerMessage> = client.messages.onEach { message ->
-        handleServerMessage(message)
-    }
-
-    val errors: Flow<Throwable> = client.errors.onEach { error ->
-        _error.value = error.message
+    /**
+     * Starts internal message processing.
+     *
+     * This must be called after connecting to begin updating session state.
+     * The processing runs in the repository's own scope and continues until [close] is called.
+     */
+    fun startMessageProcessing() {
+        scope.launch {
+            client.messages.collect { message ->
+                handleServerMessage(message)
+            }
+        }
+        scope.launch {
+            client.errors.collect { error ->
+                _session.update { it.copy(error = error.message) }
+            }
+        }
     }
 
     private fun handleServerMessage(message: ServerMessage) {
         println("Received message: $message")
         when (message) {
             is ServerMessage.Welcome -> {
-                _playerId.value = message.playerId
+                _session.update { it.copy(playerId = message.playerId) }
             }
 
             is ServerMessage.RoomJoined -> {
-                _roomInfo.value = message.roomInfo
+                _session.update { it.copy(roomInfo = message.roomInfo) }
             }
 
             is ServerMessage.GameStateUpdate -> {
-                _gameState.value = message.state
-                _roomInfo.value?.let { currentInfo ->
-                    _roomInfo.value = currentInfo.copy(
+                _session.update { current ->
+                    val updatedRoomInfo = current.roomInfo?.copy(
                         playerCount = message.state.table.playerCount,
                     )
-                }
-                if (message.state.currentActor?.player?.id != playerId.value) {
-                    _availableActions.value = null
+                    val clearActions = message.state.currentActor?.player?.id != current.playerId
+                    current.copy(
+                        gameState = message.state,
+                        roomInfo = updatedRoomInfo ?: current.roomInfo,
+                        availableActions = if (clearActions) null else current.availableActions,
+                    )
                 }
             }
 
             is ServerMessage.GameEventOccurred -> {
-                if (message.event is GameEvent.HandComplete) {
-                    _availableActions.value = null
-                }
-                if (message.event is GameEvent.HandStarted) {
-                    _showDown.value = null
+                scope.launch { _gameEvents.emit(message.event) }
+                when (message.event) {
+                    is GameEvent.HandComplete -> {
+                        _session.update { it.copy(availableActions = null) }
+                    }
+
+                    is GameEvent.HandStarted -> {
+                        _session.update { it.copy(showdown = null) }
+                    }
+
+                    else -> { /* No state change needed */ }
                 }
             }
 
             is ServerMessage.ActionRequired -> {
-                _availableActions.value = message.request
+                _session.update { it.copy(availableActions = message.request) }
             }
 
             is ServerMessage.Error -> {
-                _error.value = "${message.code}: ${message.message}"
+                _session.update { it.copy(error = "${message.code}: ${message.message}") }
             }
 
             is ServerMessage.PlayerConnected -> {
@@ -96,13 +117,14 @@ class PokerRepository(
             }
 
             is ServerMessage.ShowdownRequired -> {
-                _showDown.value = message.request
+                _session.update { it.copy(showdown = message.request) }
             }
         }
     }
 
     fun connect(host: String, port: Int, roomId: String, playerId: PlayerId) {
         client.connect(host, port, roomId, playerId)
+        startMessageProcessing()
     }
 
     suspend fun joinRoom(playerName: String) {
@@ -131,13 +153,11 @@ class PokerRepository(
 
     suspend fun disconnect() {
         client.disconnect()
-        _playerId.value = null
-        _roomInfo.value = null
-        _gameState.value = null
+        _session.value = RoomSession.Initial
     }
 
     fun clearError() {
-        _error.value = null
+        _session.update { it.copy(error = null) }
     }
 
     /**
@@ -149,6 +169,7 @@ class PokerRepository(
     }
 
     fun close() {
+        scope.cancel()
         client.closeConnection()
     }
 }

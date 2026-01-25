@@ -4,16 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aaronchancey.poker.config.AppConfig
 import com.aaronchancey.poker.kpoker.betting.Action
-import com.aaronchancey.poker.kpoker.betting.ActionRequest
-import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
-import com.aaronchancey.poker.kpoker.evaluation.HandEvaluatorFactory
-import com.aaronchancey.poker.kpoker.game.GameState
-import com.aaronchancey.poker.kpoker.game.GameVariant
+import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.player.ChipAmount
-import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.network.PokerRepository
-import com.aaronchancey.poker.shared.message.RoomInfo
+import com.aaronchancey.poker.presentation.util.SettingKeys.KEY_CURRENT_ROOM_ID
+import com.aaronchancey.poker.presentation.util.SettingKeys.KEY_CURRENT_ROOM_NAME
+import com.aaronchancey.poker.presentation.util.SettingKeys.KEY_PLAYER_ID
+import com.aaronchancey.poker.presentation.util.SettingKeys.KEY_PLAYER_NAME
 import com.russhwolf.settings.Settings
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.channels.Channel
@@ -21,13 +19,25 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+
+/**
+ * Local UI state managed entirely by the ViewModel.
+ * Separate from server-driven session state.
+ */
+private data class LocalUiState(
+    val isLoading: Boolean = false,
+    val error: String? = null,
+)
 
 /**
  * ViewModel for managing a player's session within a poker room.
@@ -42,6 +52,7 @@ class RoomViewModel(
     private val params: RoomParams,
     private val settings: Settings,
     private val repository: PokerRepository,
+    private val handDescriptionProvider: HandDescriptionProvider,
 ) : ViewModel() {
 
     /** Guards against multiple join attempts when flow is resubscribed. */
@@ -53,79 +64,30 @@ class RoomViewModel(
     /** Tracks previous bets for chip animation detection. */
     private var previousBets: Map<Int, Double> = emptyMap()
 
-    private val _uiState = MutableStateFlow(RoomUiState())
+    private val localState = MutableStateFlow(LocalUiState())
+
     val uiState: StateFlow<RoomUiState> = combine(
-        _uiState, // 0
-        repository.connectionState, // 1
-        repository.playerId, // 2
-        repository.roomInfo, // 3
-        repository.gameState, // 4
-        repository.availableActions, // 5
-        repository.showDown, // 6
-        repository.error, // 7
-        repository.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 8
-        repository.errors.stateIn(viewModelScope, SharingStarted.Eagerly, null), // 9
-    ) { values ->
-        val state = values[0] as RoomUiState
-        val connectionState = values[1] as ConnectionState
-        val playerId = values[2] as PlayerId? ?: params.playerId
-        val roomInfo = values[3] as RoomInfo?
-        val gameState = values[4] as GameState?
-        val availableActions = values[5] as ActionRequest?
-        val showDown = values[6] as ShowdownRequest?
-        val error = values[7] as String?
-
-        settings.putString(KEY_PLAYER_ID, playerId)
-
-        val communityCards = gameState?.communityCards ?: emptyList()
-        val holeCards = gameState?.activePlayers?.firstOrNull { it.player.id == playerId }?.holeCards
-            ?: emptyList()
-
-        val handDescription = if (holeCards.isNotEmpty()) {
-            try {
-                val variant = gameState?.variant ?: GameVariant.TEXAS_HOLDEM
-                val evaluator = HandEvaluatorFactory.getEvaluator(variant)
-
-                if (communityCards.size >= 3) {
-                    // Post-flop: full hand evaluation
-                    val bestHands = if (variant == GameVariant.TEXAS_HOLDEM) {
-                        val allCards = holeCards + communityCards
-                        if (allCards.size >= 5) {
-                            evaluator.findBestHand(allCards, 5)
-                        } else {
-                            emptyList()
-                        }
-                    } else {
-                        if (holeCards.size >= 2 && communityCards.size >= 3) {
-                            evaluator.findBestHand(holeCards, communityCards)
-                        } else {
-                            emptyList()
-                        }
-                    }
-                    bestHands.joinToString(", ") { it.description() }
-                } else {
-                    // Pre-flop: partial evaluation of hole cards only
-                    evaluator.evaluatePartial(holeCards)?.description() ?: ""
-                }
-            } catch (_: Exception) {
-                ""
-            }
-        } else {
-            ""
-        }
-
-        state.copy(
+        localState,
+        repository.session,
+        repository.connectionState,
+    ) { localState, session, connectionState ->
+        RoomUiState(
             connectionState = connectionState,
-            handDescription = handDescription,
-            playerId = playerId,
-            roomInfo = roomInfo,
-            gameState = gameState,
-            availableActions = availableActions,
-            showdown = showDown,
-            error = error,
+            playerId = session.playerId ?: params.playerId,
+            handDescription = handDescriptionProvider.getHandDescription(
+                gameState = session.gameState,
+                playerId = session.playerId ?: params.playerId,
+            ),
+            roomInfo = session.roomInfo,
+            gameState = session.gameState,
+            availableActions = session.availableActions,
+            showdown = session.showdown,
+            error = session.error ?: localState.error,
+            isLoading = localState.isLoading,
         )
     }
         .onStart { startConnectionObservation() }
+        .onStart { startSettingsPersistence() }
         .onStart { joinRoom() }
         .stateIn(
             scope = viewModelScope,
@@ -156,6 +118,13 @@ class RoomViewModel(
         println("[RoomViewModel] startConnectionObservation: Starting for roomId=${params.roomId}")
         startChipAnimationObservation()
         viewModelScope.launch {
+            repository.gameEvents
+                .filterIsInstance<GameEvent.HandStarted>()
+                .collect {
+                    _effects.send(RoomEffect.PlaySound(SoundType.CARD_DEAL))
+                }
+        }
+        viewModelScope.launch {
             repository.connectionState.collect { state ->
                 println("[RoomViewModel] connectionState changed: $state")
                 if (state == ConnectionState.RECONNECTED) {
@@ -166,34 +135,65 @@ class RoomViewModel(
     }
 
     /**
+     * Persists session data to Settings when relevant state changes.
+     * Only writes when values actually change, avoiding wasteful writes on every combine.
+     */
+    private fun startSettingsPersistence() {
+        viewModelScope.launch {
+            // Persist playerId when it changes
+            repository.session
+                .map { it.playerId }
+                .distinctUntilChanged()
+                .collect { playerId ->
+                    if (playerId != null) {
+                        settings.putString(KEY_PLAYER_ID, playerId)
+                    }
+                }
+        }
+        viewModelScope.launch {
+            // Persist roomName when it changes
+            repository.session
+                .map { it.roomInfo?.roomName }
+                .distinctUntilChanged()
+                .collect { roomName ->
+                    if (roomName != null) {
+                        settings.putString(KEY_CURRENT_ROOM_NAME, roomName)
+                    }
+                }
+        }
+    }
+
+    /**
      * Observes game state changes to detect when bets should animate to the pot.
      * Emits [RoomEffect.AnimateChipsToPot] when bets clear (phase transition).
      */
     private fun startChipAnimationObservation() {
         viewModelScope.launch {
-            repository.gameState.collect { gameState ->
-                val currentBets = gameState?.table?.seats
-                    ?.mapNotNull { seat ->
-                        val bet = seat.playerState?.currentBet ?: 0.0
-                        if (bet > 0.0) seat.number to bet else null
+            repository.session
+                .map { it.gameState }
+                .collect { gameState ->
+                    val currentBets = gameState?.table?.seats
+                        ?.mapNotNull { seat ->
+                            val bet = seat.playerState?.currentBet ?: 0.0
+                            if (bet > 0.0) seat.number to bet else null
+                        }
+                        ?.toMap() ?: emptyMap()
+
+                    // Find bets that existed before but are now zero (cleared)
+                    val clearedBets = previousBets.filter { (seat, _) ->
+                        currentBets[seat] == null || currentBets[seat] == 0.0
                     }
-                    ?.toMap() ?: emptyMap()
 
-                // Find bets that existed before but are now zero (cleared)
-                val clearedBets = previousBets.filter { (seat, _) ->
-                    currentBets[seat] == null || currentBets[seat] == 0.0
+                    if (clearedBets.isNotEmpty()) {
+                        _effects.send(
+                            RoomEffect.AnimateChipsToPot(
+                                clearedBets.map { AnimatingBet(it.key, it.value) },
+                            ),
+                        )
+                    }
+
+                    previousBets = currentBets
                 }
-
-                if (clearedBets.isNotEmpty()) {
-                    _effects.send(
-                        RoomEffect.AnimateChipsToPot(
-                            clearedBets.map { AnimatingBet(it.key, it.value) },
-                        ),
-                    )
-                }
-
-                previousBets = currentBets
-            }
         }
     }
 
@@ -206,7 +206,7 @@ class RoomViewModel(
         joinStarted = true
         println("[RoomViewModel] joinRoom: Starting - roomId=${params.roomId}, playerName=${params.playerName}, playerId=${params.playerId}")
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            localState.update { it.copy(isLoading = true) }
             try {
                 println("[RoomViewModel] joinRoom: Connecting to ${AppConfig.wsHost}:${AppConfig.wsPort}")
                 repository.connect(AppConfig.wsHost, AppConfig.wsPort, params.roomId, params.playerId)
@@ -220,10 +220,9 @@ class RoomViewModel(
                 println("[RoomViewModel] joinRoom: Successfully joined room")
             } catch (e: Exception) {
                 println("[RoomViewModel] joinRoom: FAILED - ${e::class.simpleName}: ${e.message}")
-                // Surface the error to the user
-                _uiState.update { it.copy(error = "Failed to join room: ${e.message}") }
+                localState.update { it.copy(error = "Failed to join room: ${e.message}") }
             } finally {
-                _uiState.update { it.copy(isLoading = false) }
+                localState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -255,12 +254,12 @@ class RoomViewModel(
 
     private fun handleTakeSeat(seatNumber: Int, buyIn: ChipAmount) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            localState.update { it.copy(isLoading = true) }
             try {
                 repository.takeSeat(seatNumber, buyIn)
                 _effects.send(RoomEffect.PlaySound(SoundType.CHIP_MOVE))
             } finally {
-                _uiState.update { it.copy(isLoading = false) }
+                localState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -292,6 +291,7 @@ class RoomViewModel(
 
     private fun handleClearError() {
         repository.clearError()
+        localState.update { it.copy(error = null) }
     }
 
     /**
@@ -299,14 +299,9 @@ class RoomViewModel(
      * This allows the app to restore the session after a restart.
      */
     private fun saveSession(roomId: String, playerName: String) {
-        val roomName = uiState.value.roomInfo?.roomName
-        println("[RoomViewModel] saveSession: roomId=$roomId, playerName=$playerName, roomName=$roomName")
+        println("[RoomViewModel] saveSession: roomId=$roomId, playerName=$playerName")
         settings.putString(KEY_CURRENT_ROOM_ID, roomId)
         settings.putString(KEY_PLAYER_NAME, playerName)
-        // Room name is set when we receive RoomJoined message
-        roomName?.let {
-            settings.putString(KEY_CURRENT_ROOM_NAME, it)
-        }
         println("[RoomViewModel] saveSession: Saved session to settings")
     }
 
@@ -323,12 +318,5 @@ class RoomViewModel(
     override fun onCleared() {
         super.onCleared()
         repository.close()
-    }
-
-    companion object {
-        const val KEY_PLAYER_ID = "playerId"
-        const val KEY_PLAYER_NAME = "playerName"
-        const val KEY_CURRENT_ROOM_ID = "currentRoomId"
-        const val KEY_CURRENT_ROOM_NAME = "currentRoomName"
     }
 }

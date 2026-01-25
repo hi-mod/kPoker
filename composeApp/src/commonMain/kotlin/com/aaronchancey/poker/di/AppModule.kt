@@ -4,6 +4,7 @@ import com.aaronchancey.poker.network.PokerRepository
 import com.aaronchancey.poker.network.PokerWebSocketClient
 import com.aaronchancey.poker.network.RoomClient
 import com.aaronchancey.poker.presentation.lobby.LobbyViewModel
+import com.aaronchancey.poker.presentation.room.HandDescriptionProvider
 import com.aaronchancey.poker.presentation.room.RoomParams
 import com.aaronchancey.poker.presentation.room.RoomViewModel
 import io.ktor.client.HttpClient
@@ -43,12 +44,18 @@ val appModule = module {
     // Factory scope: each RoomViewModel gets its own WebSocket connection and state
     factory { PokerWebSocketClient(get()) }
     factory { PokerRepository(get()) }
+    factory { HandDescriptionProvider() }
 
     // Singleton: LobbyViewModel lives for app lifetime and is accessed outside Window scope
     singleOf(::LobbyViewModel)
 
     // RoomViewModel requires RoomParams passed via parametersOf()
     viewModel { (params: RoomParams) ->
-        RoomViewModel(params, get(), get())
+        RoomViewModel(
+            params = params,
+            settings = get(),
+            repository = get(),
+            handDescriptionProvider = get(),
+        )
     }
 }
