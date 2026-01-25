@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +31,7 @@ import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.presentation.lobby.Lobby
 import com.aaronchancey.poker.presentation.lobby.LobbyIntent
 import com.aaronchancey.poker.presentation.lobby.LobbyViewModel
+import com.aaronchancey.poker.presentation.room.AnimatingBet
 import com.aaronchancey.poker.presentation.room.RoomEffect
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomParams
@@ -93,6 +96,7 @@ fun App() = MaterialExpressiveTheme {
                 parameters = { parametersOf(roomParams) },
             )
             val uiState by viewModel.uiState.collectAsState()
+            var animatingBets by remember { mutableStateOf<List<AnimatingBet>>(emptyList()) }
 
             // Handle side effects
             LaunchedEffect(Unit) {
@@ -109,6 +113,10 @@ fun App() = MaterialExpressiveTheme {
                         is RoomEffect.PlaySound -> {
                             val path = SoundManager.getPath(effect.soundType)
                             soundPlayer.playSound(path)
+                        }
+
+                        is RoomEffect.AnimateChipsToPot -> {
+                            animatingBets = effect.bets
                         }
                     }
                 }
@@ -134,6 +142,10 @@ fun App() = MaterialExpressiveTheme {
                         GameScreen(
                             modifier = Modifier.fillMaxSize(),
                             uiState = uiState,
+                            animatingBets = animatingBets,
+                            onAnimationComplete = { seatNumber ->
+                                animatingBets = animatingBets.filter { it.seatNumber != seatNumber }
+                            },
                             onIntent = viewModel::onIntent,
                         )
                     } else {
@@ -173,6 +185,8 @@ fun App() = MaterialExpressiveTheme {
 private fun GameScreen(
     modifier: Modifier = Modifier,
     uiState: RoomUiState,
+    animatingBets: List<AnimatingBet>,
+    onAnimationComplete: (Int) -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) {
     Column(
@@ -189,6 +203,11 @@ private fun GameScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        RoomTable(uiState, onIntent)
+        RoomTable(
+            uiState = uiState,
+            animatingBets = animatingBets,
+            onAnimationComplete = onAnimationComplete,
+            onIntent = onIntent,
+        )
     }
 }

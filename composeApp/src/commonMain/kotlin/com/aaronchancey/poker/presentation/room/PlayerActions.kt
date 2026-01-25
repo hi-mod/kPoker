@@ -60,13 +60,13 @@ internal fun PlayerActions(
     ) {
         uiState.availableActions.validActions.forEach { actionType ->
             var betAmount: ChipAmount by remember(uiState.availableActions) {
-                mutableDoubleStateOf(
-                    if (uiState.availableActions.validActions.contains(ActionType.BET)) {
-                        uiState.availableActions.minimumBet
-                    } else {
-                        uiState.availableActions.minimumBet + uiState.availableActions.minimumRaise
-                    },
-                )
+                val desiredMinimum = if (uiState.availableActions.validActions.contains(ActionType.BET)) {
+                    uiState.availableActions.minimumBet
+                } else {
+                    uiState.availableActions.minimumBet + uiState.availableActions.minimumRaise
+                }
+                // Clamp to maximumBet to handle cases where minimum raise exceeds player's stack
+                mutableDoubleStateOf(minOf(desiredMinimum, uiState.availableActions.maximumBet))
             }
             Button(
                 onClick = actionClick(
@@ -100,7 +100,9 @@ private fun BetActionContent(
     maximumBet: ChipAmount,
     onBetAmountChange: (ChipAmount) -> Unit,
 ) = Column {
-    val rangeStart = minimumBet.toFloat()
+    // Ensure valid range - if minimum > maximum, clamp to maximum (all-in scenario)
+    val safeMinimum = minOf(minimumBet, maximumBet)
+    val rangeStart = safeMinimum.toFloat()
     val rangeEnd = maximumBet.toFloat()
     val safeDenomination = if (minDenomination > 0.0) minDenomination else 0.1
     val steps = if (rangeEnd > rangeStart) {
@@ -124,7 +126,7 @@ private fun BetActionContent(
     LaunchedEffect(textFieldState) {
         snapshotFlow { textFieldState.text.toString() }.collectLatest {
             if (sliderState.value != it.toFloatOrNull()) {
-                sliderState.value = it.toFloatOrNull() ?: minimumBet.toFloat()
+                sliderState.value = it.toFloatOrNull() ?: safeMinimum.toFloat()
                 onBetAmountChange(sliderState.value.toDouble())
             }
         }

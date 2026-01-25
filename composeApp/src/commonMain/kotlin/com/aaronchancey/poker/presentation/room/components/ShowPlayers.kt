@@ -1,5 +1,8 @@
 package com.aaronchancey.poker.presentation.room.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,6 +23,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -43,13 +52,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aaronchancey.poker.kpoker.core.Card
 import com.aaronchancey.poker.kpoker.core.DealtCard
+import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerState
+import com.aaronchancey.poker.presentation.room.AnimatingBet
 import com.aaronchancey.poker.presentation.room.PlayerActions
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 import poker.composeapp.generated.resources.Res
 import poker.composeapp.generated.resources.pokerTable
@@ -87,6 +99,8 @@ fun ShowPlayers(
     modifier: Modifier = Modifier,
     isLoading: Boolean,
     uiState: RoomUiState,
+    animatingBets: List<AnimatingBet>,
+    onAnimationComplete: (Int) -> Unit,
     onTakeSeat: (Int) -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) = Column(
@@ -113,60 +127,87 @@ fun ShowPlayers(
 
         val playerCount = uiState.gameState?.table?.seats?.size ?: 1
         val angleStep = 360.0 / playerCount
-        var currentAngle = 0.0
 
-        LayoutCenteredAt(x = maxWidth - (maxWidth / 2) - 8.dp, y = maxHeight - (maxHeight / 2) - 8.dp) {
+        LayoutCenteredAt(x = maxWidth / 2 - 8.dp, y = maxHeight / 2 - 8.dp) {
             CommunityCards(communityCards = uiState.gameState?.communityCards ?: emptyList())
         }
         WagerChips(
-            uiState.gameState?.totalPot ?: 0.0,
-            chipOffsetX = maxWidth - (maxWidth / 2) - 8.dp,
-            chipOffsetY = maxHeight - (maxHeight / 2) + 58.dp,
+            wager = uiState.gameState?.totalPot ?: 0.0,
+            chipOffsetX = maxWidth / 2 - 8.dp,
+            chipOffsetY = maxHeight / 2 + 58.dp,
+        )
+
+        // Calculate bet position for a given seat number
+        val getBetPosition: (Int) -> Pair<Dp, Dp> = remember(
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            angleStep,
+        ) {
+            { seatNumber: Int ->
+                val angle = ((seatNumber - 1) * angleStep).toRadians()
+                val chipFactor = 0.5f
+                val x = centerX + radiusX * cos(angle).toFloat() * chipFactor
+                val y = centerY + radiusY * sin(angle).toFloat() * chipFactor
+                x to y
+            }
+        }
+
+        val potCenter = (maxWidth / 2 - 8.dp) to (maxHeight / 2 + 58.dp)
+
+        // Render animating chips OUTSIDE seat loop for proper state isolation
+        AnimatingChipStacks(
+            animatingBets = animatingBets,
+            getSeatPosition = getBetPosition,
+            potCenter = potCenter,
+            onAnimationComplete = onAnimationComplete,
         )
 
         uiState.gameState?.table?.seats?.forEach { seat ->
-            val playerX = centerX + radiusX * cos(currentAngle).toFloat()
-            val playerY = centerY + radiusY * sin(currentAngle).toFloat()
+            key(seat.number) {
+                // Stable key per seat
+                val angle = ((seat.number - 1) * angleStep).toRadians()
+                val playerX = centerX + radiusX * cos(angle).toFloat()
+                val playerY = centerY + radiusY * sin(angle).toFloat()
 
-            LayoutCenteredAt(x = playerX, y = playerY) {
-                val playerState = seat.playerState
-                if (playerState == null) {
-                    Button(
-                        onClick = { onTakeSeat(seat.number) },
-                        enabled = !isLoading,
-                    ) {
-                        Text("Take Seat ${seat.number}")
+                LayoutCenteredAt(x = playerX, y = playerY) {
+                    val playerState = seat.playerState
+                    if (playerState == null) {
+                        Button(
+                            onClick = { onTakeSeat(seat.number) },
+                            enabled = !isLoading,
+                        ) {
+                            Text("Take Seat ${seat.number}")
+                        }
+                    } else {
+                        ShowPlayer(player = playerState)
                     }
-                } else {
-                    ShowPlayer(player = playerState)
+                }
+
+                val screenSize = minOf(maxWidth, maxHeight)
+                val currentBet = seat.playerState?.currentBet ?: 0.0
+
+                // Static chips for current bet (not animating)
+                if (currentBet > 0.0) {
+                    val (chipX, chipY) = getBetPosition(seat.number)
+                    WagerChips(
+                        wager = currentBet,
+                        chipOffsetX = chipX,
+                        chipOffsetY = chipY,
+                    )
+                }
+
+                if (seat.number == uiState.gameState.dealerSeatNumber) {
+                    val dealerButtonFactor = 0.72f
+                    val dealerButtonX = centerX + radiusX * cos(angle).toFloat() * dealerButtonFactor
+                    val dealerButtonY = centerY + radiusY * sin(angle).toFloat() * dealerButtonFactor
+                    val size = screenSize / 18
+                    LayoutCenteredAt(x = dealerButtonX, y = dealerButtonY) {
+                        DealerButton(size = size)
+                    }
                 }
             }
-
-            val screenSize = minOf(maxWidth, maxHeight)
-            val currentBet = seat.playerState?.currentBet ?: 0.0
-            if (currentBet > 0.0) {
-                val chipButtonFactorX = 0.5f
-                val chipButtonFactorY = 0.5f
-                val chipButtonX = centerX + radiusX * cos(currentAngle).toFloat() * chipButtonFactorX
-                val chipButtonY = centerY + radiusY * sin(currentAngle).toFloat() * chipButtonFactorY
-                WagerChips(
-                    wager = currentBet,
-                    chipOffsetX = chipButtonX,
-                    chipOffsetY = chipButtonY,
-                )
-            }
-
-            if (seat.number == uiState.gameState.dealerSeatNumber) {
-                val dealerButtonFactorX = 0.72f // Adjust this value to move the dealer button
-                val dealerButtonFactorY = 0.72f // Adjust this value to move the dealer button
-                val dealerButtonX = centerX + radiusX * cos(currentAngle).toFloat() * dealerButtonFactorX
-                val dealerButtonY = centerY + radiusY * sin(currentAngle).toFloat() * dealerButtonFactorY
-                val size = screenSize / 18 // Adjust this value to change the size of the dealer button
-                LayoutCenteredAt(x = dealerButtonX, y = dealerButtonY) {
-                    DealerButton(size = size)
-                }
-            }
-            currentAngle += angleStep.toRadians()
         }
     }
     Row(
@@ -252,27 +293,114 @@ private val colors = mapOf(
     5000.0 to Color.Brown,
 )
 
+/** Pre-sorted chip values - computed once at class load, not during composition. */
+private val sortedChipValues = colors.keys.sortedDescending()
+
+/**
+ * Calculates the optimal chip breakdown for a given wager amount.
+ * Uses greedy algorithm to minimize total chip count.
+ *
+ * @param wager The total wager amount to break down
+ * @return List of (chipValue, count) pairs representing chip stacks
+ */
+private fun buildChipStacks(wager: ChipAmount): List<Pair<Double, Int>> {
+    val stacks = mutableListOf<Pair<Double, Int>>()
+    var remaining = wager
+    for (chipValue in sortedChipValues) {
+        val count = (remaining / chipValue).toInt()
+        if (count > 0) {
+            stacks.add(chipValue to count)
+            remaining -= chipValue * count
+        }
+    }
+    return stacks
+}
+
+/**
+ * Renders poker chips stacked by denomination for a given wager amount.
+ * Uses memoization to only recalculate chip breakdown when wager changes.
+ *
+ * @param modifier Modifier for the container Box
+ * @param wager The total wager amount to display as chips
+ * @param chipOffsetX Horizontal offset for the chip stack group center
+ * @param chipOffsetY Vertical offset for the chip stack group center
+ */
 @Composable
 private fun WagerChips(
-    wager: Double,
+    modifier: Modifier = Modifier,
+    wager: ChipAmount,
     chipOffsetX: Dp = 0.dp,
     chipOffsetY: Dp = 0.dp,
 ) {
-    val chipValues = colors.keys.sortedDescending()
+    // Memoize chip breakdown - only recalculate when wager changes
+    val chipStacks = remember(wager) { buildChipStacks(wager) }
 
-    chipValues.fold(wager to 0.dp) { (remainingWager, offset), chipValue ->
-        var newWager = remainingWager
-        var newOffset = offset
-
-        while (newWager >= chipValue) {
-            LayoutCenteredAt(x = chipOffsetX, y = chipOffsetY + newOffset) {
-                PokerChip(value = chipValue)
+    Box(modifier = modifier) {
+        chipStacks.forEachIndexed { stackIndex, (chipValue, count) ->
+            key(chipValue) {
+                // Stable key per denomination
+                val horizontalOffset = 34.dp * stackIndex
+                repeat(count) { chipIndex ->
+                    val verticalOffset = 4.dp * chipIndex
+                    Box(
+                        modifier = Modifier.offset {
+                            IntOffset(
+                                x = (chipOffsetX + horizontalOffset - 17.5.dp).roundToPx(),
+                                y = (chipOffsetY + verticalOffset - 17.5.dp).roundToPx(),
+                            )
+                        },
+                    ) {
+                        PokerChip(value = chipValue)
+                    }
+                }
             }
-            newWager -= chipValue
-            newOffset += 10.dp // Adjust this value to change the stacking offset
         }
+    }
+}
 
-        newWager to newOffset
+/**
+ * Renders all animating bet chips moving from player positions to pot center.
+ * Animation state is managed with proper key() scoping to prevent state corruption.
+ *
+ * @param animatingBets List of bets currently animating to the pot
+ * @param getSeatPosition Function to get (x, y) position for a seat number
+ * @param potCenter The (x, y) center coordinates of the pot
+ * @param onAnimationComplete Callback when a seat's animation finishes
+ */
+@Composable
+private fun AnimatingChipStacks(
+    animatingBets: List<AnimatingBet>,
+    getSeatPosition: (Int) -> Pair<Dp, Dp>,
+    potCenter: Pair<Dp, Dp>,
+    onAnimationComplete: (Int) -> Unit,
+) {
+    animatingBets.forEach { animatingBet ->
+        key(animatingBet.seatNumber, animatingBet.amount) {
+            val (startX, startY) = getSeatPosition(animatingBet.seatNumber)
+            val (potX, potY) = potCenter
+
+            var animationStarted by remember { mutableStateOf(false) }
+
+            LaunchedEffect(Unit) {
+                animationStarted = true
+                delay(400) // Animation duration
+                onAnimationComplete(animatingBet.seatNumber)
+            }
+
+            val progress by animateFloatAsState(
+                targetValue = if (animationStarted) 1f else 0f,
+                animationSpec = tween(400, easing = FastOutSlowInEasing),
+            )
+
+            val currentX = startX + (potX - startX) * progress
+            val currentY = startY + (potY - startY) * progress
+
+            WagerChips(
+                wager = animatingBet.amount,
+                chipOffsetX = currentX,
+                chipOffsetY = currentY,
+            )
+        }
     }
 }
 

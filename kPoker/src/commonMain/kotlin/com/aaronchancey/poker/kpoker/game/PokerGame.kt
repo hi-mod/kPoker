@@ -455,7 +455,7 @@ abstract class PokerGame(
     }
 
     /**
-     * Deals community cards, burns one card first, and emits the dealt cards event.
+     * Deals community cards, burns one card first, and emits the dealt cards' event.
      */
     private fun dealCommunityCards(count: Int) {
         val result = cardDealer.dealCommunityCards(state, count = count, burnFirst = true)

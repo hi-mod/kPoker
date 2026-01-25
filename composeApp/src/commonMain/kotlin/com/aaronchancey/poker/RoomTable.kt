@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.aaronchancey.poker.presentation.room.AnimatingBet
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
 import com.aaronchancey.poker.presentation.room.components.ShowPlayers
@@ -17,6 +18,8 @@ import com.aaronchancey.poker.presentation.room.components.ShowPlayers
 @Composable
 fun RoomTable(
     uiState: RoomUiState,
+    animatingBets: List<AnimatingBet>,
+    onAnimationComplete: (Int) -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) {
     uiState.gameState?.let { state ->
@@ -27,6 +30,8 @@ fun RoomTable(
         ShowPlayers(
             isLoading = uiState.isLoading,
             uiState = uiState,
+            animatingBets = animatingBets,
+            onAnimationComplete = onAnimationComplete,
             onTakeSeat = { onIntent(RoomIntent.TakeSeat(it, 100.0)) },
             onIntent = onIntent,
         )
@@ -39,7 +44,7 @@ fun RoomTable(
         ) {
             Text("Leave Seat")
         }
-        Spacer(modifier = Modifier.Companion.width(8.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Button(
             onClick = { onIntent(RoomIntent.Disconnect) },
             enabled = !uiState.isLoading,

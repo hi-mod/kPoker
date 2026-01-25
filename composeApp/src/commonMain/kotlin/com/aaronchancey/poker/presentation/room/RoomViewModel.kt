@@ -50,6 +50,9 @@ class RoomViewModel(
     /** Guards against multiple connection observers. */
     private var observationStarted = false
 
+    /** Tracks previous bets for chip animation detection. */
+    private var previousBets: Map<Int, Double> = emptyMap()
+
     private val _uiState = MutableStateFlow(RoomUiState())
     val uiState: StateFlow<RoomUiState> = combine(
         _uiState, // 0
@@ -151,12 +154,45 @@ class RoomViewModel(
         if (observationStarted) return
         observationStarted = true
         println("[RoomViewModel] startConnectionObservation: Starting for roomId=${params.roomId}")
+        startChipAnimationObservation()
         viewModelScope.launch {
             repository.connectionState.collect { state ->
                 println("[RoomViewModel] connectionState changed: $state")
                 if (state == ConnectionState.RECONNECTED) {
                     handleAutoRejoin()
                 }
+            }
+        }
+    }
+
+    /**
+     * Observes game state changes to detect when bets should animate to the pot.
+     * Emits [RoomEffect.AnimateChipsToPot] when bets clear (phase transition).
+     */
+    private fun startChipAnimationObservation() {
+        viewModelScope.launch {
+            repository.gameState.collect { gameState ->
+                val currentBets = gameState?.table?.seats
+                    ?.mapNotNull { seat ->
+                        val bet = seat.playerState?.currentBet ?: 0.0
+                        if (bet > 0.0) seat.number to bet else null
+                    }
+                    ?.toMap() ?: emptyMap()
+
+                // Find bets that existed before but are now zero (cleared)
+                val clearedBets = previousBets.filter { (seat, _) ->
+                    currentBets[seat] == null || currentBets[seat] == 0.0
+                }
+
+                if (clearedBets.isNotEmpty()) {
+                    _effects.send(
+                        RoomEffect.AnimateChipsToPot(
+                            clearedBets.map { AnimatingBet(it.key, it.value) },
+                        ),
+                    )
+                }
+
+                previousBets = currentBets
             }
         }
     }

@@ -18,10 +18,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.network.ConnectionState
+import com.aaronchancey.poker.presentation.room.AnimatingBet
 import com.aaronchancey.poker.presentation.room.RoomEffect
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
@@ -55,6 +60,8 @@ fun RoomScreen(
 ) = MaterialExpressiveTheme {
     // Handle side effects
     val soundPlayer: SoundPlayer = koinInject()
+    var animatingBets by remember { mutableStateOf<List<AnimatingBet>>(emptyList()) }
+
     LaunchedEffect(Unit) {
         effects.collect { effect ->
             when (effect) {
@@ -69,6 +76,10 @@ fun RoomScreen(
                 is RoomEffect.PlaySound -> {
                     val path = SoundManager.getPath(effect.soundType)
                     soundPlayer.playSound(path)
+                }
+
+                is RoomEffect.AnimateChipsToPot -> {
+                    animatingBets = effect.bets
                 }
             }
         }
@@ -103,6 +114,10 @@ fun RoomScreen(
                     RoomGameScreen(
                         modifier = Modifier.fillMaxSize(),
                         uiState = uiState,
+                        animatingBets = animatingBets,
+                        onAnimationComplete = { seatNumber ->
+                            animatingBets = animatingBets.filter { it.seatNumber != seatNumber }
+                        },
                         onIntent = onIntent,
                     )
                 } else {
@@ -141,6 +156,8 @@ fun RoomScreen(
 private fun RoomGameScreen(
     modifier: Modifier = Modifier,
     uiState: RoomUiState,
+    animatingBets: List<AnimatingBet>,
+    onAnimationComplete: (Int) -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) {
     Column(
@@ -156,6 +173,11 @@ private fun RoomGameScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        RoomTable(uiState, onIntent)
+        RoomTable(
+            uiState = uiState,
+            animatingBets = animatingBets,
+            onAnimationComplete = onAnimationComplete,
+            onIntent = onIntent,
+        )
     }
 }
