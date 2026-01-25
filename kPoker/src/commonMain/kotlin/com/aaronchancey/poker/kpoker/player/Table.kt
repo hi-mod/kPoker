@@ -72,6 +72,16 @@ data class Table(
         },
     )
 
+    /**
+     * Applies a transformation to all player states at the table.
+     * Empty seats are unchanged.
+     */
+    fun mapPlayerStates(transform: (PlayerState) -> PlayerState): Table = copy(
+        seats = seats.map { seat ->
+            seat.playerState?.let { seat.updatePlayerState(transform) } ?: seat
+        },
+    )
+
     fun getActivePlayers(): List<PlayerState> = occupiedSeats.mapNotNull { it.playerState }.filter { it.isActive }
 
     fun getPlayersInHand(): List<PlayerState> = occupiedSeats.mapNotNull { it.playerState }

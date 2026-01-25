@@ -97,6 +97,9 @@ abstract class PokerGame(
         require(state.table.playerCount >= 2) { "Need at least 2 players" }
         require(!state.isHandInProgress) { "Hand already in progress" }
 
+        // Reset all player states for the new hand (clears showdownStatus, hole cards, etc.)
+        state = state.withTable(state.table.mapPlayerStates { it.resetForNewHand() })
+
         state = state.copy(
             phase = GamePhase.STARTING,
             deck = Deck.standard(),
@@ -240,15 +243,26 @@ abstract class PokerGame(
         endBettingRound()
     }
 
-    open fun processAction(action: Action): GameState {
+    /**
+     * Validates that the given player exists and is the current actor.
+     * @throws IllegalArgumentException if player not found
+     * @throws IllegalStateException if not player's turn
+     */
+    private fun requireCurrentActor(playerId: PlayerId): PlayerState {
         val playerState = state.table.seats
             .mapNotNull { it.playerState }
-            .find { it.player.id == action.playerId }
+            .find { it.player.id == playerId }
             ?: throw IllegalArgumentException("Player not found")
 
-        require(state.currentActor?.player?.id == action.playerId) {
+        require(state.currentActor?.player?.id == playerId) {
             "Not ${playerState.player.name}'s turn"
         }
+
+        return playerState
+    }
+
+    open fun processAction(action: Action): GameState {
+        val playerState = requireCurrentActor(action.playerId)
 
         val round = state.bettingRound
             ?: throw IllegalStateException("No betting round in progress")
@@ -390,14 +404,7 @@ abstract class PokerGame(
         val lastAggressor = state.bettingRound?.lastAggressorId
 
         // Reset player bets for next round
-        var table = state.table
-        for (seat in table.occupiedSeats) {
-            table = table.updateSeat(seat.number) { s ->
-                s.updatePlayerState { it.resetForNewRound() }
-            }
-        }
-
-        state = state.withTable(table)
+        state = state.withTable(state.table.mapPlayerStates { it.resetForNewRound() })
             .withPotManager(newPotManager)
             .withBettingRound(null)
             .withCurrentActor(null)
@@ -447,23 +454,20 @@ abstract class PokerGame(
         emit(GameEvent.PhaseChanged(state.phase))
     }
 
-    protected open fun dealFlop() {
-        val result = cardDealer.dealCommunityCards(state, count = 3, burnFirst = true)
+    /**
+     * Deals community cards, burns one card first, and emits the dealt cards event.
+     */
+    private fun dealCommunityCards(count: Int) {
+        val result = cardDealer.dealCommunityCards(state, count = count, burnFirst = true)
         state = result.updatedState
         emit(GameEvent.CommunityCardsDealt(result.cards))
     }
 
-    protected open fun dealTurn() {
-        val result = cardDealer.dealCommunityCards(state, count = 1, burnFirst = true)
-        state = result.updatedState
-        emit(GameEvent.CommunityCardsDealt(result.cards))
-    }
+    protected open fun dealFlop() = dealCommunityCards(count = 3)
 
-    protected open fun dealRiver() {
-        val result = cardDealer.dealCommunityCards(state, count = 1, burnFirst = true)
-        state = result.updatedState
-        emit(GameEvent.CommunityCardsDealt(result.cards))
-    }
+    protected open fun dealTurn() = dealCommunityCards(count = 1)
+
+    protected open fun dealRiver() = dealCommunityCards(count = 1)
 
     protected open fun finishHand() {
         val playersInHand = state.table.getPlayersInHand()
@@ -502,28 +506,9 @@ abstract class PokerGame(
      */
     private fun awardPotToLastPlayer() {
         state = state.withPhase(GamePhase.SHOWDOWN)
-
-        val lastPlayer = state.table.getPlayersInHand().firstOrNull()
-        if (lastPlayer != null) {
-            val amount = state.totalPot
-            val winners = listOf(
-                Winner(
-                    playerId = lastPlayer.player.id,
-                    amount = amount,
-                    handDescription = "Last player standing",
-                ),
-            )
-            state = state.withWinners(winners)
-
-            var table = state.table
-            table = table.updatePlayerState(lastPlayer.player.id) {
-                it.withChips(it.chips + amount)
-            }
-            state = state.withTable(table)
+        state.table.getPlayersInHand().firstOrNull()?.let { lastPlayer ->
+            awardPotToWinner(lastPlayer, "Last player standing")
         }
-
-        state = state.withPhase(GamePhase.HAND_COMPLETE)
-        emit(GameEvent.HandComplete(state.winners))
     }
 
     /**
@@ -551,12 +536,63 @@ abstract class PokerGame(
     }
 
     /**
+     * Returns seats with players who haven't yet acted in showdown (PENDING status).
+     */
+    private fun getPendingShowdownSeats() = state.table.occupiedSeats
+        .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
+
+    /**
+     * Returns seats with players who have shown their cards in showdown.
+     */
+    private fun getShownShowdownSeats() = state.table.occupiedSeats
+        .filter { it.playerState?.showdownStatus == ShowdownStatus.SHOWN }
+
+    /**
+     * Returns true if exactly one player remains pending and no one has shown.
+     * This player has won without needing to reveal cards.
+     */
+    private fun isLastPlayerStanding(): Boolean = getPendingShowdownSeats().size == 1 && getShownShowdownSeats().isEmpty()
+
+    /**
+     * Advances the turn to the next showdown actor and emits TurnChanged event.
+     */
+    private fun advanceToNextShowdownActor() {
+        val nextSeat = getNextShowdownActorSeat()
+        state = state.withCurrentActor(nextSeat)
+        nextSeat?.let { seat ->
+            state.table.getSeat(seat)?.playerState?.let { actor ->
+                emit(GameEvent.TurnChanged(actor.player.id))
+            }
+        }
+    }
+
+    /**
+     * Awards the entire pot to a single winner and completes the hand.
+     */
+    private fun awardPotToWinner(winner: PlayerState, handDescription: String) {
+        val amount = state.totalPot
+        val winners = listOf(
+            Winner(
+                playerId = winner.player.id,
+                amount = amount,
+                handDescription = handDescription,
+            ),
+        )
+        state = state.withWinners(winners)
+
+        val table = state.table.updatePlayerState(winner.player.id) {
+            it.withChips(it.chips + amount)
+        }
+        state = state.withTable(table).withPhase(GamePhase.HAND_COMPLETE)
+        emit(GameEvent.HandComplete(winners))
+    }
+
+    /**
      * Determines the next showdown actor seat after the current one.
      * Cycles clockwise through players who still have PENDING showdown status.
      */
     protected fun getNextShowdownActorSeat(): Int? {
-        val pendingPlayers = state.table.occupiedSeats
-            .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
+        val pendingPlayers = getPendingShowdownSeats()
             .map { it.number }
             .sorted()
 
@@ -586,25 +622,14 @@ abstract class PokerGame(
             "Invalid showdown action"
         }
 
-        val playerState = state.table.seats
-            .mapNotNull { it.playerState }
-            .find { it.player.id == action.playerId }
-            ?: throw IllegalArgumentException("Player not found")
-
-        require(state.currentActor?.player?.id == action.playerId) {
-            "Not ${playerState.player.name}'s turn"
-        }
+        val playerState = requireCurrentActor(action.playerId)
 
         require(playerState.showdownStatus == ShowdownStatus.PENDING) {
             "Player has already acted in showdown"
         }
 
         // Check if this player is the last one standing (all others mucked)
-        val pendingPlayers = state.table.occupiedSeats
-            .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
-        val shownPlayers = state.table.occupiedSeats
-            .filter { it.playerState?.showdownStatus == ShowdownStatus.SHOWN }
-        val isLastStanding = pendingPlayers.size == 1 && shownPlayers.isEmpty()
+        val isLastStanding = isLastPlayerStanding()
 
         // Validate action is allowed
         when (action) {
@@ -642,40 +667,12 @@ abstract class PokerGame(
         emit(GameEvent.ActionTaken(action))
 
         // Re-check after applying action
-        val remainingPending = state.table.occupiedSeats
-            .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
-        val nowShown = state.table.occupiedSeats
-            .filter { it.playerState?.showdownStatus == ShowdownStatus.SHOWN }
-
-        when {
-            remainingPending.isEmpty() -> {
-                // All players have acted - evaluate and complete
-                completeShowdown()
-            }
-
-            remainingPending.size == 1 && nowShown.isEmpty() -> {
-                // Only one player left and no one showed - give them choice to show or collect
-                val nextSeat = getNextShowdownActorSeat()
-                state = state.withCurrentActor(nextSeat)
-                if (nextSeat != null) {
-                    val nextActor = state.table.getSeat(nextSeat)?.playerState
-                    if (nextActor != null) {
-                        emit(GameEvent.TurnChanged(nextActor.player.id))
-                    }
-                }
-            }
-
-            else -> {
-                // Move to next player
-                val nextSeat = getNextShowdownActorSeat()
-                state = state.withCurrentActor(nextSeat)
-                if (nextSeat != null) {
-                    val nextActor = state.table.getSeat(nextSeat)?.playerState
-                    if (nextActor != null) {
-                        emit(GameEvent.TurnChanged(nextActor.player.id))
-                    }
-                }
-            }
+        if (getPendingShowdownSeats().isEmpty()) {
+            // All players have acted - evaluate and complete
+            completeShowdown()
+        } else {
+            // Move to next player (or give last standing player choice to show/collect)
+            advanceToNextShowdownActor()
         }
 
         return state
@@ -685,25 +682,7 @@ abstract class PokerGame(
      * Awards pot to last remaining player in showdown when all others mucked.
      * Player wins without being required to show cards.
      */
-    private fun awardPotToLastShowdownPlayer(winner: PlayerState) {
-        val amount = state.totalPot
-        val winners = listOf(
-            Winner(
-                playerId = winner.player.id,
-                amount = amount,
-                handDescription = "Others mucked",
-            ),
-        )
-        state = state.withWinners(winners)
-
-        var table = state.table
-        table = table.updatePlayerState(winner.player.id) {
-            it.withChips(it.chips + amount)
-        }
-
-        state = state.withTable(table).withPhase(GamePhase.HAND_COMPLETE)
-        emit(GameEvent.HandComplete(winners))
-    }
+    private fun awardPotToLastShowdownPlayer(winner: PlayerState) = awardPotToWinner(winner, "Others mucked")
 
     /**
      * Evaluates hands and awards pots after all showdown actions complete.
@@ -731,13 +710,7 @@ abstract class PokerGame(
         if (state.phase != GamePhase.SHOWDOWN) return null
         val actor = state.currentActor ?: return null
 
-        // Check if player is last standing (all others mucked, no one showed)
-        val pendingPlayers = state.table.occupiedSeats
-            .filter { it.playerState?.showdownStatus == ShowdownStatus.PENDING }
-        val shownPlayers = state.table.occupiedSeats
-            .filter { it.playerState?.showdownStatus == ShowdownStatus.SHOWN }
-        val isLastStanding = pendingPlayers.size == 1 && shownPlayers.isEmpty()
-
+        val isLastStanding = isLastPlayerStanding()
         val mustShow = state.showdownAggressorId == actor.player.id
         val validActions = when {
             // Last player standing: can show (optional reveal) or collect (take pot without showing)
