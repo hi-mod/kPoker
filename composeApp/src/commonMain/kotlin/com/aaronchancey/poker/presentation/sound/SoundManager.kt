@@ -23,6 +23,8 @@ object SoundManager {
      * @return The resource path string (e.g., "files/chips-stack-1.mp3").
      */
     fun getPath(soundType: SoundType): String = when (soundType) {
+        SoundType.CHECK -> "files/knock.mp3"
+
         SoundType.CHIP_MOVE -> {
             val variant = Random.nextInt(1, CHIP_SOUND_VARIANTS + 1)
             "files/chips-stack-$variant.mp3"

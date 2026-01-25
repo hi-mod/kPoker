@@ -235,7 +235,13 @@ class RoomViewModel(
 
     private fun handlePerformAction(action: Action) = viewModelScope.launch {
         repository.performAction(action)
-        _effects.send(RoomEffect.PlaySound(SoundType.CHIP_MOVE))
+        when (action) {
+            Action.Check -> SoundType.CHECK
+            Action.Fold -> null
+            else -> SoundType.CHIP_MOVE
+        }?.let { soundType ->
+            _effects.send(RoomEffect.PlaySound(soundType))
+        }
     }
 
     private fun handleSendChat(message: String) = viewModelScope.launch {

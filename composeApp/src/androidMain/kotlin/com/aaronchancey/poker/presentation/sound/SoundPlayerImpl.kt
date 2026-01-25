@@ -2,7 +2,7 @@ package com.aaronchancey.poker.presentation.sound
 
 import android.content.Context
 import android.media.MediaPlayer
-import android.net.Uri
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,7 +22,7 @@ class SoundPlayerImpl(private val context: Context) : SoundPlayer {
     override fun playSound(path: String) {
         scope.launch {
             try {
-                val uri = Uri.parse(Res.getUri(path))
+                val uri = Res.getUri(path).toUri()
                 MediaPlayer().apply {
                     setDataSource(context, uri)
                     setOnCompletionListener { mp -> mp.release() }
