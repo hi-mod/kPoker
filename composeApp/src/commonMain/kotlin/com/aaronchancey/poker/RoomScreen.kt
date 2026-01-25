@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,7 +25,6 @@ import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.presentation.room.RoomEffect
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
-import com.aaronchancey.poker.presentation.room.components.ShowPlayers
 import com.aaronchancey.poker.presentation.sound.SoundManager
 import com.aaronchancey.poker.presentation.sound.SoundPlayer
 import kotlinx.coroutines.flow.Flow
@@ -150,42 +148,14 @@ private fun RoomGameScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         uiState.roomInfo?.let { room ->
-            Text("Room: ${room.roomName}", style = MaterialTheme.typography.headlineSmall)
-            Text("Hand No: ${uiState.gameState?.handNumber ?: "N/A"}")
-            Text("Blinds: ${room.smallBlind}/${room.bigBlind}")
-            Text("Players: ${room.playerCount}/${room.maxPlayers}")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Hand No: ${uiState.gameState?.handNumber ?: "N/A"}")
+                Text("Blinds: ${room.smallBlind}/${room.bigBlind}")
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        uiState.gameState?.let { state ->
-            Text("Phase: ${state.phase}")
-            Text("Pot: ${state.totalPot}")
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ShowPlayers(
-                isLoading = uiState.isLoading,
-                uiState = uiState,
-                onTakeSeat = { onIntent(RoomIntent.TakeSeat(it, 100.0)) },
-                onIntent = onIntent,
-            )
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = { onIntent(RoomIntent.LeaveSeat) },
-                enabled = !uiState.isLoading,
-            ) {
-                Text("Leave Seat")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-                onClick = { onIntent(RoomIntent.Disconnect) },
-                enabled = !uiState.isLoading,
-            ) {
-                Text("Disconnect")
-            }
-        }
+        RoomTable(uiState, onIntent)
     }
 }

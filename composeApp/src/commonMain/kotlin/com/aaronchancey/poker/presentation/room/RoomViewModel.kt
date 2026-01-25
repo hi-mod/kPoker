@@ -236,8 +236,8 @@ class RoomViewModel(
     private fun handlePerformAction(action: Action) = viewModelScope.launch {
         repository.performAction(action)
         when (action) {
-            Action.Check -> SoundType.CHECK
-            Action.Fold -> null
+            is Action.Check -> SoundType.CHECK
+            is Action.Fold -> null
             else -> SoundType.CHIP_MOVE
         }?.let { soundType ->
             _effects.send(RoomEffect.PlaySound(soundType))

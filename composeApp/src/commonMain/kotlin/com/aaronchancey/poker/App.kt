@@ -189,34 +189,6 @@ private fun GameScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        uiState.gameState?.let { state ->
-            Text("Phase: ${state.phase}")
-            Text("Pot: ${state.totalPot}")
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            ShowPlayers(
-                isLoading = uiState.isLoading,
-                uiState = uiState,
-                onTakeSeat = { onIntent(RoomIntent.TakeSeat(it, 100.0)) },
-                onIntent = onIntent,
-            )
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = { onIntent(RoomIntent.LeaveSeat) },
-                enabled = !uiState.isLoading,
-            ) {
-                Text("Leave Seat")
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-                onClick = { onIntent(RoomIntent.Disconnect) },
-                enabled = !uiState.isLoading,
-            ) {
-                Text("Disconnect")
-            }
-        }
+        RoomTable(uiState, onIntent)
     }
 }
