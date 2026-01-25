@@ -35,6 +35,9 @@ import com.aaronchancey.poker.presentation.room.RoomParams
 import com.aaronchancey.poker.presentation.room.RoomUiState
 import com.aaronchancey.poker.presentation.room.RoomViewModel
 import com.aaronchancey.poker.presentation.room.components.ShowPlayers
+import com.aaronchancey.poker.presentation.sound.SoundManager
+import com.aaronchancey.poker.presentation.sound.SoundPlayer
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.parameter.parametersOf
@@ -56,6 +59,8 @@ fun App() = MaterialExpressiveTheme {
     var currentRoomParams: RoomParams? by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(null)
     }
+
+    val soundPlayer: SoundPlayer = koinInject()
 
     Column(
         modifier = Modifier
@@ -102,7 +107,8 @@ fun App() = MaterialExpressiveTheme {
                         }
 
                         is RoomEffect.PlaySound -> {
-                            // Sound playback
+                            val path = SoundManager.getPath(effect.soundType)
+                            soundPlayer.playSound(path)
                         }
                     }
                 }

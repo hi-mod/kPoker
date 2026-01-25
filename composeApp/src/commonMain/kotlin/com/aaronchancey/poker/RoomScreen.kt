@@ -27,7 +27,10 @@ import com.aaronchancey.poker.presentation.room.RoomEffect
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
 import com.aaronchancey.poker.presentation.room.components.ShowPlayers
+import com.aaronchancey.poker.presentation.sound.SoundManager
+import com.aaronchancey.poker.presentation.sound.SoundPlayer
 import kotlinx.coroutines.flow.Flow
+import org.koin.compose.koinInject
 
 /**
  * Standalone room composable for the multi-window architecture.
@@ -53,6 +56,7 @@ fun RoomScreen(
     onIntent: (RoomIntent) -> Unit,
 ) = MaterialExpressiveTheme {
     // Handle side effects
+    val soundPlayer: SoundPlayer = koinInject()
     LaunchedEffect(Unit) {
         effects.collect { effect ->
             when (effect) {
@@ -65,7 +69,8 @@ fun RoomScreen(
                 }
 
                 is RoomEffect.PlaySound -> {
-                    // Sound playback
+                    val path = SoundManager.getPath(effect.soundType)
+                    soundPlayer.playSound(path)
                 }
             }
         }

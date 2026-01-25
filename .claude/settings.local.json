@@ -3,7 +3,8 @@
     "allow": [
       "Bash(./gradlew:*)",
       "Bash(find:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(gh api:*)"
     ]
   },
   "outputStyle": "Learning"

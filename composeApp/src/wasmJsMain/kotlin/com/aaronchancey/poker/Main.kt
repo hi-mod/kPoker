@@ -14,13 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.ComposeViewport
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aaronchancey.poker.di.appModule
+import com.aaronchancey.poker.di.wasmModule
 import com.aaronchancey.poker.presentation.lobby.LobbyIntent
 import com.aaronchancey.poker.presentation.lobby.LobbyViewModel
 import com.aaronchancey.poker.presentation.room.RoomParams
 import com.aaronchancey.poker.presentation.room.RoomViewModel
 import com.aaronchancey.poker.window.RoomWindowRequest
-import com.russhwolf.settings.Settings
-import com.russhwolf.settings.StorageSettings
 import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -28,7 +27,6 @@ import org.koin.compose.KoinApplication
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.koinConfiguration
-import org.koin.dsl.module
 
 /**
  * Web entry point with URL-based routing.
@@ -47,7 +45,6 @@ fun main() {
     // Initialize JS popup tracking
     initPopupTracking()
 
-    val settings = StorageSettings()
     val urlParams = parseUrlParams()
 
     // Diagnostic logging: URL params
@@ -58,12 +55,7 @@ fun main() {
         KoinApplication(
             configuration = koinConfiguration(
                 declaration = {
-                    modules(
-                        appModule,
-                        module {
-                            single<Settings> { settings }
-                        },
-                    )
+                    modules(appModule, wasmModule)
                 },
             ),
             content = {

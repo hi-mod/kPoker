@@ -17,20 +17,17 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aaronchancey.poker.di.appModule
+import com.aaronchancey.poker.di.jvmModule
 import com.aaronchancey.poker.presentation.lobby.LobbyIntent
 import com.aaronchancey.poker.presentation.lobby.LobbyViewModel
 import com.aaronchancey.poker.presentation.room.RoomParams
 import com.aaronchancey.poker.presentation.room.RoomViewModel
 import com.aaronchancey.poker.window.RoomWindowRequest
-import com.russhwolf.settings.PreferencesSettings
-import com.russhwolf.settings.Settings
-import java.util.prefs.Preferences
 import org.koin.compose.KoinApplication
 import org.koin.compose.getKoin
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.koinConfiguration
-import org.koin.dsl.module
 
 /**
  * Desktop entry point with multi-window architecture.
@@ -41,18 +38,10 @@ import org.koin.dsl.module
  */
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() = application {
-    val preferences = Preferences.userRoot().node("com.aaronchancey.poker")
-    val settings = PreferencesSettings(preferences)
-
     KoinApplication(
         configuration = koinConfiguration(
             declaration = {
-                modules(
-                    appModule,
-                    module {
-                        single<Settings> { settings }
-                    },
-                )
+                modules(appModule, jvmModule)
             },
         ),
         content = {

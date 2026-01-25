@@ -2,17 +2,19 @@ package com.aaronchancey.poker
 
 import androidx.compose.ui.window.ComposeUIViewController
 import com.aaronchancey.poker.di.appModule
-import com.russhwolf.settings.NSUserDefaultsSettings
-import com.russhwolf.settings.Settings
+import com.aaronchancey.poker.di.iosModule
 import org.koin.compose.KoinApplication
-import org.koin.dsl.module
-import platform.Foundation.NSUserDefaults
+import org.koin.dsl.koinConfiguration
 
 fun mainViewController() = ComposeUIViewController {
-    val settings = NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults)
-    KoinApplication(application = {
-        modules(appModule, module { single<Settings> { settings } })
-    }) {
-        App()
-    }
+    KoinApplication(
+        configuration = koinConfiguration(
+            declaration = {
+                modules(appModule, iosModule)
+            },
+        ),
+        content = {
+            App()
+        },
+    )
 }
