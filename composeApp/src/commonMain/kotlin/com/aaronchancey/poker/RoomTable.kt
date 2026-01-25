@@ -20,7 +20,6 @@ fun RoomTable(
     onIntent: (RoomIntent) -> Unit,
 ) {
     uiState.gameState?.let { state ->
-        Text("Phase: ${state.phase}")
         Text("Pot: ${state.totalPot}")
 
         Spacer(modifier = Modifier.Companion.height(16.dp))

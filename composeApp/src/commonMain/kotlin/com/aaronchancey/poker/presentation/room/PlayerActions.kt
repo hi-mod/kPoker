@@ -59,7 +59,7 @@ internal fun PlayerActions(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         uiState.availableActions.validActions.forEach { actionType ->
-            var betAmount: ChipAmount by remember {
+            var betAmount: ChipAmount by remember(uiState.availableActions) {
                 mutableDoubleStateOf(
                     if (uiState.availableActions.validActions.contains(ActionType.BET)) {
                         uiState.availableActions.minimumBet

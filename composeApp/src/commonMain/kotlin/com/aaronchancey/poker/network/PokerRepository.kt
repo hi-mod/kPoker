@@ -74,6 +74,9 @@ class PokerRepository(
                 if (message.event is GameEvent.HandComplete) {
                     _availableActions.value = null
                 }
+                if (message.event is GameEvent.HandStarted) {
+                    _showDown.value = null
+                }
             }
 
             is ServerMessage.ActionRequired -> {

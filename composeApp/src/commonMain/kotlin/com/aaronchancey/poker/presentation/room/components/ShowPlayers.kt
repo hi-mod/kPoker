@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.visible
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -120,6 +118,11 @@ fun ShowPlayers(
         LayoutCenteredAt(x = maxWidth - (maxWidth / 2) - 8.dp, y = maxHeight - (maxHeight / 2) - 8.dp) {
             CommunityCards(communityCards = uiState.gameState?.communityCards ?: emptyList())
         }
+        WagerChips(
+            uiState.gameState?.totalPot ?: 0.0,
+            chipOffsetX = maxWidth - (maxWidth / 2) - 8.dp,
+            chipOffsetY = maxHeight - (maxHeight / 2) + 58.dp,
+        )
 
         uiState.gameState?.table?.seats?.forEach { seat ->
             val playerX = centerX + radiusX * cos(currentAngle).toFloat()
