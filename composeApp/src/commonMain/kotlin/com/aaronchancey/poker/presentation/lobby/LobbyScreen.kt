@@ -1,4 +1,4 @@
-package com.aaronchancey.poker
+package com.aaronchancey.poker.presentation.lobby
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -11,9 +11,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.aaronchancey.poker.presentation.lobby.Lobby
-import com.aaronchancey.poker.presentation.lobby.LobbyIntent
-import com.aaronchancey.poker.presentation.lobby.LobbyState
 
 /**
  * Standalone lobby composable for the multi-window architecture.

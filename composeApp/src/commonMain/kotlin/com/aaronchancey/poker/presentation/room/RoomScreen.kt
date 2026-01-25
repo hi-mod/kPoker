@@ -1,4 +1,4 @@
-package com.aaronchancey.poker
+package com.aaronchancey.poker.presentation.room
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,10 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.network.ConnectionState
-import com.aaronchancey.poker.presentation.room.AnimatingBet
-import com.aaronchancey.poker.presentation.room.RoomEffect
-import com.aaronchancey.poker.presentation.room.RoomIntent
-import com.aaronchancey.poker.presentation.room.RoomUiState
+import com.aaronchancey.poker.presentation.room.components.RoomTable
 import com.aaronchancey.poker.presentation.sound.SoundManager
 import com.aaronchancey.poker.presentation.sound.SoundPlayer
 import kotlinx.coroutines.flow.Flow

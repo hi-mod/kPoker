@@ -11,9 +11,9 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
-import com.aaronchancey.poker.LobbyScreen
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.presentation.lobby.LobbyIntent
+import com.aaronchancey.poker.presentation.lobby.LobbyScreen
 import com.aaronchancey.poker.presentation.lobby.LobbyViewModel
 import com.aaronchancey.poker.presentation.room.RoomViewModel
 import com.russhwolf.settings.Settings

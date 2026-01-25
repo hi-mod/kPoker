@@ -1,15 +1,12 @@
 package com.aaronchancey.poker
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,7 +34,7 @@ import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomParams
 import com.aaronchancey.poker.presentation.room.RoomUiState
 import com.aaronchancey.poker.presentation.room.RoomViewModel
-import com.aaronchancey.poker.presentation.room.components.ShowPlayers
+import com.aaronchancey.poker.presentation.room.components.RoomTable
 import com.aaronchancey.poker.presentation.sound.SoundManager
 import com.aaronchancey.poker.presentation.sound.SoundPlayer
 import org.koin.compose.koinInject
@@ -60,7 +57,7 @@ import org.koin.core.parameter.parametersOf
 fun App() = MaterialExpressiveTheme {
     // Track current room params - null means show lobby
     var currentRoomParams: RoomParams? by androidx.compose.runtime.remember {
-        androidx.compose.runtime.mutableStateOf(null)
+        mutableStateOf(null)
     }
 
     val soundPlayer: SoundPlayer = koinInject()

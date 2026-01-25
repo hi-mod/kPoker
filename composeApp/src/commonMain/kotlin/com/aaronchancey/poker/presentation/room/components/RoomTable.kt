@@ -1,4 +1,4 @@
-package com.aaronchancey.poker
+package com.aaronchancey.poker.presentation.room.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.presentation.room.AnimatingBet
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
-import com.aaronchancey.poker.presentation.room.components.ShowPlayers
 
 @Composable
 fun RoomTable(
@@ -25,7 +24,7 @@ fun RoomTable(
     uiState.gameState?.let { state ->
         Text("Pot: ${state.totalPot}")
 
-        Spacer(modifier = Modifier.Companion.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         ShowPlayers(
             isLoading = uiState.isLoading,
