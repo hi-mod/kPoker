@@ -3,7 +3,6 @@ package com.aaronchancey.poker.kpoker.evaluation
 import com.aaronchancey.poker.kpoker.core.Card
 import com.aaronchancey.poker.kpoker.core.Collections.combinations
 import com.aaronchancey.poker.kpoker.core.EvaluatedHand
-import com.aaronchancey.poker.kpoker.core.Rank
 
 class OmahaHiLoHandEvaluator : HandEvaluator() {
     private val highEvaluator = OmahaHandEvaluator()
@@ -36,15 +35,9 @@ class OmahaHiLoHandEvaluator : HandEvaluator() {
             for (community in communityCombos) {
                 val cards = hole + community
                 // Check if qualifying low (8 or better, no pairs logic handled by LoEvaluator/check)
-                // LoEvaluator.evaluate returns a hand, but we need to check if it qualifies (8 or better)
-                // The LoHandEvaluator.evaluate just sorts them. It doesn't check qualification.
-                // We need to check qualification manually or use a helper from LoHandEvaluator if exposed.
-                // Since LoHandEvaluator logic is private or simple, let's replicate the qualification check here.
-
-                val values = cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }
-                if (values.distinct().size == 5 && values.max() <= 8) {
-                    val hand = loEvaluator.evaluate(cards)
-                    if (bestLoHand == null || compareLo(hand, bestLoHand) < 0) {
+                val hand = loEvaluator.evaluate(cards)
+                if (LoHandEvaluator.isQualifying(hand)) {
+                    if (bestLoHand == null || LoHandEvaluator.compare(hand, bestLoHand) < 0) {
                         bestLoHand = hand
                     }
                 }
@@ -54,16 +47,5 @@ class OmahaHiLoHandEvaluator : HandEvaluator() {
         val loHands = if (bestLoHand != null) listOf(bestLoHand) else emptyList()
 
         return highHands + loHands
-    }
-
-    private fun compareLo(a: EvaluatedHand, b: EvaluatedHand): Int {
-        val aValues = a.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }.sortedDescending()
-        val bValues = b.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }.sortedDescending()
-
-        for (i in aValues.indices) {
-            val cmp = aValues[i].compareTo(bValues[i])
-            if (cmp != 0) return cmp
-        }
-        return 0
     }
 }

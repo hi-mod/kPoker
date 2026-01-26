@@ -16,22 +16,10 @@ class LoHandEvaluator : HandEvaluator() {
     override fun findBestHand(cards: List<Card>, handSize: Int): List<EvaluatedHand> {
         require(cards.size >= handSize) { "Need at least $handSize cards" }
 
-        val comparator = Comparator<EvaluatedHand> { h1, h2 ->
-            val v1 = h1.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }.sortedDescending()
-            val v2 = h2.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }.sortedDescending()
-
-            for (i in v1.indices) {
-                if (i >= v2.size) break
-                val diff = v1[i].compareTo(v2[i])
-                if (diff != 0) return@Comparator diff
-            }
-            0
-        }
-
         val best = combinations(cards, handSize)
-            .map { evaluateLoHand(it) as EvaluatedHand }
-            .filter { isQualifyingLow(it) }
-            .minWithOrNull(comparator)
+            .map { evaluateLoHand(it) }
+            .filter { isQualifying(it) }
+            .minWithOrNull { a, b -> compare(a, b) }
 
         return if (best != null) listOf(best) else emptyList()
     }
@@ -44,9 +32,23 @@ class LoHandEvaluator : HandEvaluator() {
         return EvaluatedHand(HandRank.HIGH_CARD, sortedByLowValue)
     }
 
-    private fun isQualifyingLow(hand: EvaluatedHand): Boolean {
-        // 8-or-better qualification
-        val values = hand.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }
-        return values.distinct().size == 5 && values.max() <= 8
+    companion object {
+        fun isQualifying(hand: EvaluatedHand): Boolean {
+            // 8-or-better qualification
+            val values = hand.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }
+            return values.distinct().size == 5 && (values.maxOrNull() ?: 100) <= 8
+        }
+
+        fun compare(a: EvaluatedHand, b: EvaluatedHand): Int {
+            val aValues = a.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }.sortedDescending()
+            val bValues = b.cards.map { if (it.rank == Rank.ACE) 1 else it.rank.value }.sortedDescending()
+
+            for (i in aValues.indices) {
+                if (i >= bValues.size) break
+                val diff = aValues[i].compareTo(bValues[i])
+                if (diff != 0) return diff
+            }
+            return 0
+        }
     }
 }

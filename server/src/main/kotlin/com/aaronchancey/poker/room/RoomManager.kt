@@ -17,6 +17,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class RoomManager(
     private val connectionManager: ConnectionManager,
@@ -25,6 +27,8 @@ class RoomManager(
     private val rooms = ConcurrentHashMap<String, ServerRoom>()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val roomFileTimestamps = ConcurrentHashMap<String, Long>()
+
+    private val managementMutex = Mutex()
 
     init {
         restoreRooms()
@@ -36,8 +40,10 @@ class RoomManager(
         scope.launch {
             while (isActive) {
                 try {
-                    GameVariant.entries.forEach { variant ->
-                        manageVariantCapacity(variant)
+                    managementMutex.withLock {
+                        GameVariant.entries.forEach { variant ->
+                            manageVariantCapacity(variant)
+                        }
                     }
                 } catch (e: Exception) {
                     println("Error in room monitor: ${e.message}")
@@ -97,23 +103,28 @@ class RoomManager(
         }
     }
 
+    private fun constructRoom(data: com.aaronchancey.poker.persistence.RoomStateData): ServerRoom {
+        val room = ServerRoom(
+            roomId = data.roomId,
+            roomName = data.roomName,
+            minDenomination = data.minDenomination,
+            maxPlayers = data.maxPlayers,
+            smallBlind = data.smallBlind,
+            bigBlind = data.bigBlind,
+            minBuyIn = data.minBuyIn,
+            maxBuyIn = data.maxBuyIn,
+            variant = data.variant,
+            connectionManager = connectionManager,
+            initialGameState = data.gameState,
+        )
+        configureRoom(room)
+        return room
+    }
+
     private fun restoreRooms() {
         val loadedRooms = persistenceManager.loadRooms()
         loadedRooms.forEach { data ->
-            val room = ServerRoom(
-                roomId = data.roomId,
-                roomName = data.roomName,
-                minDenomination = data.minDenomination,
-                maxPlayers = data.maxPlayers,
-                smallBlind = data.smallBlind,
-                bigBlind = data.bigBlind,
-                minBuyIn = data.minBuyIn,
-                maxBuyIn = data.maxBuyIn,
-                variant = data.variant,
-                connectionManager = connectionManager,
-                initialGameState = data.gameState,
-            )
-            configureRoom(room)
+            val room = constructRoom(data)
             rooms[data.roomId] = room
 
             // Initialize timestamp
@@ -202,20 +213,7 @@ class RoomManager(
             }
         }
 
-        val newRoom = ServerRoom(
-            roomId = data.roomId,
-            roomName = data.roomName,
-            minDenomination = data.minDenomination,
-            maxPlayers = data.maxPlayers,
-            smallBlind = data.smallBlind,
-            bigBlind = data.bigBlind,
-            minBuyIn = data.minBuyIn,
-            maxBuyIn = data.maxBuyIn,
-            variant = data.variant,
-            connectionManager = connectionManager,
-            initialGameState = data.gameState,
-        )
-        configureRoom(newRoom)
+        val newRoom = constructRoom(data)
         rooms[roomId] = newRoom
     }
 

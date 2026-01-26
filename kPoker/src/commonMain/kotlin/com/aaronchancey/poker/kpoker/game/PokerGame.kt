@@ -12,7 +12,6 @@ import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.core.Deck
 import com.aaronchancey.poker.kpoker.dealing.CardDealer
 import com.aaronchancey.poker.kpoker.dealing.StandardDealer
-import com.aaronchancey.poker.kpoker.evaluation.HandEvaluator
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
@@ -22,28 +21,23 @@ import com.aaronchancey.poker.kpoker.player.PotManager
 import com.aaronchancey.poker.kpoker.player.ShowdownStatus
 import com.aaronchancey.poker.kpoker.player.Table
 
-abstract class PokerGame(
+open class PokerGame(
     protected val bettingStructure: BettingStructure,
-    protected val handEvaluator: HandEvaluator,
+    protected val variantStrategy: VariantStrategy,
     protected val cardDealer: CardDealer = StandardDealer(),
 ) {
-    abstract val gameVariant: GameVariant
-
     protected var state: GameState = GameState(Table.create("1", "Default", 9))
-
-    // Called after subclass init (careful with abstract props in init)
-    // But we can't easily init state with abstract prop in var declaration.
-    // Instead, we trust initialize() or we use an `init` block that might run before subclass prop is set?
-    // No, init blocks run before subclass fields.
-    // So we can't use gameVariant in the initial assignment if it's abstract.
-    // However, `initialize` is the standard way to set up the game.
-    // The default value above will use the default variant (Texas Holdem).
-    // We can rely on `initialize` to overwrite it.
 
     protected val bettingManager = BettingManager(bettingStructure)
     protected val eventListeners = mutableListOf<(GameEvent) -> Unit>()
 
     val currentState: GameState get() = state
+
+    // Delegated properties from strategy
+    val gameVariant: GameVariant get() = variantStrategy.gameVariant
+    val variantName: String get() = variantStrategy.metadata.name
+    val holeCardCount: Int get() = variantStrategy.metadata.holeCardCount
+    val usesCommunityCards: Boolean get() = variantStrategy.metadata.usesCommunityCards
 
     fun addEventListener(listener: (GameEvent) -> Unit) {
         eventListeners.add(listener)
@@ -53,12 +47,7 @@ abstract class PokerGame(
         eventListeners.forEach { it(event) }
     }
 
-    // Abstract methods for variant-specific behavior
-    abstract val variantName: String
-    abstract val holeCardCount: Int
-    abstract val usesCommunityCards: Boolean
-
-    abstract fun evaluateHands(): List<Winner>
+    fun evaluateHands(): List<Winner> = variantStrategy.evaluateHands(state)
 
     /**
      * Deal hole cards to all active players using the [CardDealer].
@@ -120,11 +109,19 @@ abstract class PokerGame(
         return state
     }
 
+    private fun getSortedOccupiedSeatNumbers(): List<Int> = state.table.occupiedSeats.map { it.number }.sorted()
+
+    private fun getSeatAtOffset(startSeat: Int, offset: Int, seats: List<Int>): Int {
+        if (seats.isEmpty()) return startSeat
+        val startIndex = seats.indexOf(startSeat)
+        if (startIndex == -1) return seats.first() // Fallback
+        val nextIndex = (startIndex + offset) % seats.size
+        return seats[nextIndex]
+    }
+
     protected open fun advanceDealer() {
-        val occupiedSeats = state.table.occupiedSeats.map { it.number }.sorted()
-        val currentIndex = occupiedSeats.indexOf(state.dealerSeatNumber)
-        val nextIndex = (currentIndex + 1) % occupiedSeats.size
-        val newDealerSeat = occupiedSeats[nextIndex]
+        val occupiedSeats = getSortedOccupiedSeatNumbers()
+        val newDealerSeat = getSeatAtOffset(state.dealerSeatNumber, 1, occupiedSeats)
 
         state = state.copy(dealerSeatNumber = newDealerSeat)
 
@@ -143,19 +140,20 @@ abstract class PokerGame(
     }
 
     protected open fun postBlinds() {
-        val occupiedSeats = state.table.occupiedSeats.map { it.number }.sorted()
-        val dealerIndex = occupiedSeats.indexOf(state.dealerSeatNumber)
+        val occupiedSeats = getSortedOccupiedSeatNumbers()
 
-        val (smallBlindIndex, bigBlindIndex) = if (occupiedSeats.size == 2) {
+        val smallBlindSeat: Int
+        val bigBlindSeat: Int
+
+        if (occupiedSeats.size == 2) {
             // In Heads-Up, Dealer is SB, other player is BB
-            dealerIndex to (dealerIndex + 1) % occupiedSeats.size
+            smallBlindSeat = state.dealerSeatNumber
+            bigBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 1, occupiedSeats)
         } else {
             // Multi-player: SB is dealer + 1, BB is dealer + 2
-            (dealerIndex + 1) % occupiedSeats.size to (dealerIndex + 2) % occupiedSeats.size
+            smallBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 1, occupiedSeats)
+            bigBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 2, occupiedSeats)
         }
-
-        val smallBlindSeat = occupiedSeats[smallBlindIndex]
-        val bigBlindSeat = occupiedSeats[bigBlindIndex]
 
         // Post small blind
         postBlind(smallBlindSeat, bettingStructure.smallBlind, BlindType.SMALL_BLIND)
@@ -474,7 +472,7 @@ abstract class PokerGame(
     protected open fun finishHand() {
         val playersInHand = state.table.getPlayersInHand()
 
-        // If only one player remains (everyone else folded), they win without showing
+        // If only one player remains, they win (no showdown needed)
         if (playersInHand.size <= 1) {
             awardPotToLastPlayer()
             return

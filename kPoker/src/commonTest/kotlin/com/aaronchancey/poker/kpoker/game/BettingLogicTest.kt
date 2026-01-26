@@ -2,38 +2,36 @@ package com.aaronchancey.poker.kpoker.game
 
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.BettingStructure
-import com.aaronchancey.poker.kpoker.core.Card
-import com.aaronchancey.poker.kpoker.core.EvaluatedHand
-import com.aaronchancey.poker.kpoker.core.HandRank
-import com.aaronchancey.poker.kpoker.evaluation.HandEvaluator
+import com.aaronchancey.poker.kpoker.core.CardVisibility
+import com.aaronchancey.poker.kpoker.dealing.CardDealer
+import com.aaronchancey.poker.kpoker.dealing.DealResult
 import com.aaronchancey.poker.kpoker.player.Player
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.PlayerStatus
 import com.aaronchancey.poker.kpoker.player.Table
+import com.aaronchancey.poker.kpoker.variants.TexasHoldemVariant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class BettingLogicTest {
 
-    class DummyEvaluator : HandEvaluator() {
-        override fun evaluate(cards: List<Card>): EvaluatedHand = EvaluatedHand(HandRank.HIGH_CARD, cards)
-        override fun findBestHand(cards: List<Card>, handSize: Int): List<EvaluatedHand> = listOf(EvaluatedHand(HandRank.HIGH_CARD, cards.take(5)))
-        override fun findBestHand(holeCards: List<Card>, communityCards: List<Card>): List<EvaluatedHand> = listOf(EvaluatedHand(HandRank.HIGH_CARD, (holeCards + communityCards).take(5)))
+    class NoOpDealer : CardDealer {
+        override fun dealHoleCards(state: GameState, cardsPerPlayer: Int, visibilityPattern: List<CardVisibility>?): DealResult.HoleCards = DealResult.HoleCards(state, emptyMap())
+        override fun dealCommunityCards(state: GameState, count: Int, burnFirst: Boolean): DealResult.CommunityCards = DealResult.CommunityCards(state, emptyList())
     }
 
-    class TestGame(structure: BettingStructure) : PokerGame(structure, DummyEvaluator()) {
-        override val gameVariant: GameVariant = GameVariant.TEXAS_HOLDEM
-        override val variantName = "Test"
-        override val holeCardCount = 2
-        override val usesCommunityCards = true
-        override fun dealHoleCards() {}
-        override fun evaluateHands(): List<Winner> = emptyList()
+    class TestStrategy : VariantStrategy {
+        override val metadata = TexasHoldemVariant
+        override val gameVariant = GameVariant.TEXAS_HOLDEM
+        override fun evaluateHands(state: GameState): List<Winner> = emptyList()
     }
+
+    private fun createGame(structure: BettingStructure): PokerGame = PokerGame(structure, TestStrategy(), NoOpDealer())
 
     @Test
     fun `test minimum raise updates after a bet`() {
         val structure = BettingStructure.noLimit(smallBlind = 1.0, bigBlind = 2.0)
-        val game = TestGame(structure)
+        val game = createGame(structure)
 
         val p1 = Player("1", "Alice")
         val p2 = Player("2", "Bob")
@@ -66,7 +64,7 @@ class BettingLogicTest {
     @Test
     fun `test minimum raise updates after a post-flop bet`() {
         val structure = BettingStructure.noLimit(smallBlind = 1.0, bigBlind = 2.0)
-        val game = TestGame(structure)
+        val game = createGame(structure)
 
         val p1 = Player("1", "Alice")
         val p2 = Player("2", "Bob")
@@ -117,7 +115,7 @@ class BettingLogicTest {
         // Max raise = 4
         // Max total bet = 2 + 4 = 6
         val structure = BettingStructure.potLimit(smallBlind = 1.0, bigBlind = 2.0)
-        val game = TestGame(structure)
+        val game = createGame(structure)
 
         val p1 = Player("1", "Alice")
         val p2 = Player("2", "Bob")
@@ -145,7 +143,7 @@ class BettingLogicTest {
         // Max raise = 12
         // Max total bet = 6 + 12 = 18
         val structure = BettingStructure.potLimit(smallBlind = 1.0, bigBlind = 2.0)
-        val game = TestGame(structure)
+        val game = createGame(structure)
 
         val p1 = Player("1", "Alice")
         val p2 = Player("2", "Bob")
