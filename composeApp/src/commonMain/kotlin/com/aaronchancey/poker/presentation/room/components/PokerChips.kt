@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -29,61 +30,52 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.presentation.room.AnimatingBet
 import kotlinx.coroutines.delay
 
-internal val Color.Companion.Purple: Color
-    get() = Color(0xFF800080)
-
-internal val Color.Companion.Brown: Color
-    get() = Color(0xFFA52A2A)
-
-private val colors = mapOf(
-    1.0 to Color.Blue,
-    5.0 to Color.Red,
-    10.0 to Color.Cyan,
-    25.0 to Color.Green,
-    100.0 to Color.Black,
-    500.0 to Color.Purple,
-    1000.0 to Color.Yellow,
-    5000.0 to Color.Brown,
-)
-
-/** Pre-sorted chip values - computed once at class load, not during composition. */
-private val sortedChipValues = colors.keys.sortedDescending()
-
 /**
- * Calculates the optimal chip breakdown for a given wager amount.
- * Uses greedy algorithm to minimize total chip count.
+ * Pure layout composable that renders poker chips in a horizontal row of stacks.
+ * Works naturally in Compose layout system (Column, Row, etc.) without absolute positioning.
  *
- * @param wager The total wager amount to break down
- * @return List of (chipValue, count) pairs representing chip stacks
+ * @param modifier Modifier for the container Row
+ * @param wager The total wager amount to display as chips
  */
-private fun buildChipStacks(wager: ChipAmount): List<Pair<Double, Int>> {
-    val stacks = mutableListOf<Pair<Double, Int>>()
-    var remaining = wager
-    for (chipValue in sortedChipValues) {
-        val count = (remaining / chipValue).toInt()
-        if (count > 0) {
-            stacks.add(chipValue to count)
-            remaining -= chipValue * count
+@Composable
+fun ChipStacks(
+    modifier: Modifier = Modifier,
+    wager: ChipAmount,
+) {
+    val chipStacks = remember(wager) { buildChipStacks(wager) }
+
+    Row(modifier = modifier) {
+        chipStacks.forEach { (chipValue, count) ->
+            key(chipValue) {
+                Box {
+                    repeat(count) { chipIndex ->
+                        Box(
+                            modifier = Modifier.offset(y = 4.dp * chipIndex),
+                        ) {
+                            PokerChip(value = chipValue)
+                        }
+                    }
+                }
+            }
         }
     }
-    return stacks
 }
 
 /**
- * Renders poker chips stacked by denomination for a given wager amount.
- * Uses memoization to only recalculate chip breakdown when wager changes.
+ * Positioned composable that renders chip stacks at absolute coordinates.
+ * Wraps [ChipStacks] with [LayoutCenteredAt] for positioning.
+ * Used for player bets and animating chips.
  *
  * @param modifier Modifier for the container Box
  * @param wager The total wager amount to display as chips
- * @param chipOffsetX Horizontal offset for the chip stack group center
- * @param chipOffsetY Vertical offset for the chip stack group center
+ * @param chipOffsetX Horizontal center position for the chip stack group
+ * @param chipOffsetY Vertical center position for the chip stack group
  */
 @Composable
 fun WagerChips(
@@ -92,28 +84,9 @@ fun WagerChips(
     chipOffsetX: Dp = 0.dp,
     chipOffsetY: Dp = 0.dp,
 ) {
-    // Memoize chip breakdown - only recalculate when wager changes
-    val chipStacks = remember(wager) { buildChipStacks(wager) }
-
     Box(modifier = modifier) {
-        chipStacks.forEachIndexed { stackIndex, (chipValue, count) ->
-            key(chipValue) {
-                // Stable key per denomination
-                val horizontalOffset = 34.dp * stackIndex
-                repeat(count) { chipIndex ->
-                    val verticalOffset = 4.dp * chipIndex
-                    Box(
-                        modifier = Modifier.offset {
-                            IntOffset(
-                                x = (chipOffsetX + horizontalOffset - 17.5.dp).roundToPx(),
-                                y = (chipOffsetY + verticalOffset - 17.5.dp).roundToPx(),
-                            )
-                        },
-                    ) {
-                        PokerChip(value = chipValue)
-                    }
-                }
-            }
+        LayoutCenteredAt(x = chipOffsetX, y = chipOffsetY) {
+            ChipStacks(wager = wager)
         }
     }
 }
@@ -212,4 +185,43 @@ private fun PokerChip(
             textAlign = TextAlign.Center,
         )
     }
+}
+
+internal val Color.Companion.Purple: Color
+    get() = Color(0xFF800080)
+
+internal val Color.Companion.Brown: Color
+    get() = Color(0xFFA52A2A)
+
+private val colors = mapOf(
+    1.0 to Color.Blue,
+    5.0 to Color.Red,
+    25.0 to Color.Green,
+    100.0 to Color.Black,
+    500.0 to Color.Purple,
+    1000.0 to Color.Yellow,
+    5000.0 to Color.Brown,
+)
+
+/** Pre-sorted chip values - computed once at class load, not during composition. */
+private val sortedChipValues = colors.keys.sortedDescending()
+
+/**
+ * Calculates the optimal chip breakdown for a given wager amount.
+ * Uses greedy algorithm to minimize total chip count.
+ *
+ * @param wager The total wager amount to break down
+ * @return List of (chipValue, count) pairs representing chip stacks
+ */
+private fun buildChipStacks(wager: ChipAmount): List<Pair<Double, Int>> {
+    val stacks = mutableListOf<Pair<Double, Int>>()
+    var remaining = wager
+    for (chipValue in sortedChipValues) {
+        val count = (remaining / chipValue).toInt()
+        if (count > 0) {
+            stacks.add(chipValue to count)
+            remaining -= chipValue * count
+        }
+    }
+    return stacks
 }

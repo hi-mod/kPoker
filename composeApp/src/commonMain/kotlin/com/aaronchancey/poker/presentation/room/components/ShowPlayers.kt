@@ -10,15 +10,19 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.presentation.room.AnimatingBet
-import com.aaronchancey.poker.presentation.room.PlayerActions
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
 
@@ -60,16 +64,35 @@ fun ShowPlayers(
             )
         }
 
-        LayoutCenteredAt(x = maxWidth / 2 - 8.dp, y = maxHeight / 2 - 8.dp) {
-            CommunityCards(communityCards = uiState.gameState?.communityCards ?: emptyList())
-        }
-        WagerChips(
-            wager = uiState.gameState?.totalPot ?: 0.0,
-            chipOffsetX = maxWidth / 2 - 8.dp,
-            chipOffsetY = maxHeight / 2 + 58.dp,
-        )
+        val density = LocalDensity.current
+        var columnHeight by remember { mutableFloatStateOf(0f) }
+        var chipOffsetInColumn by remember { mutableFloatStateOf(0f) }
+        var chipHeight by remember { mutableFloatStateOf(0f) }
 
-        val potCenter = (maxWidth / 2 - 8.dp) to (maxHeight / 2 + 58.dp)
+        LayoutCenteredAt(x = maxWidth / 2 - 8.dp, y = maxHeight / 2) {
+            Column(
+                modifier = Modifier.onGloballyPositioned { coords ->
+                    columnHeight = coords.size.height.toFloat()
+                },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CommunityCards(communityCards = uiState.gameState?.communityCards ?: emptyList())
+                ChipStacks(
+                    modifier = Modifier.onGloballyPositioned { coords ->
+                        chipOffsetInColumn = coords.positionInParent().y
+                        chipHeight = coords.size.height.toFloat()
+                    },
+                    wager = uiState.gameState?.totalPot ?: 0.0,
+                )
+            }
+        }
+
+        // Column center is at maxHeight/2 (via LayoutCenteredAt)
+        // ChipStacks center = Column center + (chipOffsetInColumn + chipHeight/2 - columnHeight/2)
+        val potCenterY = with(density) {
+            maxHeight / 2 + (chipOffsetInColumn + chipHeight / 2 - columnHeight / 2).toDp()
+        }
+        val potCenter = (maxWidth / 2 - 8.dp) to potCenterY
 
         // Render animating chips OUTSIDE seat loop for proper state isolation
         AnimatingChipStacks(

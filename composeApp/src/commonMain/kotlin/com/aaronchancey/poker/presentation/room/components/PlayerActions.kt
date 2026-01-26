@@ -1,4 +1,4 @@
-package com.aaronchancey.poker.presentation.room
+package com.aaronchancey.poker.presentation.room.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +32,8 @@ import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
+import com.aaronchancey.poker.presentation.room.RoomIntent
+import com.aaronchancey.poker.presentation.room.RoomUiState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
 
