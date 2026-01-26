@@ -267,7 +267,7 @@ abstract class PokerGame(
         val round = state.bettingRound
             ?: throw IllegalStateException("No betting round in progress")
 
-        require(bettingManager.validateAction(action, playerState, round.currentBet, round.minimumRaise)) {
+        require(bettingManager.validateAction(action, playerState, round.currentBet, state.effectivePot, round.minimumRaise)) {
             "Invalid action: $action. State: Bet=${round.currentBet}, MinRaise=${round.minimumRaise}, PlayerBet=${playerState.currentBet}, Chips=${playerState.chips}"
         }
 
@@ -325,10 +325,12 @@ abstract class PokerGame(
 
             is Action.Raise -> {
                 table = table.updatePlayerState(action.playerId) {
+                    // Calculate full amount: call + raise
+                    val amountToAdd = action.totalBet - it.currentBet
                     it.copy(
-                        chips = it.chips - action.amount,
+                        chips = it.chips - amountToAdd,
                         currentBet = action.totalBet,
-                        totalBetThisRound = it.totalBetThisRound + action.amount,
+                        totalBetThisRound = it.totalBetThisRound + amountToAdd,
                         hasActed = true,
                     )
                 }
@@ -738,7 +740,7 @@ abstract class PokerGame(
         return bettingManager.getValidActions(
             playerState = actor,
             currentBet = round.currentBet,
-            potSize = state.totalPot,
+            potSize = state.effectivePot,
             minRaise = round.minimumRaise,
         )
     }

@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class BettingStructure(
+    val bettingType: BettingType,
     val smallBlind: ChipAmount,
     val bigBlind: ChipAmount,
     val ante: ChipAmount = 0.0,
@@ -14,9 +15,6 @@ data class BettingStructure(
     val maxRaises: Int? = null, // null = unlimited
     val minDenomination: ChipAmount = 1.0,
 ) {
-    val isNoLimit: Boolean get() = maxBet == null
-    val isFixedLimit: Boolean get() = maxBet != null && maxRaises != null
-
     companion object {
         fun noLimit(
             smallBlind: ChipAmount,
@@ -24,6 +22,7 @@ data class BettingStructure(
             ante: ChipAmount = 0.0,
             minDenomination: ChipAmount = 1.0,
         ) = BettingStructure(
+            bettingType = BettingType.NO_LIMIT,
             smallBlind = smallBlind,
             bigBlind = bigBlind,
             ante = ante,
@@ -36,6 +35,7 @@ data class BettingStructure(
             ante: ChipAmount = 0.0,
             minDenomination: ChipAmount = 1.0,
         ) = BettingStructure(
+            bettingType = BettingType.POT_LIMIT,
             smallBlind = smallBlind,
             bigBlind = bigBlind,
             ante = ante,
@@ -49,6 +49,7 @@ data class BettingStructure(
             maxRaises: Int = 4,
             minDenomination: ChipAmount = 1.0,
         ) = BettingStructure(
+            bettingType = BettingType.LIMIT,
             smallBlind = smallBlind,
             bigBlind = bigBlind,
             ante = ante,
@@ -58,4 +59,10 @@ data class BettingStructure(
             minDenomination = minDenomination,
         )
     }
+}
+
+enum class BettingType {
+    NO_LIMIT,
+    POT_LIMIT,
+    LIMIT,
 }

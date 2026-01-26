@@ -46,6 +46,13 @@ data class GameState(
     val playersInHand: List<PlayerState> get() = table.getPlayersInHand()
     val totalPot: ChipAmount get() = potManager.totalPot
 
+    /**
+     * The effective pot for pot-limit calculations.
+     * Includes both collected pots AND uncollected bets from the current betting round.
+     */
+    val effectivePot: ChipAmount
+        get() = totalPot + table.occupiedSeats.sumOf { it.playerState?.totalBetThisRound ?: 0.0 }
+
     val isHandInProgress: Boolean get() = phase !in listOf(GamePhase.WAITING, GamePhase.HAND_COMPLETE)
 
     val currentActor: PlayerState? get() =

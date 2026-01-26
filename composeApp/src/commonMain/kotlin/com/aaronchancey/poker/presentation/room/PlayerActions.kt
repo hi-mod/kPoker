@@ -35,7 +35,6 @@ import com.aaronchancey.poker.kpoker.player.PlayerState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PlayerActions(
     modifier: Modifier = Modifier,
@@ -43,49 +42,63 @@ internal fun PlayerActions(
     uiState: RoomUiState,
     onIntent: (RoomIntent) -> Unit,
 ) {
-    if (uiState.showdown != null && uiState.showdown.playerId == playerState.player.id) {
+    val showdown = uiState.showdown
+    val actions = uiState.availableActions
+
+    if (showdown != null && showdown.playerId == playerState.player.id) {
         Showdown(
+            modifier = modifier,
             playerId = playerState.player.id,
-            showdownRequest = uiState.showdown,
+            showdownRequest = showdown,
             onIntent = onIntent,
         )
         return
     }
 
-    if (playerState.hasActed || uiState.availableActions?.playerId != playerState.player.id) return
+    if (playerState.hasActed || actions?.playerId != playerState.player.id) return
+
+    ActionButtons(
+        modifier = modifier,
+        playerId = playerState.player.id,
+        availableActions = actions,
+        isLoading = uiState.isLoading,
+        onIntent = onIntent,
+    )
+}
+
+@Composable
+private fun ActionButtons(
+    modifier: Modifier,
+    playerId: PlayerId,
+    availableActions: ActionRequest,
+    isLoading: Boolean,
+    onIntent: (RoomIntent) -> Unit,
+) {
+    var betAmount by remember(availableActions) {
+        mutableDoubleStateOf(calculateInitialBetAmount(availableActions))
+    }
 
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        uiState.availableActions.validActions.forEach { actionType ->
-            var betAmount: ChipAmount by remember(uiState.availableActions) {
-                val desiredMinimum = if (uiState.availableActions.validActions.contains(ActionType.BET)) {
-                    uiState.availableActions.minimumBet
-                } else {
-                    uiState.availableActions.minimumBet + uiState.availableActions.minimumRaise
-                }
-                // Clamp to maximumBet to handle cases where minimum raise exceeds player's stack
-                mutableDoubleStateOf(minOf(desiredMinimum, uiState.availableActions.maximumBet))
-            }
-            Button(
-                onClick = actionClick(
-                    playerId = playerState.player.id,
-                    actionType = actionType,
-                    availableActions = uiState.availableActions,
-                    betAmount = betAmount,
-                    onIntent = onIntent,
-                ),
-                enabled = !uiState.isLoading,
-            ) {
-                Text(actionType.name)
-            }
-            if (actionType == ActionType.BET || actionType == ActionType.RAISE) {
-                BetActionContent(
-                    minDenomination = uiState.availableActions.minimumDenomination,
-                    minimumBet = betAmount,
-                    maximumBet = uiState.availableActions.maximumBet,
-                    onBetAmountChange = { betAmount = it },
+        availableActions.validActions.forEach { actionType ->
+            ActionButton(
+                playerId = playerId,
+                actionType = actionType,
+                availableActions = availableActions,
+                betAmount = betAmount,
+                enabled = !isLoading,
+                onIntent = onIntent,
+            )
+
+            if (actionType.isVariableAmount()) {
+                BetAmountInput(
+                    minDenomination = availableActions.minimumDenomination,
+                    rangeStart = calculateMinBetOrRaise(availableActions),
+                    maximumBet = availableActions.maximumBet,
+                    currentAmount = betAmount,
+                    onAmountChange = { betAmount = it },
                 )
             }
         }
@@ -93,48 +106,79 @@ internal fun PlayerActions(
 }
 
 @Composable
+private fun ActionButton(
+    playerId: PlayerId,
+    actionType: ActionType,
+    availableActions: ActionRequest,
+    betAmount: ChipAmount,
+    enabled: Boolean,
+    onIntent: (RoomIntent) -> Unit,
+) {
+    Button(
+        onClick = {
+            val action = createAction(
+                playerId = playerId,
+                actionType = actionType,
+                availableActions = availableActions,
+                betAmount = betAmount,
+            )
+            onIntent(RoomIntent.PerformAction(action))
+        },
+        enabled = enabled,
+    ) {
+        Text(actionType.name)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
-private fun BetActionContent(
+@Composable
+private fun BetAmountInput(
     minDenomination: ChipAmount,
-    minimumBet: ChipAmount,
+    rangeStart: ChipAmount,
     maximumBet: ChipAmount,
-    onBetAmountChange: (ChipAmount) -> Unit,
+    currentAmount: ChipAmount,
+    onAmountChange: (ChipAmount) -> Unit,
 ) = Column {
-    // Ensure valid range - if minimum > maximum, clamp to maximum (all-in scenario)
-    val safeMinimum = minOf(minimumBet, maximumBet)
-    val rangeStart = safeMinimum.toFloat()
-    val rangeEnd = maximumBet.toFloat()
+    val safeMinimum = minOf(rangeStart, maximumBet)
     val safeDenomination = if (minDenomination > 0.0) minDenomination else 0.1
-    val steps = if (rangeEnd > rangeStart) {
-        maxOf(0, ((rangeEnd - rangeStart) / safeDenomination).toInt() - 1)
+
+    val steps = if (maximumBet > safeMinimum) {
+        maxOf(0, ((maximumBet - safeMinimum) / safeDenomination).toInt() - 1)
     } else {
         0
     }
 
     val sliderState = rememberSliderState(
-        value = rangeStart,
+        value = currentAmount.toFloat(),
         steps = steps,
-        valueRange = rangeStart..rangeEnd,
+        valueRange = safeMinimum.toFloat()..maximumBet.toFloat(),
     )
-    val textFieldState = rememberTextFieldState(rangeStart.toString())
+
+    val textFieldState = rememberTextFieldState(currentAmount.toString())
+
     sliderState.onValueChange = {
         val snappedValue = (it / safeDenomination).roundToInt() * safeDenomination
         sliderState.value = snappedValue.toFloat()
         textFieldState.setTextAndPlaceCursorAtEnd(snappedValue.toString())
-        onBetAmountChange(snappedValue)
+        onAmountChange(snappedValue)
     }
+
     LaunchedEffect(textFieldState) {
-        snapshotFlow { textFieldState.text.toString() }.collectLatest {
-            if (sliderState.value != it.toFloatOrNull()) {
-                sliderState.value = it.toFloatOrNull() ?: safeMinimum.toFloat()
-                onBetAmountChange(sliderState.value.toDouble())
+        snapshotFlow { textFieldState.text.toString() }.collectLatest { text ->
+            val num = text.toFloatOrNull()
+            if (num != null && num != sliderState.value) {
+                if (num in sliderState.valueRange) {
+                    sliderState.value = num
+                    onAmountChange(num.toDouble())
+                }
             }
         }
     }
+
     TextField(
         modifier = Modifier.widthIn(200.dp, 200.dp),
         state = textFieldState,
-        label = { Text("Bet Amount") },
+        label = { Text("Amount") },
         lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     )
@@ -142,24 +186,6 @@ private fun BetActionContent(
         modifier = Modifier.widthIn(200.dp, 200.dp),
         state = sliderState,
     )
-}
-
-private fun actionClick(
-    playerId: PlayerId,
-    actionType: ActionType,
-    availableActions: ActionRequest,
-    onIntent: (RoomIntent) -> Unit,
-    betAmount: ChipAmount,
-): () -> Unit = {
-    val action: Action = when (actionType) {
-        ActionType.FOLD -> Action.Fold(playerId)
-        ActionType.CHECK -> Action.Check(playerId)
-        ActionType.CALL -> Action.Call(playerId, availableActions.amountToCall)
-        ActionType.BET -> Action.Bet(playerId, availableActions.minimumBet)
-        ActionType.RAISE -> Action.Raise(playerId, betAmount - availableActions.amountToCall, betAmount)
-        ActionType.ALL_IN -> Action.AllIn(playerId, availableActions.maximumBet)
-    }
-    onIntent(RoomIntent.PerformAction(action))
 }
 
 @Composable
@@ -184,4 +210,31 @@ internal fun Showdown(
             Text(actionType.name)
         }
     }
+}
+
+private fun ActionType.isVariableAmount(): Boolean = this == ActionType.BET || this == ActionType.RAISE
+
+private fun calculateInitialBetAmount(availableActions: ActionRequest): ChipAmount {
+    val minimum = calculateMinBetOrRaise(availableActions)
+    return minOf(minimum, availableActions.maximumBet)
+}
+
+private fun calculateMinBetOrRaise(availableActions: ActionRequest): ChipAmount = if (availableActions.validActions.contains(ActionType.BET)) {
+    availableActions.minimumBet
+} else {
+    availableActions.minimumBet + availableActions.minimumRaise
+}
+
+private fun createAction(
+    playerId: PlayerId,
+    actionType: ActionType,
+    availableActions: ActionRequest,
+    betAmount: ChipAmount,
+): Action = when (actionType) {
+    ActionType.FOLD -> Action.Fold(playerId)
+    ActionType.CHECK -> Action.Check(playerId)
+    ActionType.CALL -> Action.Call(playerId, availableActions.amountToCall)
+    ActionType.BET -> Action.Bet(playerId, betAmount)
+    ActionType.RAISE -> Action.Raise(playerId, betAmount - availableActions.amountToCall, betAmount)
+    ActionType.ALL_IN -> Action.AllIn(playerId, availableActions.maximumBet)
 }

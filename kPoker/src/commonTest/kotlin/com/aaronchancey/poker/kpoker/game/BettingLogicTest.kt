@@ -107,4 +107,62 @@ class BettingLogicTest {
 
         assertEquals(10.0, nextRequest?.minimumRaise, "Minimum raise amount should be 10.0")
     }
+
+    @Test
+    fun `test pot-limit max bet in heads-up preflop`() {
+        // Heads-up with 1/2 blinds
+        // Total in play = 3 (SB 1 + BB 2)
+        // First actor (SB) to act, needs to call 1 to match BB
+        // Pot after call = 3 + 1 = 4
+        // Max raise = 4
+        // Max total bet = 2 + 4 = 6
+        val structure = BettingStructure.potLimit(smallBlind = 1.0, bigBlind = 2.0)
+        val game = TestGame(structure)
+
+        val p1 = Player("1", "Alice")
+        val p2 = Player("2", "Bob")
+
+        var table = Table.create("1", "Table", 9)
+        table = table.sitPlayer(1, PlayerState(p1, 100.0, status = PlayerStatus.WAITING))
+        table = table.sitPlayer(2, PlayerState(p2, 100.0, status = PlayerStatus.WAITING))
+
+        game.initialize(table)
+        game.startHand()
+
+        // First actor in heads-up preflop is SB
+        val request = game.getActionRequest()!!
+        assertEquals(6.0, request.maximumBet, "Pot-limit max bet should be 6 in heads-up preflop with 1/2 blinds")
+    }
+
+    @Test
+    fun `test pot-limit max bet after raise`() {
+        // Heads-up with 1/2 blinds
+        // After first actor (SB) raises to 6 (pot), second actor (BB) to act
+        // Current bet = 6, BB has 2 in
+        // Call amount = 4
+        // Total in play after raise = 6 + 2 = 8
+        // Pot after BB calls = 8 + 4 = 12
+        // Max raise = 12
+        // Max total bet = 6 + 12 = 18
+        val structure = BettingStructure.potLimit(smallBlind = 1.0, bigBlind = 2.0)
+        val game = TestGame(structure)
+
+        val p1 = Player("1", "Alice")
+        val p2 = Player("2", "Bob")
+
+        var table = Table.create("1", "Table", 9)
+        table = table.sitPlayer(1, PlayerState(p1, 100.0, status = PlayerStatus.WAITING))
+        table = table.sitPlayer(2, PlayerState(p2, 100.0, status = PlayerStatus.WAITING))
+
+        game.initialize(table)
+        game.startHand()
+
+        // First actor raises to 6 (pot)
+        val firstActor = game.currentState.currentActor!!
+        game.processAction(Action.Raise(firstActor.player.id, amount = 4.0, totalBet = 6.0))
+
+        // Second actor (BB) to act
+        val request = game.getActionRequest()!!
+        assertEquals(18.0, request.maximumBet, "Pot-limit max should be 18 after first actor pots it")
+    }
 }
