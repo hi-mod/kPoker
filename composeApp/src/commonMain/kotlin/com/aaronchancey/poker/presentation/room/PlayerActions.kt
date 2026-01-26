@@ -219,10 +219,9 @@ private fun calculateInitialBetAmount(availableActions: ActionRequest): ChipAmou
     return minOf(minimum, availableActions.maximumBet)
 }
 
-private fun calculateMinBetOrRaise(availableActions: ActionRequest): ChipAmount = if (availableActions.validActions.contains(ActionType.BET)) {
-    availableActions.minimumBet
-} else {
-    availableActions.minimumBet + availableActions.minimumRaise
+private fun calculateMinBetOrRaise(availableActions: ActionRequest): ChipAmount {
+    val isBet = ActionType.BET in availableActions.validActions
+    return if (isBet) availableActions.minimumBet else availableActions.minimumBet + availableActions.minimumRaise
 }
 
 private fun createAction(

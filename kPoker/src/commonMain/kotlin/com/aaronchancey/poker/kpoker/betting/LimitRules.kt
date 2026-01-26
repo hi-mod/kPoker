@@ -33,10 +33,6 @@ class LimitRules(private val structure: BettingStructure) : BettingRules {
     ): Boolean {
         // In limit poker, bets must be exactly the fixed amount
         // The only exception is all-in when short-stacked (handled by caller)
-        return kotlin.math.abs(amount - limits.minBet) < EPSILON
-    }
-
-    private companion object {
-        const val EPSILON = 0.000001
+        return kotlin.math.abs(amount - limits.minBet) < CHIP_EPSILON
     }
 }

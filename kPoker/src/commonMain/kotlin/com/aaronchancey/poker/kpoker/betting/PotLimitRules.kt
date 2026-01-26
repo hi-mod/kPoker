@@ -26,12 +26,5 @@ class PotLimitRules(private val structure: BettingStructure) : BettingRules {
         amount: ChipAmount,
         limits: BetLimits,
         isRaise: Boolean,
-    ): Boolean {
-        // In pot-limit, amount must be within [minBet, maxBet] (capped by pot size)
-        return amount >= limits.minBet - EPSILON && amount <= limits.maxBet + EPSILON
-    }
-
-    private companion object {
-        const val EPSILON = 0.000001
-    }
+    ): Boolean = isAmountInRange(amount, limits)
 }

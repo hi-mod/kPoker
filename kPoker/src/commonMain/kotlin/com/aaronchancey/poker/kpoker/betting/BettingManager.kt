@@ -81,7 +81,7 @@ class BettingManager(
             is Action.Call -> {
                 val toCall = currentBet - playerState.currentBet
                 val maxCall = minOf(toCall, playerState.chips)
-                action.amount >= maxCall - EPSILON && action.amount <= maxCall + EPSILON
+                action.amount >= maxCall - CHIP_EPSILON && action.amount <= maxCall + CHIP_EPSILON
             }
 
             is Action.Bet -> {
@@ -95,15 +95,15 @@ class BettingManager(
                 val toCall = currentBet - playerState.currentBet
                 val isValidDenomination = isValidDenomination(action.amount)
                 val totalBetAmount = action.amount + toCall
-                action.amount >= minRaise - EPSILON &&
-                    action.totalBet >= currentBet + minRaise - EPSILON &&
+                action.amount >= minRaise - CHIP_EPSILON &&
+                    action.totalBet >= currentBet + minRaise - CHIP_EPSILON &&
                     bettingRules.validateBetAmount(totalBetAmount, betLimits, isRaise = true) &&
                     isValidDenomination
             }
 
-            is Action.AllIn -> action.amount >= playerState.chips - EPSILON && action.amount <= playerState.chips + EPSILON
+            is Action.AllIn -> action.amount >= playerState.chips - CHIP_EPSILON && action.amount <= playerState.chips + CHIP_EPSILON
 
-            is Action.PostBlind -> action.amount <= playerState.chips + EPSILON
+            is Action.PostBlind -> action.amount <= playerState.chips + CHIP_EPSILON
 
             // Showdown actions are validated by processShowdownAction, not here
             is Action.Show, is Action.Muck, is Action.Collect -> false
@@ -112,10 +112,6 @@ class BettingManager(
 
     private fun isValidDenomination(amount: ChipAmount): Boolean {
         val remainder = amount % structure.minDenomination
-        return remainder < EPSILON || remainder > structure.minDenomination - EPSILON
-    }
-
-    companion object {
-        private const val EPSILON = 0.000001
+        return remainder < CHIP_EPSILON || remainder > structure.minDenomination - CHIP_EPSILON
     }
 }

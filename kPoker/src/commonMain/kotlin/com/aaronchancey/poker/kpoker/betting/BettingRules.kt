@@ -34,3 +34,11 @@ data class BetLimits(
     val maxBet: ChipAmount,
     val minRaise: ChipAmount,
 )
+
+/** Tolerance for floating-point comparisons in chip amounts. */
+internal const val CHIP_EPSILON = 0.000001
+
+/**
+ * Validates that an amount falls within the given bet limits (inclusive, with epsilon tolerance).
+ */
+internal fun isAmountInRange(amount: ChipAmount, limits: BetLimits): Boolean = amount >= limits.minBet - CHIP_EPSILON && amount <= limits.maxBet + CHIP_EPSILON

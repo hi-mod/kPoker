@@ -136,3 +136,29 @@ fun DealerButton(
 }
 
 fun Double.toRadians(): Double = this / 180.0 * PI
+
+/**
+ * Represents an ellipse geometry for positioning elements around the poker table.
+ * Calculates positions at various distances from center (using scale factor).
+ */
+data class EllipseGeometry(
+    val centerX: Dp,
+    val centerY: Dp,
+    val radiusX: Dp,
+    val radiusY: Dp,
+    val angleStep: Double,
+) {
+    /**
+     * Calculates the (x, y) position on the ellipse for a given seat number.
+     *
+     * @param seatNumber The seat number (1-indexed)
+     * @param scaleFactor Distance from center (1.0 = on the ellipse, 0.5 = halfway to center)
+     * @return Pair of (x, y) Dp coordinates
+     */
+    fun positionForSeat(seatNumber: Int, scaleFactor: Float = 1f): Pair<Dp, Dp> {
+        val angle = ((seatNumber - 1) * angleStep).toRadians()
+        val x = centerX + radiusX * kotlin.math.cos(angle).toFloat() * scaleFactor
+        val y = centerY + radiusY * kotlin.math.sin(angle).toFloat() * scaleFactor
+        return x to y
+    }
+}

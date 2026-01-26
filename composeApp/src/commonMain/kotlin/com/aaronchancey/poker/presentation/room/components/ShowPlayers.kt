@@ -21,8 +21,6 @@ import com.aaronchancey.poker.presentation.room.AnimatingBet
 import com.aaronchancey.poker.presentation.room.PlayerActions
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
 fun ShowPlayers(
@@ -49,14 +47,18 @@ fun ShowPlayers(
         val imageWidth = maxWidth - tablePadding * 2
         val imageHeight = maxHeight - tablePadding * 2
 
-        // Rail ellipse proportions from pokerTable.svg (viewBox 1200x700, rail at cx=600 cy=330 rx=560 ry=290)
-        val centerX = maxWidth / 2 // Rail is horizontally centered (600/1200 = 0.5)
-        val centerY = tablePadding + imageHeight * (330f / 700f) // Rail center is at y=330 in 700-height viewBox
-        val radiusX = imageWidth * (560f / 1200f) // Rail rx=560 in 1200-width viewBox
-        val radiusY = imageHeight * (290f / 700f) // Rail ry=290 in 700-height viewBox
-
         val playerCount = uiState.gameState?.table?.seats?.size ?: 1
-        val angleStep = 360.0 / playerCount
+
+        // Rail ellipse proportions from pokerTable.svg (viewBox 1200x700, rail at cx=600 cy=330 rx=560 ry=290)
+        val ellipse = remember(maxWidth, maxHeight, playerCount) {
+            EllipseGeometry(
+                centerX = maxWidth / 2, // Rail is horizontally centered (600/1200 = 0.5)
+                centerY = tablePadding + imageHeight * (330f / 700f), // Rail center is at y=330 in 700-height viewBox
+                radiusX = imageWidth * (560f / 1200f), // Rail rx=560 in 1200-width viewBox
+                radiusY = imageHeight * (290f / 700f), // Rail ry=290 in 700-height viewBox
+                angleStep = 360.0 / playerCount,
+            )
+        }
 
         LayoutCenteredAt(x = maxWidth / 2 - 8.dp, y = maxHeight / 2 - 8.dp) {
             CommunityCards(communityCards = uiState.gameState?.communityCards ?: emptyList())
@@ -67,39 +69,19 @@ fun ShowPlayers(
             chipOffsetY = maxHeight / 2 + 58.dp,
         )
 
-        // Calculate bet position for a given seat number
-        val getBetPosition: (Int) -> Pair<Dp, Dp> = remember(
-            centerX,
-            centerY,
-            radiusX,
-            radiusY,
-            angleStep,
-        ) {
-            { seatNumber: Int ->
-                val angle = ((seatNumber - 1) * angleStep).toRadians()
-                val chipFactor = 0.5f
-                val x = centerX + radiusX * cos(angle).toFloat() * chipFactor
-                val y = centerY + radiusY * sin(angle).toFloat() * chipFactor
-                x to y
-            }
-        }
-
         val potCenter = (maxWidth / 2 - 8.dp) to (maxHeight / 2 + 58.dp)
 
         // Render animating chips OUTSIDE seat loop for proper state isolation
         AnimatingChipStacks(
             animatingBets = animatingBets,
-            getSeatPosition = getBetPosition,
+            getSeatPosition = { seatNumber -> ellipse.positionForSeat(seatNumber, scaleFactor = 0.5f) },
             potCenter = potCenter,
             onAnimationComplete = onAnimationComplete,
         )
 
         uiState.gameState?.table?.seats?.forEach { seat ->
             key(seat.number) {
-                // Stable key per seat
-                val angle = ((seat.number - 1) * angleStep).toRadians()
-                val playerX = centerX + radiusX * cos(angle).toFloat()
-                val playerY = centerY + radiusY * sin(angle).toFloat()
+                val (playerX, playerY) = ellipse.positionForSeat(seat.number)
 
                 LayoutCenteredAt(x = playerX, y = playerY) {
                     val playerState = seat.playerState
@@ -115,12 +97,9 @@ fun ShowPlayers(
                     }
                 }
 
-                val screenSize = minOf(maxWidth, maxHeight)
                 val currentBet = seat.playerState?.currentBet ?: 0.0
-
-                // Static chips for current bet (not animating)
                 if (currentBet > 0.0) {
-                    val (chipX, chipY) = getBetPosition(seat.number)
+                    val (chipX, chipY) = ellipse.positionForSeat(seat.number, scaleFactor = 0.5f)
                     WagerChips(
                         wager = currentBet,
                         chipOffsetX = chipX,
@@ -129,12 +108,10 @@ fun ShowPlayers(
                 }
 
                 if (seat.number == uiState.gameState.dealerSeatNumber) {
-                    val dealerButtonFactor = 0.72f
-                    val dealerButtonX = centerX + radiusX * cos(angle).toFloat() * dealerButtonFactor
-                    val dealerButtonY = centerY + radiusY * sin(angle).toFloat() * dealerButtonFactor
-                    val size = screenSize / 18
-                    LayoutCenteredAt(x = dealerButtonX, y = dealerButtonY) {
-                        DealerButton(size = size)
+                    val (dealerX, dealerY) = ellipse.positionForSeat(seat.number, scaleFactor = 0.72f)
+                    val buttonSize = minOf(maxWidth, maxHeight) / 18
+                    LayoutCenteredAt(x = dealerX, y = dealerY) {
+                        DealerButton(size = buttonSize)
                     }
                 }
             }

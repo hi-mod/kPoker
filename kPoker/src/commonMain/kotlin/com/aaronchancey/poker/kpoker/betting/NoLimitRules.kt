@@ -26,12 +26,5 @@ class NoLimitRules(private val structure: BettingStructure) : BettingRules {
         amount: ChipAmount,
         limits: BetLimits,
         isRaise: Boolean,
-    ): Boolean {
-        // In no-limit, any amount within [minBet, maxBet] is valid
-        return amount >= limits.minBet - EPSILON && amount <= limits.maxBet + EPSILON
-    }
-
-    private companion object {
-        const val EPSILON = 0.000001
-    }
+    ): Boolean = isAmountInRange(amount, limits)
 }
