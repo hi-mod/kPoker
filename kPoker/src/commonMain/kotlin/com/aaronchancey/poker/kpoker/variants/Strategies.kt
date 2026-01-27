@@ -115,47 +115,20 @@ class OmahaStrategy(
             player to bestHand
         }
 
-        if (isHiLo) {
-            val hiWinners = findBestHands(playerHiHands)
-            val playerLoHands = showingPlayers.mapNotNull { player ->
-                val loHand = findBestOmahaLoHand(player.holeCards, state.communityCards)
-                if (loHand != null) player to loHand else null
-            }
-            val loWinners = if (playerLoHands.isNotEmpty()) findBestLoHands(playerLoHands) else emptyList()
+        val hiWinners = findBestHands(playerHiHands)
 
-            val result = mutableListOf<Winner>()
-            val hiPortion = if (loWinners.isEmpty()) 1.0 else 0.5
-            val loPortion = 1.0 - hiPortion
-
-            result.addAll(awardPot(state, hiWinners, hiPortion, if (loWinners.isNotEmpty()) "-hi" else ""))
-
-            if (loWinners.isNotEmpty()) {
-                val loResults = awardPot(state, loWinners, loPortion, "-lo")
-                if (loResults.isNotEmpty()) {
-                    result.addAll(loResults)
-                } else {
-                    // No one eligible for lo in some pots, hi scoops those portions
-                    // This is handled by awardPot logic above if we were smarter,
-                    // but let's stick to the current logic for correctness.
-                    // Re-calculate: if loWinners exist but none are eligible for a specific pot,
-                    // that pot's lo portion should go to hi winners.
-                    // The original code did:
-                    /*
-                    if (eligibleLo.isNotEmpty()) { ... }
-                    else {
-                        val perPlayer = loShare / eligibleHi.size
-                        for ((player, _) in eligibleHi) { ... }
-                    }
-                     */
-                    // I will refine awardPot or handle it manually here to match original logic exactly.
-                    return awardPotHiLoManual(state, hiWinners, loWinners)
-                }
-            }
-            return result
-        } else {
-            val winners = findBestHands(playerHiHands)
-            return awardPot(state, winners)
+        if (!isHiLo) {
+            return awardPot(state, hiWinners)
         }
+
+        // Hi-Lo: Find qualifying low hands and use manual pot splitting
+        val playerLoHands = showingPlayers.mapNotNull { player ->
+            val loHand = findBestOmahaLoHand(player.holeCards, state.communityCards)
+            loHand?.let { player to it }
+        }
+        val loWinners = if (playerLoHands.isNotEmpty()) findBestLoHands(playerLoHands) else emptyList()
+
+        return awardPotHiLoManual(state, hiWinners, loWinners)
     }
 
     private fun awardPotHiLoManual(

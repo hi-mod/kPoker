@@ -99,6 +99,7 @@ data class ActionRequest(
     val amountToCall: ChipAmount,
     val timeLimit: Duration = 30.seconds,
     val minimumDenomination: ChipAmount,
+    val bettingType: BettingType,
 )
 
 @Serializable

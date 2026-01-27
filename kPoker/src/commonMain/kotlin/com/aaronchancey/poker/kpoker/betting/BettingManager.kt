@@ -61,6 +61,7 @@ class BettingManager(
             minimumRaise = minOf(minRaise, playerState.chips),
             maximumBet = minOf(betLimits.maxBet, playerState.chips),
             amountToCall = minOf(amountToCall, playerState.chips),
+            bettingType = structure.bettingType,
         )
     }
 

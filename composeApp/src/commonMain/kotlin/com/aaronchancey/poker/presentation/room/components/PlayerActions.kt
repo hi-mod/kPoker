@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
 import com.aaronchancey.poker.kpoker.betting.ActionType
+import com.aaronchancey.poker.kpoker.betting.BettingType
 import com.aaronchancey.poker.kpoker.betting.ShowdownActionType
 import com.aaronchancey.poker.kpoker.betting.ShowdownRequest
 import com.aaronchancey.poker.kpoker.player.ChipAmount
@@ -36,6 +37,18 @@ import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
+import org.jetbrains.compose.resources.stringResource
+import poker.composeapp.generated.resources.Res
+import poker.composeapp.generated.resources.showdownActionCollect
+import poker.composeapp.generated.resources.showdownActionMuck
+import poker.composeapp.generated.resources.showdownActionShow
+import poker.composeapp.generated.resources.wagerActionAllIn
+import poker.composeapp.generated.resources.wagerActionBet
+import poker.composeapp.generated.resources.wagerActionCall
+import poker.composeapp.generated.resources.wagerActionCheck
+import poker.composeapp.generated.resources.wagerActionFold
+import poker.composeapp.generated.resources.wagerActionPot
+import poker.composeapp.generated.resources.wagerActionRaise
 
 @Composable
 internal fun PlayerActions(
@@ -62,6 +75,7 @@ internal fun PlayerActions(
     ActionButtons(
         modifier = modifier,
         playerId = playerState.player.id,
+        playerChips = playerState.chips,
         availableActions = actions,
         isLoading = uiState.isLoading,
         onIntent = onIntent,
@@ -72,6 +86,7 @@ internal fun PlayerActions(
 private fun ActionButtons(
     modifier: Modifier,
     playerId: PlayerId,
+    playerChips: ChipAmount,
     availableActions: ActionRequest,
     isLoading: Boolean,
     onIntent: (RoomIntent) -> Unit,
@@ -87,6 +102,7 @@ private fun ActionButtons(
         availableActions.validActions.forEach { actionType ->
             ActionButton(
                 playerId = playerId,
+                playerChips = playerChips,
                 actionType = actionType,
                 availableActions = availableActions,
                 betAmount = betAmount,
@@ -110,6 +126,7 @@ private fun ActionButtons(
 @Composable
 private fun ActionButton(
     playerId: PlayerId,
+    playerChips: ChipAmount,
     actionType: ActionType,
     availableActions: ActionRequest,
     betAmount: ChipAmount,
@@ -120,6 +137,7 @@ private fun ActionButton(
         onClick = {
             val action = createAction(
                 playerId = playerId,
+                playerChips = playerChips,
                 actionType = actionType,
                 availableActions = availableActions,
                 betAmount = betAmount,
@@ -128,7 +146,19 @@ private fun ActionButton(
         },
         enabled = enabled,
     ) {
-        Text(actionType.name)
+        val stringRes = when (actionType) {
+            ActionType.FOLD -> Res.string.wagerActionFold
+            ActionType.CHECK -> Res.string.wagerActionCheck
+            ActionType.CALL -> Res.string.wagerActionCall
+            ActionType.BET -> Res.string.wagerActionBet
+            ActionType.RAISE -> Res.string.wagerActionRaise
+            ActionType.ALL_IN -> {
+                val isPotLimitCapped = availableActions.bettingType == BettingType.POT_LIMIT &&
+                    availableActions.maximumBet < playerChips
+                if (isPotLimitCapped) Res.string.wagerActionPot else Res.string.wagerActionAllIn
+            }
+        }
+        Text(stringResource(stringRes))
     }
 }
 
@@ -209,7 +239,15 @@ internal fun Showdown(
             }
             onIntent(RoomIntent.PerformAction(action))
         }) {
-            Text(actionType.name)
+            Text(
+                stringResource(
+                    when (actionType) {
+                        ShowdownActionType.COLLECT -> Res.string.showdownActionCollect
+                        ShowdownActionType.MUCK -> Res.string.showdownActionMuck
+                        ShowdownActionType.SHOW -> Res.string.showdownActionShow
+                    },
+                ),
+            )
         }
     }
 }
@@ -228,14 +266,35 @@ private fun calculateMinBetOrRaise(availableActions: ActionRequest): ChipAmount 
 
 private fun createAction(
     playerId: PlayerId,
+    playerChips: ChipAmount,
     actionType: ActionType,
     availableActions: ActionRequest,
     betAmount: ChipAmount,
 ): Action = when (actionType) {
     ActionType.FOLD -> Action.Fold(playerId)
+
     ActionType.CHECK -> Action.Check(playerId)
+
     ActionType.CALL -> Action.Call(playerId, availableActions.amountToCall)
+
     ActionType.BET -> Action.Bet(playerId, betAmount)
+
     ActionType.RAISE -> Action.Raise(playerId, betAmount - availableActions.amountToCall, betAmount)
-    ActionType.ALL_IN -> Action.AllIn(playerId, availableActions.maximumBet)
+
+    ActionType.ALL_IN -> {
+        val isPotBet = availableActions.bettingType == BettingType.POT_LIMIT &&
+            availableActions.maximumBet < playerChips
+        if (isPotBet) {
+            // Betting the pot, not actually going all-in
+            val potAmount = availableActions.maximumBet
+            if (ActionType.BET in availableActions.validActions) {
+                Action.Bet(playerId, potAmount)
+            } else {
+                val raiseAmount = potAmount - availableActions.amountToCall
+                Action.Raise(playerId, raiseAmount, potAmount)
+            }
+        } else {
+            Action.AllIn(playerId, playerChips)
+        }
+    }
 }

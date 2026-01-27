@@ -1,0 +1,12 @@
+<resources>
+    <string name="wagerActionBet">Bet</string>
+    <string name="wagerActionCall">Call</string>
+    <string name="wagerActionCheck">Check</string>
+    <string name="wagerActionFold">Fold</string>
+    <string name="wagerActionRaise">Raise</string>
+    <string name="wagerActionAllIn">All In</string>
+    <string name="wagerActionPot">Pot</string>
+    <string name="showdownActionCollect">Collect</string>
+    <string name="showdownActionMuck">Muck</string>
+    <string name="showdownActionShow">Show</string>
+</resources>
