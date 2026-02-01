@@ -10,6 +10,12 @@ sealed interface RoomEffect {
      * Emitted when a betting round ends and bets are collected.
      */
     data class AnimateChipsToPot(val bets: List<AnimatingBet>) : RoomEffect
+
+    /**
+     * Triggers chip animation from the pot to winning players.
+     * Emitted when a hand completes and winnings are distributed.
+     */
+    data class AnimateChipsFromPot(val winnings: List<AnimatingBet>) : RoomEffect
 }
 
 /**

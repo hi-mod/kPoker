@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,12 +42,23 @@ fun ShowPlayers(
 ) {
     // Local animation state - managed here where it's consumed
     var animatingBets by remember { mutableStateOf<List<AnimatingBet>>(emptyList()) }
+    var animatingWinnings by remember { mutableStateOf<List<AnimatingBet>>(emptyList()) }
+    // Track completed winnings to keep pot hidden until new hand starts
+    var completedWinningsTotal by remember { mutableDoubleStateOf(0.0) }
+
+    // Reset completed winnings when a new hand starts
+    val handNumber = uiState.gameState?.handNumber ?: 0
+    LaunchedEffect(handNumber) {
+        completedWinningsTotal = 0.0
+    }
 
     // Observe animation effects from LocalRoomEffects
     val effects = LocalRoomEffects.current
     ObserveAsEvents(effects) { effect ->
-        if (effect is RoomEffect.AnimateChipsToPot) {
-            animatingBets = effect.bets
+        when (effect) {
+            is RoomEffect.AnimateChipsToPot -> animatingBets = effect.bets
+            is RoomEffect.AnimateChipsFromPot -> animatingWinnings = effect.winnings
+            else -> {}
         }
     }
 
@@ -91,12 +104,15 @@ fun ShowPlayers(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     CommunityCards(communityCards = uiState.gameState?.communityCards ?: emptyList())
+                    // Reduce displayed pot by animating + already-animated winnings
+                    val animatingTotal = animatingWinnings.sumOf { it.amount }
+                    val displayedPot = (uiState.gameState?.totalPot ?: 0.0) - animatingTotal - completedWinningsTotal
                     ChipStacks(
                         modifier = Modifier.onGloballyPositioned { coords ->
                             chipOffsetInColumn = coords.positionInParent().y
                             chipHeight = coords.size.height.toFloat()
                         },
-                        wager = uiState.gameState?.totalPot ?: 0.0,
+                        wager = maxOf(0.0, displayedPot),
                     )
                 }
             }
@@ -109,6 +125,7 @@ fun ShowPlayers(
             val potCenter = (maxWidth / 2 - 8.dp) to potCenterY
 
             // Render animating chips OUTSIDE seat loop for proper state isolation
+            // Bets → pot animation
             AnimatingChipStacks(
                 animatingBets = animatingBets,
                 getSeatPosition = { seatNumber -> ellipse.positionForSeat(seatNumber, scaleFactor = 0.5f) },
@@ -116,6 +133,20 @@ fun ShowPlayers(
                 onAnimationComplete = { seatNumber ->
                     animatingBets = animatingBets.filter { it.seatNumber != seatNumber }
                 },
+            )
+
+            // Pot → winners animation
+            AnimatingChipStacks(
+                animatingBets = animatingWinnings,
+                getSeatPosition = { seatNumber -> ellipse.positionForSeat(seatNumber, scaleFactor = 0.5f) },
+                potCenter = potCenter,
+                onAnimationComplete = { seatNumber ->
+                    // Track completed amounts to keep pot hidden until new hand
+                    val completed = animatingWinnings.filter { it.seatNumber == seatNumber }
+                    completedWinningsTotal += completed.sumOf { it.amount }
+                    animatingWinnings = animatingWinnings.filter { it.seatNumber != seatNumber }
+                },
+                fromPot = true,
             )
 
             uiState.gameState?.table?.seats?.forEach { seat ->

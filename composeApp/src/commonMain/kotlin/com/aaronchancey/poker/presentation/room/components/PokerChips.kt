@@ -92,13 +92,14 @@ fun WagerChips(
 }
 
 /**
- * Renders all animating bet chips moving from player positions to pot center.
+ * Renders all animating bet chips moving between player positions and pot center.
  * Animation state is managed with proper key() scoping to prevent state corruption.
  *
- * @param animatingBets List of bets currently animating to the pot
+ * @param animatingBets List of bets currently animating
  * @param getSeatPosition Function to get (x, y) position for a seat number
  * @param potCenter The (x, y) center coordinates of the pot
  * @param onAnimationComplete Callback when a seat's animation finishes
+ * @param fromPot When true, animate from pot to seats (winnings); when false, from seats to pot (bets)
  */
 @Composable
 fun AnimatingChipStacks(
@@ -106,11 +107,15 @@ fun AnimatingChipStacks(
     getSeatPosition: (Int) -> Pair<Dp, Dp>,
     potCenter: Pair<Dp, Dp>,
     onAnimationComplete: (Int) -> Unit,
+    fromPot: Boolean = false,
 ) {
     animatingBets.forEach { animatingBet ->
-        key(animatingBet.seatNumber, animatingBet.amount) {
-            val (startX, startY) = getSeatPosition(animatingBet.seatNumber)
-            val (potX, potY) = potCenter
+        key(animatingBet.seatNumber, animatingBet.amount, fromPot) {
+            val seatPos = getSeatPosition(animatingBet.seatNumber)
+
+            // Swap start/end based on direction
+            val (startX, startY) = if (fromPot) potCenter else seatPos
+            val (endX, endY) = if (fromPot) seatPos else potCenter
 
             var animationStarted by remember { mutableStateOf(false) }
 
@@ -125,8 +130,8 @@ fun AnimatingChipStacks(
                 animationSpec = tween(400, easing = FastOutSlowInEasing),
             )
 
-            val currentX = startX + (potX - startX) * progress
-            val currentY = startY + (potY - startY) * progress
+            val currentX = startX + (endX - startX) * progress
+            val currentY = startY + (endY - startY) * progress
 
             WagerChips(
                 wager = animatingBet.amount,

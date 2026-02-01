@@ -52,7 +52,7 @@ fun RoomScreen(
     onDisconnected: () -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) = MaterialExpressiveTheme {
-    // Handle side effects (except AnimateChipsToPot, which is handled locally in ShowPlayers)
+    // Handle side effects (except chip animations, handled locally in ShowPlayers)
     val soundPlayer: SoundPlayer = koinInject()
 
     ObserveAsEvents(effects) { effect ->
@@ -70,7 +70,9 @@ fun RoomScreen(
                 soundPlayer.playSound(path)
             }
 
-            is RoomEffect.AnimateChipsToPot -> {
+            is RoomEffect.AnimateChipsToPot,
+            is RoomEffect.AnimateChipsFromPot,
+            -> {
                 // Handled locally in ShowPlayers via LocalRoomEffects
             }
         }

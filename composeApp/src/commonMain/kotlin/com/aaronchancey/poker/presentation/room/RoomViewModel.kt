@@ -14,17 +14,18 @@ import com.aaronchancey.poker.presentation.util.SettingKeys.KEY_PLAYER_ID
 import com.aaronchancey.poker.presentation.util.SettingKeys.KEY_PLAYER_NAME
 import com.russhwolf.settings.Settings
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -64,6 +65,9 @@ class RoomViewModel(
     /** Tracks previous bets for chip animation detection. */
     private var previousBets: Map<Int, Double> = emptyMap()
 
+    /** Tracks previous winners for pot-to-player animation detection. */
+    private var previousWinners: List<com.aaronchancey.poker.kpoker.game.Winner> = emptyList()
+
     private val localState = MutableStateFlow(LocalUiState())
 
     val uiState: StateFlow<RoomUiState> = combine(
@@ -95,8 +99,8 @@ class RoomViewModel(
             initialValue = RoomUiState(),
         )
 
-    private val _effects = Channel<RoomEffect>(Channel.BUFFERED)
-    val effects = _effects.receiveAsFlow()
+    private val _effects = MutableSharedFlow<RoomEffect>(extraBufferCapacity = 10)
+    val effects = _effects.asSharedFlow()
 
     fun onIntent(intent: RoomIntent) = when (intent) {
         is RoomIntent.LeaveRoom -> handleLeaveRoom()
@@ -121,7 +125,7 @@ class RoomViewModel(
             repository.gameEvents
                 .filterIsInstance<GameEvent.HandStarted>()
                 .collect {
-                    _effects.send(RoomEffect.PlaySound(SoundType.CARD_DEAL))
+                    _effects.emit(RoomEffect.PlaySound(SoundType.CARD_DEAL))
                 }
         }
         viewModelScope.launch {
@@ -164,37 +168,55 @@ class RoomViewModel(
     }
 
     /**
-     * Observes game state changes to detect when bets should animate to the pot.
+     * Observes game state changes to detect when chips should animate.
      * Emits [RoomEffect.AnimateChipsToPot] when bets clear (phase transition).
+     * Emits [RoomEffect.AnimateChipsFromPot] when winners are declared.
      */
-    private fun startChipAnimationObservation() {
-        viewModelScope.launch {
-            repository.session
-                .map { it.gameState }
-                .collect { gameState ->
-                    val currentBets = gameState?.table?.seats
-                        ?.mapNotNull { seat ->
-                            val bet = seat.playerState?.currentBet ?: 0.0
-                            if (bet > 0.0) seat.number to bet else null
-                        }
-                        ?.toMap() ?: emptyMap()
-
-                    // Find bets that existed before but are now zero (cleared)
-                    val clearedBets = previousBets.filter { (seat, _) ->
-                        currentBets[seat] == null || currentBets[seat] == 0.0
+    private fun startChipAnimationObservation() = viewModelScope.launch {
+        repository.session
+            .map { it.gameState }
+            .collect { gameState ->
+                // === Bet clearing detection (bets → pot) ===
+                val currentBets = gameState?.table?.seats
+                    ?.mapNotNull { seat ->
+                        val bet = seat.playerState?.currentBet ?: 0.0
+                        if (bet > 0.0) seat.number to bet else null
                     }
+                    ?.toMap() ?: emptyMap()
 
-                    if (clearedBets.isNotEmpty()) {
-                        _effects.send(
-                            RoomEffect.AnimateChipsToPot(
-                                clearedBets.map { AnimatingBet(it.key, it.value) },
-                            ),
-                        )
-                    }
-
-                    previousBets = currentBets
+                // Find bets that existed before but are now zero (cleared)
+                val clearedBets = previousBets.filter { (seat, _) ->
+                    currentBets[seat] == null || currentBets[seat] == 0.0
                 }
-        }
+
+                if (clearedBets.isNotEmpty()) {
+                    _effects.emit(
+                        RoomEffect.AnimateChipsToPot(
+                            clearedBets.map { AnimatingBet(it.key, it.value) },
+                        ),
+                    )
+                }
+
+                previousBets = currentBets
+
+                // === Winner detection (pot → winners) ===
+                val currentWinners = gameState?.winners ?: emptyList()
+                if (previousWinners.isEmpty() && currentWinners.isNotEmpty() && gameState != null) {
+                    // Brief delay to let bet animations finish first
+                    delay(300)
+
+                    val winnings = currentWinners.mapNotNull { winner ->
+                        gameState.table.getPlayerSeat(winner.playerId)?.number?.let { seat ->
+                            AnimatingBet(seat, winner.amount)
+                        }
+                    }
+
+                    if (winnings.isNotEmpty()) {
+                        _effects.emit(RoomEffect.AnimateChipsFromPot(winnings))
+                    }
+                }
+                previousWinners = currentWinners
+            }
     }
 
     /**
@@ -249,7 +271,7 @@ class RoomViewModel(
     private fun handleLeaveRoom() = viewModelScope.launch {
         repository.leaveRoom()
         clearSession()
-        _effects.send(RoomEffect.NavigateToLobby)
+        _effects.emit(RoomEffect.NavigateToLobby)
     }
 
     private fun handleTakeSeat(seatNumber: Int, buyIn: ChipAmount) {
@@ -257,7 +279,7 @@ class RoomViewModel(
             localState.update { it.copy(isLoading = true) }
             try {
                 repository.takeSeat(seatNumber, buyIn)
-                _effects.send(RoomEffect.PlaySound(SoundType.CHIP_MOVE))
+                _effects.emit(RoomEffect.PlaySound(SoundType.CHIP_MOVE))
             } finally {
                 localState.update { it.copy(isLoading = false) }
             }
@@ -275,7 +297,7 @@ class RoomViewModel(
             is Action.Fold -> null
             else -> SoundType.CHIP_MOVE
         }?.let { soundType ->
-            _effects.send(RoomEffect.PlaySound(soundType))
+            _effects.emit(RoomEffect.PlaySound(soundType))
         }
     }
 
@@ -286,7 +308,7 @@ class RoomViewModel(
     private fun handleDisconnect() = viewModelScope.launch {
         repository.disconnect()
         clearSession()
-        _effects.send(RoomEffect.NavigateToLobby)
+        _effects.emit(RoomEffect.NavigateToLobby)
     }
 
     private fun handleClearError() {

@@ -94,7 +94,7 @@ fun App() = MaterialExpressiveTheme {
             )
             val uiState by viewModel.uiState.collectAsState()
 
-            // Handle side effects (except AnimateChipsToPot, handled locally in ShowPlayers)
+            // Handle side effects (except chip animations, handled locally in ShowPlayers)
             LaunchedEffect(Unit) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
@@ -111,7 +111,9 @@ fun App() = MaterialExpressiveTheme {
                             soundPlayer.playSound(path)
                         }
 
-                        is RoomEffect.AnimateChipsToPot -> {
+                        is RoomEffect.AnimateChipsToPot,
+                        is RoomEffect.AnimateChipsFromPot,
+                        -> {
                             // Handled locally in ShowPlayers via LocalRoomEffects
                         }
                     }
