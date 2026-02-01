@@ -87,6 +87,17 @@ data class Table(
     fun getPlayersInHand(): List<PlayerState> = occupiedSeats.mapNotNull { it.playerState }
         .filter { it.status in listOf(PlayerStatus.ACTIVE, PlayerStatus.ALL_IN) }
 
+    /**
+     * Returns seats occupied by players who have chips and can participate in a hand.
+     * Players with 0 chips are excluded as they cannot post blinds or bet.
+     */
+    val seatsWithChips: List<Seat> get() = occupiedSeats.filter { it.playerState!!.chips > 0 }
+
+    /**
+     * Number of players with chips who can participate in a hand.
+     */
+    val eligiblePlayerCount: Int get() = seatsWithChips.size
+
     companion object {
         fun create(id: String, name: String, maxPlayers: Int): Table {
             require(maxPlayers in 2..10) { "Table must have 2-10 seats" }

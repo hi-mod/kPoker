@@ -34,8 +34,8 @@ class StandardDealer : CardDealer {
             "Visibility pattern size (${pattern.size}) must match cardsPerPlayer ($cardsPerPlayer)"
         }
 
-        // Deal to each occupied seat in seat order
-        for (seat in currentState.table.occupiedSeats.sortedBy { it.number }) {
+        // Deal to each occupied seat with chips in seat order (skip broke players)
+        for (seat in currentState.table.seatsWithChips.sortedBy { it.number }) {
             val playerState = seat.playerState ?: continue
 
             // Deal cards from deck

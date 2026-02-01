@@ -83,7 +83,7 @@ open class PokerGame(
     }
 
     open fun startHand(): GameState {
-        require(state.table.playerCount >= 2) { "Need at least 2 players" }
+        require(state.table.eligiblePlayerCount >= 2) { "Need at least 2 players with chips" }
         require(!state.isHandInProgress) { "Hand already in progress" }
 
         // Reset all player states for the new hand (clears showdownStatus, hole cards, etc.)
@@ -109,7 +109,11 @@ open class PokerGame(
         return state
     }
 
-    private fun getSortedOccupiedSeatNumbers(): List<Int> = state.table.occupiedSeats.map { it.number }.sorted()
+    /**
+     * Returns seat numbers of players with chips, sorted.
+     * Used for dealer button and blind posting - only players who can participate.
+     */
+    private fun getSortedEligibleSeatNumbers(): List<Int> = state.table.seatsWithChips.map { it.number }.sorted()
 
     private fun getSeatAtOffset(startSeat: Int, offset: Int, seats: List<Int>): Int {
         if (seats.isEmpty()) return startSeat
@@ -120,8 +124,8 @@ open class PokerGame(
     }
 
     protected open fun advanceDealer() {
-        val occupiedSeats = getSortedOccupiedSeatNumbers()
-        val newDealerSeat = getSeatAtOffset(state.dealerSeatNumber, 1, occupiedSeats)
+        val eligibleSeats = getSortedEligibleSeatNumbers()
+        val newDealerSeat = getSeatAtOffset(state.dealerSeatNumber, 1, eligibleSeats)
 
         state = state.copy(dealerSeatNumber = newDealerSeat)
 
@@ -140,19 +144,19 @@ open class PokerGame(
     }
 
     protected open fun postBlinds() {
-        val occupiedSeats = getSortedOccupiedSeatNumbers()
+        val eligibleSeats = getSortedEligibleSeatNumbers()
 
         val smallBlindSeat: Int
         val bigBlindSeat: Int
 
-        if (occupiedSeats.size == 2) {
+        if (eligibleSeats.size == 2) {
             // In Heads-Up, Dealer is SB, other player is BB
             smallBlindSeat = state.dealerSeatNumber
-            bigBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 1, occupiedSeats)
+            bigBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 1, eligibleSeats)
         } else {
             // Multi-player: SB is dealer + 1, BB is dealer + 2
-            smallBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 1, occupiedSeats)
-            bigBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 2, occupiedSeats)
+            smallBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 1, eligibleSeats)
+            bigBlindSeat = getSeatAtOffset(state.dealerSeatNumber, 2, eligibleSeats)
         }
 
         // Post small blind

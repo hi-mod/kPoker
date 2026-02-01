@@ -132,34 +132,32 @@ private fun ActionButton(
     betAmount: ChipAmount,
     enabled: Boolean,
     onIntent: (RoomIntent) -> Unit,
+) = Button(
+    onClick = {
+        val action = createAction(
+            playerId = playerId,
+            playerChips = playerChips,
+            actionType = actionType,
+            availableActions = availableActions,
+            betAmount = betAmount,
+        )
+        onIntent(RoomIntent.PerformAction(action))
+    },
+    enabled = enabled,
 ) {
-    Button(
-        onClick = {
-            val action = createAction(
-                playerId = playerId,
-                playerChips = playerChips,
-                actionType = actionType,
-                availableActions = availableActions,
-                betAmount = betAmount,
-            )
-            onIntent(RoomIntent.PerformAction(action))
-        },
-        enabled = enabled,
-    ) {
-        val stringRes = when (actionType) {
-            ActionType.FOLD -> Res.string.wagerActionFold
-            ActionType.CHECK -> Res.string.wagerActionCheck
-            ActionType.CALL -> Res.string.wagerActionCall
-            ActionType.BET -> Res.string.wagerActionBet
-            ActionType.RAISE -> Res.string.wagerActionRaise
-            ActionType.ALL_IN -> {
-                val isPotLimitCapped = availableActions.bettingType == BettingType.POT_LIMIT &&
-                    availableActions.maximumBet < playerChips
-                if (isPotLimitCapped) Res.string.wagerActionPot else Res.string.wagerActionAllIn
-            }
+    val stringRes = when (actionType) {
+        ActionType.FOLD -> Res.string.wagerActionFold
+        ActionType.CHECK -> Res.string.wagerActionCheck
+        ActionType.CALL -> Res.string.wagerActionCall
+        ActionType.BET -> Res.string.wagerActionBet
+        ActionType.RAISE -> Res.string.wagerActionRaise
+        ActionType.ALL_IN -> {
+            val isPotLimitCapped = availableActions.bettingType == BettingType.POT_LIMIT &&
+                availableActions.maximumBet < playerChips
+            if (isPotLimitCapped) Res.string.wagerActionPot else Res.string.wagerActionAllIn
         }
-        Text(stringResource(stringRes))
     }
+    Text(stringResource(stringRes))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -272,15 +270,10 @@ private fun createAction(
     betAmount: ChipAmount,
 ): Action = when (actionType) {
     ActionType.FOLD -> Action.Fold(playerId)
-
     ActionType.CHECK -> Action.Check(playerId)
-
     ActionType.CALL -> Action.Call(playerId, availableActions.amountToCall)
-
     ActionType.BET -> Action.Bet(playerId, betAmount)
-
     ActionType.RAISE -> Action.Raise(playerId, betAmount - availableActions.amountToCall, betAmount)
-
     ActionType.ALL_IN -> {
         val isPotBet = availableActions.bettingType == BettingType.POT_LIMIT &&
             availableActions.maximumBet < playerChips

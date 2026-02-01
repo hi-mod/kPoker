@@ -268,7 +268,7 @@ class ServerRoom(
     }
 
     suspend fun startHandIfReady(): Boolean = mutex.withLock {
-        if (game.currentState.table.playerCount >= 2 && !game.currentState.isHandInProgress) {
+        if (game.currentState.table.eligiblePlayerCount >= 2 && !game.currentState.isHandInProgress) {
             game.startHand()
             true
         } else {
