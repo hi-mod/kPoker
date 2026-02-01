@@ -17,15 +17,12 @@ import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.network.ConnectionState
+import com.aaronchancey.poker.presentation.common.ObserveAsEvents
 import com.aaronchancey.poker.presentation.room.components.RoomTable
 import com.aaronchancey.poker.presentation.sound.SoundManager
 import com.aaronchancey.poker.presentation.sound.SoundPlayer
@@ -55,96 +52,92 @@ fun RoomScreen(
     onDisconnected: () -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) = MaterialExpressiveTheme {
-    // Handle side effects
+    // Handle side effects (except AnimateChipsToPot, which is handled locally in ShowPlayers)
     val soundPlayer: SoundPlayer = koinInject()
-    var animatingBets by remember { mutableStateOf<List<AnimatingBet>>(emptyList()) }
 
-    LaunchedEffect(Unit) {
-        effects.collect { effect ->
-            when (effect) {
-                is RoomEffect.ShowToast -> {
-                    // Platform-specific toast
-                }
+    ObserveAsEvents(effects) { effect ->
+        when (effect) {
+            is RoomEffect.ShowToast -> {
+                // Platform-specific toast
+            }
 
-                is RoomEffect.NavigateToLobby -> {
-                    onDisconnected()
-                }
+            is RoomEffect.NavigateToLobby -> {
+                onDisconnected()
+            }
 
-                is RoomEffect.PlaySound -> {
-                    val path = SoundManager.getPath(effect.soundType)
-                    soundPlayer.playSound(path)
-                }
+            is RoomEffect.PlaySound -> {
+                val path = SoundManager.getPath(effect.soundType)
+                soundPlayer.playSound(path)
+            }
 
-                is RoomEffect.AnimateChipsToPot -> {
-                    animatingBets = effect.bets
-                }
+            is RoomEffect.AnimateChipsToPot -> {
+                // Handled locally in ShowPlayers via LocalRoomEffects
             }
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        when (uiState.connectionState) {
-            ConnectionState.DISCONNECTED -> {
-                CircularProgressIndicator()
-                Text("Connecting...")
-            }
-
-            ConnectionState.CONNECTING -> {
-                CircularProgressIndicator()
-                Text("Connecting...")
-            }
-
-            ConnectionState.RECONNECTING -> {
-                CircularProgressIndicator()
-                Text("Reconnecting...")
-            }
-
-            ConnectionState.RECONNECTED,
-            ConnectionState.CONNECTED,
-            -> {
-                if (uiState.roomInfo != null) {
-                    RoomGameScreen(
-                        modifier = Modifier.fillMaxSize(),
-                        uiState = uiState,
-                        animatingBets = animatingBets,
-                        onAnimationComplete = { seatNumber ->
-                            animatingBets = animatingBets.filter { it.seatNumber != seatNumber }
-                        },
-                        onIntent = onIntent,
-                    )
-                } else {
-                    CircularProgressIndicator()
-                    Text("Loading room...")
-                }
-            }
-        }
-
-        uiState.error?.let { error ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Error: $error",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(16.dp),
-                )
-            }
-            Button(onClick = { onIntent(RoomIntent.ClearError) }) {
-                Text("Dismiss")
-            }
-        }
-    }
-
-    if (uiState.isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
+    // Provide effects flow to composition tree for local observation
+    CompositionLocalProvider(LocalRoomEffects provides effects) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            CircularProgressIndicator()
+            when (uiState.connectionState) {
+                ConnectionState.DISCONNECTED -> {
+                    CircularProgressIndicator()
+                    Text("Connecting...")
+                }
+
+                ConnectionState.CONNECTING -> {
+                    CircularProgressIndicator()
+                    Text("Connecting...")
+                }
+
+                ConnectionState.RECONNECTING -> {
+                    CircularProgressIndicator()
+                    Text("Reconnecting...")
+                }
+
+                ConnectionState.RECONNECTED,
+                ConnectionState.CONNECTED,
+                -> {
+                    if (uiState.roomInfo != null) {
+                        RoomGameScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            uiState = uiState,
+                            onIntent = onIntent,
+                        )
+                    } else {
+                        CircularProgressIndicator()
+                        Text("Loading room...")
+                    }
+                }
+            }
+
+            uiState.error?.let { error ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Error: $error",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+                Button(onClick = { onIntent(RoomIntent.ClearError) }) {
+                    Text("Dismiss")
+                }
+            }
+        }
+
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
         }
     }
 }
@@ -153,8 +146,6 @@ fun RoomScreen(
 private fun RoomGameScreen(
     modifier: Modifier = Modifier,
     uiState: RoomUiState,
-    animatingBets: List<AnimatingBet>,
-    onAnimationComplete: (Int) -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) {
     Column(
@@ -172,8 +163,6 @@ private fun RoomGameScreen(
 
         RoomTable(
             uiState = uiState,
-            animatingBets = animatingBets,
-            onAnimationComplete = onAnimationComplete,
             onIntent = onIntent,
         )
     }

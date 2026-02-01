@@ -10,15 +10,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.aaronchancey.poker.presentation.room.AnimatingBet
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
 
 @Composable
 fun RoomTable(
     uiState: RoomUiState,
-    animatingBets: List<AnimatingBet>,
-    onAnimationComplete: (Int) -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) {
     uiState.gameState?.let { state ->
@@ -29,8 +26,6 @@ fun RoomTable(
         ShowPlayers(
             isLoading = uiState.isLoading,
             uiState = uiState,
-            animatingBets = animatingBets,
-            onAnimationComplete = onAnimationComplete,
             onTakeSeat = { onIntent(RoomIntent.TakeSeat(it, 100.0)) },
             onIntent = onIntent,
         )

@@ -15,11 +15,11 @@ import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +28,7 @@ import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.presentation.lobby.Lobby
 import com.aaronchancey.poker.presentation.lobby.LobbyIntent
 import com.aaronchancey.poker.presentation.lobby.LobbyViewModel
-import com.aaronchancey.poker.presentation.room.AnimatingBet
+import com.aaronchancey.poker.presentation.room.LocalRoomEffects
 import com.aaronchancey.poker.presentation.room.RoomEffect
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomParams
@@ -93,9 +93,8 @@ fun App() = MaterialExpressiveTheme {
                 parameters = { parametersOf(roomParams) },
             )
             val uiState by viewModel.uiState.collectAsState()
-            var animatingBets by remember { mutableStateOf<List<AnimatingBet>>(emptyList()) }
 
-            // Handle side effects
+            // Handle side effects (except AnimateChipsToPot, handled locally in ShowPlayers)
             LaunchedEffect(Unit) {
                 viewModel.effects.collect { effect ->
                     when (effect) {
@@ -113,65 +112,64 @@ fun App() = MaterialExpressiveTheme {
                         }
 
                         is RoomEffect.AnimateChipsToPot -> {
-                            animatingBets = effect.bets
+                            // Handled locally in ShowPlayers via LocalRoomEffects
                         }
                     }
                 }
             }
 
-            when (uiState.connectionState) {
-                ConnectionState.DISCONNECTED,
-                ConnectionState.CONNECTING,
-                -> {
-                    CircularProgressIndicator()
-                    Text("Connecting...")
-                }
-
-                ConnectionState.RECONNECTING -> {
-                    CircularProgressIndicator()
-                    Text("Reconnecting...")
-                }
-
-                ConnectionState.RECONNECTED,
-                ConnectionState.CONNECTED,
-                -> {
-                    if (uiState.roomInfo != null) {
-                        GameScreen(
-                            modifier = Modifier.fillMaxSize(),
-                            uiState = uiState,
-                            animatingBets = animatingBets,
-                            onAnimationComplete = { seatNumber ->
-                                animatingBets = animatingBets.filter { it.seatNumber != seatNumber }
-                            },
-                            onIntent = viewModel::onIntent,
-                        )
-                    } else {
+            // Provide effects flow to composition tree for local observation
+            CompositionLocalProvider(LocalRoomEffects provides viewModel.effects) {
+                when (uiState.connectionState) {
+                    ConnectionState.DISCONNECTED,
+                    ConnectionState.CONNECTING,
+                    -> {
                         CircularProgressIndicator()
-                        Text("Loading room...")
+                        Text("Connecting...")
+                    }
+
+                    ConnectionState.RECONNECTING -> {
+                        CircularProgressIndicator()
+                        Text("Reconnecting...")
+                    }
+
+                    ConnectionState.RECONNECTED,
+                    ConnectionState.CONNECTED,
+                    -> {
+                        if (uiState.roomInfo != null) {
+                            GameScreen(
+                                modifier = Modifier.fillMaxSize(),
+                                uiState = uiState,
+                                onIntent = viewModel::onIntent,
+                            )
+                        } else {
+                            CircularProgressIndicator()
+                            Text("Loading room...")
+                        }
                     }
                 }
-            }
 
-            uiState.error?.let { error ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Error: $error",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp),
-                    )
+                uiState.error?.let { error ->
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Error: $error",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                    Button(onClick = { viewModel.onIntent(RoomIntent.ClearError) }) {
+                        Text("Dismiss")
+                    }
                 }
-                Button(onClick = { viewModel.onIntent(RoomIntent.ClearError) }) {
-                    Text("Dismiss")
-                }
-            }
 
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
             }
         }
@@ -182,8 +180,6 @@ fun App() = MaterialExpressiveTheme {
 private fun GameScreen(
     modifier: Modifier = Modifier,
     uiState: RoomUiState,
-    animatingBets: List<AnimatingBet>,
-    onAnimationComplete: (Int) -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) {
     Column(
@@ -202,8 +198,6 @@ private fun GameScreen(
 
         RoomTable(
             uiState = uiState,
-            animatingBets = animatingBets,
-            onAnimationComplete = onAnimationComplete,
             onIntent = onIntent,
         )
     }
