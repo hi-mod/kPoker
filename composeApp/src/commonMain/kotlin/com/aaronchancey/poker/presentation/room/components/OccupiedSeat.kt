@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -65,17 +67,21 @@ private fun BoxScope.PlayerNameplate(player: PlayerState) {
 private fun HoleCards(hand: List<DealtCard>) {
     val windowInfo = LocalWindowInfo.current
     val windowSize = windowInfo.containerSize
-    val cardHeight = minOf(windowSize.width, windowSize.height) * 0.125f
+    val cardHeight = remember(windowSize) {
+        minOf(windowSize.width, windowSize.height) * 0.125f
+    }
 
     Box {
         hand.forEachIndexed { index, card ->
-            DealtCardView(
-                modifier = Modifier
-                    .offset { IntOffset(x = index * 16, y = 0) }
-                    .graphicsLayer { rotationZ = index * 10f }
-                    .requiredHeight(cardHeight.dp),
-                dealtCard = card,
-            )
+            key(index) {
+                DealtCardView(
+                    modifier = Modifier
+                        .offset { IntOffset(x = index * 16, y = 0) }
+                        .graphicsLayer { rotationZ = index * 10f }
+                        .requiredHeight(cardHeight.dp),
+                    dealtCard = card,
+                )
+            }
         }
     }
 }

@@ -15,6 +15,7 @@ import com.aaronchancey.poker.kpoker.player.PlayerState
  * @param seatNumber The seat number (1-based)
  * @param playerState The player occupying this seat, or null if empty
  * @param isLoading Whether the room is in a loading state (disables interaction)
+ * @param isLocalPlayerSeated Whether the local player is already seated at the table
  * @param onTakeSeat Callback when the user clicks "Take Seat" on an empty seat
  */
 @Composable
@@ -23,9 +24,15 @@ fun SeatSlot(
     seatNumber: Int,
     playerState: PlayerState?,
     isLoading: Boolean,
+    isLocalPlayerSeated: Boolean,
     onTakeSeat: (Int) -> Unit,
 ) {
-    if (playerState == null) {
+    if (playerState != null) {
+        OccupiedSeat(
+            modifier = modifier,
+            player = playerState,
+        )
+    } else if (!isLocalPlayerSeated) {
         Button(
             modifier = modifier,
             onClick = { onTakeSeat(seatNumber) },
@@ -33,10 +40,6 @@ fun SeatSlot(
         ) {
             Text("Take Seat $seatNumber")
         }
-    } else {
-        OccupiedSeat(
-            modifier = modifier,
-            player = playerState,
-        )
     }
+    // Empty seats show nothing when local player is already seated
 }

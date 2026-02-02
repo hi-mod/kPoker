@@ -1,10 +1,13 @@
 package com.aaronchancey.poker.presentation.room.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -83,7 +86,12 @@ fun PokerTableScene(
             TableCenter(
                 communityCards = uiState.gameState?.communityCards ?: emptyList(),
                 displayedPot = displayedPot,
-                onMeasured = { measurements = it },
+                onMeasured = { newMeasurements ->
+                    // Only update state if values changed to prevent recomposition loop
+                    if (measurements != newMeasurements) {
+                        measurements = newMeasurements
+                    }
+                },
             )
         }
 
@@ -113,7 +121,22 @@ fun PokerTableScene(
             fromPot = true,
         )
 
+        val dealerPosAnim = remember { Animatable((uiState.gameState?.dealerSeatNumber ?: 1).toFloat()) }
+        LaunchedEffect(uiState.gameState?.dealerSeatNumber) {
+            val targetSeat = uiState.gameState?.dealerSeatNumber ?: return@LaunchedEffect
+            val current = dealerPosAnim.value
+            val forwardDist = (targetSeat - current.toInt() + 9) % 9
+            if (forwardDist > 0) {
+                dealerPosAnim.animateTo(current + forwardDist)
+            }
+        }
+        val a = ellipse.positionForSeat(dealerPosAnim.value.toInt(), scaleFactor = 0.72f)
+        val dealerX by animateDpAsState(a.first)
+        val dealerY by animateDpAsState(a.second)
+
         uiState.gameState?.let { gameState ->
+            val isLocalPlayerSeated = uiState.playerId?.let { gameState.table.getPlayerSeat(it) } != null
+
             gameState.table.seats.forEach { seat ->
                 key(seat.number) {
                     val (playerX, playerY) = ellipse.positionForSeat(seat.number)
@@ -123,6 +146,7 @@ fun PokerTableScene(
                             seatNumber = seat.number,
                             playerState = seat.playerState,
                             isLoading = isLoading,
+                            isLocalPlayerSeated = isLocalPlayerSeated,
                             onTakeSeat = onTakeSeat,
                         )
                     }
@@ -138,7 +162,6 @@ fun PokerTableScene(
                     }
 
                     if (seat.number == gameState.dealerSeatNumber) {
-                        val (dealerX, dealerY) = ellipse.positionForSeat(seat.number, scaleFactor = 0.72f)
                         val buttonSize = minOf(maxWidth, maxHeight) / 18
                         LayoutCenteredAt(x = dealerX, y = dealerY) {
                             DealerButton(size = buttonSize)

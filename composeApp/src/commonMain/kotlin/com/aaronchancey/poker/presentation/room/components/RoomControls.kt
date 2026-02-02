@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.presentation.room.RoomIntent
@@ -28,6 +29,12 @@ fun RoomControls(
     uiState: RoomUiState,
     onIntent: (RoomIntent) -> Unit,
 ) {
+    val takeSeatHandler = remember(onIntent) {
+        { seatNumber: Int ->
+            onIntent(RoomIntent.TakeSeat(seatNumber, 100.0))
+        }
+    }
+
     uiState.gameState?.let { state ->
         Text("Pot: ${state.totalPot}")
 
@@ -36,7 +43,7 @@ fun RoomControls(
         PokerTableScene(
             isLoading = uiState.isLoading,
             uiState = uiState,
-            onTakeSeat = { onIntent(RoomIntent.TakeSeat(it, 100.0)) },
+            onTakeSeat = takeSeatHandler,
             onIntent = onIntent,
         )
     }
