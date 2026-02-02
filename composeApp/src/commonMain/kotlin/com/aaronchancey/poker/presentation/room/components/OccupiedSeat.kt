@@ -21,30 +21,29 @@ import androidx.compose.ui.unit.sp
 import com.aaronchancey.poker.kpoker.core.DealtCard
 import com.aaronchancey.poker.kpoker.player.PlayerState
 
+/**
+ * Displays an occupied seat with the player's cards and nameplate.
+ *
+ * @param player The player state to display
+ */
 @Composable
-fun ShowPlayer(
+internal fun OccupiedSeat(
     modifier: Modifier = Modifier,
     player: PlayerState,
 ) {
-    Box(
-        modifier = modifier,
-    ) {
-        ShowHand(
-            hand = player.dealtCards,
-        )
-        PlayerDetails(
-            player = player,
-        )
+    Box(modifier = modifier) {
+        HoleCards(hand = player.dealtCards)
+        PlayerNameplate(player = player)
     }
 }
 
+/**
+ * Displays the player's name and chip count at the bottom of the seat.
+ */
 @Composable
-private fun BoxScope.PlayerDetails(
-    modifier: Modifier = Modifier,
-    player: PlayerState,
-) {
+private fun BoxScope.PlayerNameplate(player: PlayerState) {
     Box(
-        modifier = modifier
+        modifier = Modifier
             .align(Alignment.BottomCenter)
             .background(color = Color.White),
     ) {
@@ -58,28 +57,22 @@ private fun BoxScope.PlayerDetails(
     }
 }
 
+/**
+ * Displays the player's hole cards with a slight fan effect.
+ */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun ShowHand(
-    modifier: Modifier = Modifier,
-    hand: List<DealtCard>,
-) {
+private fun HoleCards(hand: List<DealtCard>) {
     val windowInfo = LocalWindowInfo.current
     val windowSize = windowInfo.containerSize
-
-    // Calculate card size based on window dimensions
     val cardHeight = minOf(windowSize.width, windowSize.height) * 0.125f
 
-    Box(
-        modifier = modifier,
-    ) {
+    Box {
         hand.forEachIndexed { index, card ->
             DealtCardView(
                 modifier = Modifier
-                    .offset { IntOffset((index * 16), 0) }
-                    .graphicsLayer {
-                        rotationZ = index * 10f
-                    }
+                    .offset { IntOffset(x = index * 16, y = 0) }
+                    .graphicsLayer { rotationZ = index * 10f }
                     .requiredHeight(cardHeight.dp),
                 dealtCard = card,
             )

@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.presentation.common.ObserveAsEvents
-import com.aaronchancey.poker.presentation.room.components.RoomTable
+import com.aaronchancey.poker.presentation.room.components.RoomControls
 import com.aaronchancey.poker.presentation.sound.SoundManager
 import com.aaronchancey.poker.presentation.sound.SoundPlayer
 import kotlinx.coroutines.flow.Flow
@@ -72,6 +72,7 @@ fun RoomScreen(
 
             is RoomEffect.AnimateChipsToPot,
             is RoomEffect.AnimateChipsFromPot,
+            RoomEffect.DealCards,
             -> {
                 // Handled locally in ShowPlayers via LocalRoomEffects
             }
@@ -87,12 +88,9 @@ fun RoomScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             when (uiState.connectionState) {
-                ConnectionState.DISCONNECTED -> {
-                    CircularProgressIndicator()
-                    Text("Connecting...")
-                }
-
-                ConnectionState.CONNECTING -> {
+                ConnectionState.DISCONNECTED,
+                ConnectionState.CONNECTING,
+                -> {
                     CircularProgressIndicator()
                     Text("Connecting...")
                 }
@@ -163,7 +161,7 @@ private fun RoomGameScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        RoomTable(
+        RoomControls(
             uiState = uiState,
             onIntent = onIntent,
         )

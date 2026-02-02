@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,8 +12,19 @@ import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
 
+/**
+ * Room controls layout containing the poker table and room action buttons.
+ *
+ * Displays:
+ * - Pot total (above table)
+ * - [PokerTableScene] with full game view
+ * - Leave Seat and Disconnect buttons (below table)
+ *
+ * @param uiState Current room UI state
+ * @param onIntent Handler for room intents (actions, seat management, etc.)
+ */
 @Composable
-fun RoomTable(
+fun RoomControls(
     uiState: RoomUiState,
     onIntent: (RoomIntent) -> Unit,
 ) {
@@ -23,7 +33,7 @@ fun RoomTable(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        ShowPlayers(
+        PokerTableScene(
             isLoading = uiState.isLoading,
             uiState = uiState,
             onTakeSeat = { onIntent(RoomIntent.TakeSeat(it, 100.0)) },
@@ -38,7 +48,6 @@ fun RoomTable(
         ) {
             Text("Leave Seat")
         }
-        Spacer(modifier = Modifier.width(8.dp))
         Button(
             onClick = { onIntent(RoomIntent.Disconnect) },
             enabled = !uiState.isLoading,

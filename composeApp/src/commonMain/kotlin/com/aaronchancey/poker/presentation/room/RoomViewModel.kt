@@ -120,12 +120,13 @@ class RoomViewModel(
         if (observationStarted) return
         observationStarted = true
         println("[RoomViewModel] startConnectionObservation: Starting for roomId=${params.roomId}")
-        startChipAnimationObservation()
+        observeGameState()
         viewModelScope.launch {
             repository.gameEvents
                 .filterIsInstance<GameEvent.HandStarted>()
                 .collect {
                     _effects.emit(RoomEffect.PlaySound(SoundType.CARD_DEAL))
+                    _effects.emit(RoomEffect.DealCards)
                 }
         }
         viewModelScope.launch {
@@ -172,7 +173,7 @@ class RoomViewModel(
      * Emits [RoomEffect.AnimateChipsToPot] when bets clear (phase transition).
      * Emits [RoomEffect.AnimateChipsFromPot] when winners are declared.
      */
-    private fun startChipAnimationObservation() = viewModelScope.launch {
+    private fun observeGameState() = viewModelScope.launch {
         repository.session
             .map { it.gameState }
             .collect { gameState ->
@@ -188,33 +189,35 @@ class RoomViewModel(
                 val clearedBets = previousBets.filter { (seat, _) ->
                     currentBets[seat] == null || currentBets[seat] == 0.0
                 }
+                val currentWinners = gameState?.winners ?: emptyList()
+                val winnersJustDeclared = previousWinners.isEmpty() && currentWinners.isNotEmpty()
 
-                if (clearedBets.isNotEmpty()) {
-                    _effects.emit(
-                        RoomEffect.AnimateChipsToPot(
-                            clearedBets.map { AnimatingBet(it.key, it.value) },
-                        ),
-                    )
+                when {
+                    clearedBets.isNotEmpty() -> {
+                        _effects.emit(
+                            RoomEffect.AnimateChipsToPot(
+                                clearedBets.map { AnimatingBet(it.key, it.value) },
+                            ),
+                        )
+                    }
+
+                    winnersJustDeclared && gameState != null -> {
+                        // Brief delay to let bet animations finish first
+                        delay(300)
+
+                        val winnings = currentWinners.mapNotNull { winner ->
+                            gameState.table.getPlayerSeat(winner.playerId)?.number?.let { seat ->
+                                AnimatingBet(seat, winner.amount)
+                            }
+                        }
+
+                        if (winnings.isNotEmpty()) {
+                            _effects.emit(RoomEffect.AnimateChipsFromPot(winnings))
+                        }
+                    }
                 }
 
                 previousBets = currentBets
-
-                // === Winner detection (pot → winners) ===
-                val currentWinners = gameState?.winners ?: emptyList()
-                if (previousWinners.isEmpty() && currentWinners.isNotEmpty() && gameState != null) {
-                    // Brief delay to let bet animations finish first
-                    delay(300)
-
-                    val winnings = currentWinners.mapNotNull { winner ->
-                        gameState.table.getPlayerSeat(winner.playerId)?.number?.let { seat ->
-                            AnimatingBet(seat, winner.amount)
-                        }
-                    }
-
-                    if (winnings.isNotEmpty()) {
-                        _effects.emit(RoomEffect.AnimateChipsFromPot(winnings))
-                    }
-                }
                 previousWinners = currentWinners
             }
     }

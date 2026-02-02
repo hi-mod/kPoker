@@ -34,7 +34,7 @@ import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomParams
 import com.aaronchancey.poker.presentation.room.RoomUiState
 import com.aaronchancey.poker.presentation.room.RoomViewModel
-import com.aaronchancey.poker.presentation.room.components.RoomTable
+import com.aaronchancey.poker.presentation.room.components.RoomControls
 import com.aaronchancey.poker.presentation.sound.SoundManager
 import com.aaronchancey.poker.presentation.sound.SoundPlayer
 import org.koin.compose.koinInject
@@ -113,6 +113,7 @@ fun App() = MaterialExpressiveTheme {
 
                         is RoomEffect.AnimateChipsToPot,
                         is RoomEffect.AnimateChipsFromPot,
+                        RoomEffect.DealCards,
                         -> {
                             // Handled locally in ShowPlayers via LocalRoomEffects
                         }
@@ -190,7 +191,6 @@ private fun GameScreen(
     ) {
         uiState.roomInfo?.let { room ->
             Text("Room: ${room.roomName}", style = MaterialTheme.typography.headlineSmall)
-            uiState.gameState?.handNumber
             Text("Hand No: ${uiState.gameState?.handNumber ?: "N/A"}")
             Text("Blinds: ${room.smallBlind}/${room.bigBlind}")
             Text("Players: ${room.playerCount}/${room.maxPlayers}")
@@ -198,7 +198,7 @@ private fun GameScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        RoomTable(
+        RoomControls(
             uiState = uiState,
             onIntent = onIntent,
         )

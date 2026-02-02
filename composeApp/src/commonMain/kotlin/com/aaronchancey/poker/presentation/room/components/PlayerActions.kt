@@ -3,6 +3,7 @@ package com.aaronchancey.poker.presentation.room.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -213,7 +214,7 @@ private fun BetAmountInput(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     )
     Slider(
-        modifier = Modifier.widthIn(200.dp, 200.dp),
+        modifier = Modifier.sizeIn(minWidth = 200.dp, minHeight = 25.dp, maxWidth = 200.dp, maxHeight = 25.dp),
         state = sliderState,
     )
 }
