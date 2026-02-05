@@ -22,6 +22,7 @@ import com.aaronchancey.poker.kpoker.player.PlayerState
 fun SeatSlot(
     modifier: Modifier = Modifier,
     seatNumber: Int,
+    currentActor: PlayerState?,
     playerState: PlayerState?,
     isLoading: Boolean,
     isLocalPlayerSeated: Boolean,
@@ -30,6 +31,7 @@ fun SeatSlot(
     if (playerState != null) {
         OccupiedSeat(
             modifier = modifier,
+            currentActor = currentActor,
             player = playerState,
         )
     } else if (!isLocalPlayerSeated) {

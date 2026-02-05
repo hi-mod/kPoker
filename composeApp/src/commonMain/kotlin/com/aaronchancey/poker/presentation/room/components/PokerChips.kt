@@ -4,7 +4,9 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -48,22 +50,34 @@ fun ChipStacks(
     modifier: Modifier = Modifier,
     wager: ChipAmount,
 ) {
-    val chipStacks = remember(wager) { buildChipStacks(wager) }
+    if (wager <= 0) return
 
-    Row(modifier = modifier) {
-        chipStacks.forEach { (chipValue, count) ->
-            key(chipValue) {
-                Box {
-                    repeat(count) { chipIndex ->
-                        Box(
-                            modifier = Modifier.offset(y = 4.dp * chipIndex),
-                        ) {
-                            PokerChip(value = chipValue)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        val chipStacks = remember(wager) { buildChipStacks(wager) }
+
+        Row {
+            chipStacks.forEach { (chipValue, count) ->
+                key(chipValue) {
+                    Box {
+                        repeat(count) { chipIndex ->
+                            Box(
+                                modifier = Modifier.offset(y = 4.dp * chipIndex),
+                            ) {
+                                PokerChip(value = chipValue)
+                            }
                         }
                     }
                 }
             }
         }
+        Text(
+            text = "$wager",
+            fontSize = 12.sp,
+        )
     }
 }
 

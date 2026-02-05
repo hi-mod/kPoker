@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -82,10 +84,15 @@ fun CommunityCards(
     modifier: Modifier = Modifier,
     communityCards: List<Card>,
 ) = Row(modifier = modifier) {
+    val windowInfo = LocalWindowInfo.current
+    val windowSize = windowInfo.containerSize
+    val cardHeight = remember(windowSize) {
+        minOf(windowSize.width, windowSize.height) * 0.125f
+    }
     communityCards.forEach { card ->
         key(card) {
             PlayingCard(
-                modifier = Modifier.requiredHeight(100.dp),
+                modifier = Modifier.requiredHeight(cardHeight.dp),
                 card = card,
             )
         }

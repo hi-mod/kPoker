@@ -10,6 +10,12 @@ import poker.composeapp.generated.resources.Res
 import poker.composeapp.generated.resources.allDrawableResources
 import poker.composeapp.generated.resources.cardBackBlue
 
+/**
+ * Displays a playing card zoomed in the top-left corner (rank + suit).
+ *
+ * Uses layout-based scaling (not graphicsLayer) so the SVG rasterizes
+ * at the zoomed resolution, avoiding blur.
+ */
 @Composable
 fun PlayingCard(
     modifier: Modifier = Modifier,

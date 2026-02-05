@@ -144,6 +144,7 @@ fun PokerTableScene(
                     LayoutCenteredAt(x = playerX, y = playerY) {
                         SeatSlot(
                             seatNumber = seat.number,
+                            currentActor = gameState.currentActor,
                             playerState = seat.playerState,
                             isLoading = isLoading,
                             isLocalPlayerSeated = isLocalPlayerSeated,

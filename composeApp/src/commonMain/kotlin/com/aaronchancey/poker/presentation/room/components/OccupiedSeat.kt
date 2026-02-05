@@ -1,9 +1,11 @@
 package com.aaronchancey.poker.presentation.room.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,11 +33,12 @@ import com.aaronchancey.poker.kpoker.player.PlayerState
 @Composable
 internal fun OccupiedSeat(
     modifier: Modifier = Modifier,
+    currentActor: PlayerState?,
     player: PlayerState,
 ) {
     Box(modifier = modifier) {
         HoleCards(hand = player.dealtCards)
-        PlayerNameplate(player = player)
+        PlayerNameplate(currentActor = currentActor, player = player)
     }
 }
 
@@ -43,20 +46,23 @@ internal fun OccupiedSeat(
  * Displays the player's name and chip count at the bottom of the seat.
  */
 @Composable
-private fun BoxScope.PlayerNameplate(player: PlayerState) {
-    Box(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .background(color = Color.White),
-    ) {
-        Text(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            text = "${player.player.name}\n${player.chips}",
-            textAlign = TextAlign.Center,
-            style = TextStyle(fontSize = 16.sp),
-            color = Color.Black,
-        )
-    }
+private fun BoxScope.PlayerNameplate(
+    currentActor: PlayerState?,
+    player: PlayerState,
+) = Box(
+    modifier = Modifier
+        .align(Alignment.BottomCenter)
+        .background(color = Color.White)
+        .then(if (currentActor?.player?.id == player.player.id) Modifier.border(width = 2.dp, color = Color.Red) else Modifier)
+        .padding(4.dp),
+) {
+    Text(
+        modifier = Modifier.align(Alignment.BottomCenter),
+        text = "${player.player.name}\n${player.chips}",
+        textAlign = TextAlign.Center,
+        style = TextStyle(fontSize = 16.sp),
+        color = Color.Black,
+    )
 }
 
 /**
@@ -76,7 +82,7 @@ private fun HoleCards(hand: List<DealtCard>) {
             key(index) {
                 DealtCardView(
                     modifier = Modifier
-                        .offset { IntOffset(x = index * 16, y = 0) }
+                        .offset { IntOffset(x = index * 8, y = 0) }
                         .graphicsLayer { rotationZ = index * 10f }
                         .requiredHeight(cardHeight.dp),
                     dealtCard = card,
