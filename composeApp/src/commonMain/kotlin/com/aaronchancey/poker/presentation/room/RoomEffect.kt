@@ -1,7 +1,7 @@
 package com.aaronchancey.poker.presentation.room
 
 sealed interface RoomEffect {
-    data object DealCards : RoomEffect
+    data class DealCards(val numCards: Int) : RoomEffect
     data class ShowToast(val message: String) : RoomEffect
     data object NavigateToLobby : RoomEffect
     data class PlaySound(val soundType: SoundType) : RoomEffect

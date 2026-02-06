@@ -126,7 +126,14 @@ class RoomViewModel(
                 .filterIsInstance<GameEvent.HandStarted>()
                 .collect {
                     _effects.emit(RoomEffect.PlaySound(SoundType.CARD_DEAL))
-                    _effects.emit(RoomEffect.DealCards)
+                    _effects.emit(
+                        RoomEffect.DealCards(
+                            uiState.value.gameState
+                                ?.activePlayers
+                                ?.firstOrNull { it.holeCards.isNotEmpty() }
+                                ?.holeCards?.size ?: 0,
+                        ),
+                    )
                 }
         }
         viewModelScope.launch {

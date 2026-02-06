@@ -72,7 +72,7 @@ fun RoomScreen(
 
             is RoomEffect.AnimateChipsToPot,
             is RoomEffect.AnimateChipsFromPot,
-            RoomEffect.DealCards,
+            is RoomEffect.DealCards,
             -> {
                 // Handled locally in ShowPlayers via LocalRoomEffects
             }

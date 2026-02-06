@@ -1,15 +1,16 @@
 package com.aaronchancey.poker.presentation.room.components
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -18,6 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.aaronchancey.poker.kpoker.game.GameState
+import com.aaronchancey.poker.presentation.common.ObserveAsEvents
+import com.aaronchancey.poker.presentation.room.LocalRoomEffects
+import com.aaronchancey.poker.presentation.room.RoomEffect
 import com.aaronchancey.poker.presentation.room.RoomIntent
 import com.aaronchancey.poker.presentation.room.RoomUiState
 
@@ -49,6 +54,16 @@ fun PokerTableScene(
     val handNumber = uiState.gameState?.handNumber ?: 0L
     val chipAnimationState = rememberChipAnimationState(handNumber)
 
+    var dealCards by remember { mutableIntStateOf(0) }
+
+    val effects = LocalRoomEffects.current
+    ObserveAsEvents(effects) { effect ->
+        print(effect)
+        if (effect is RoomEffect.DealCards) {
+            dealCards = effect.numCards
+        }
+    }
+
     BoxWithConstraints(
         modifier = Modifier
             .weight(1f)
@@ -77,6 +92,7 @@ fun PokerTableScene(
         val density = LocalDensity.current
         var measurements by remember { mutableStateOf<TableCenterMeasurements?>(null) }
         val tableCenterX = maxWidth / 2 - 8.dp
+        val tableCenterY = maxHeight / 2 - 8.dp
 
         // Community cards and pot display
         LayoutCenteredAt(x = tableCenterX, y = maxHeight / 2) {
@@ -102,6 +118,15 @@ fun PokerTableScene(
             }
         } ?: (maxHeight / 2)
         val potCenter = tableCenterX to potCenterY
+
+        AnimateDeal(
+            occupiedSeats = uiState.gameState?.table?.occupiedSeats ?: emptyList(),
+            ellipse = ellipse,
+            dealCards = dealCards,
+            tableCenterX = tableCenterX,
+            tableCenterY = tableCenterY,
+            onAnimatedComplete = { dealCards = 0 },
+        )
 
         // Render animating chips OUTSIDE seat loop for proper state isolation
         // Bets → pot animation
@@ -130,45 +155,18 @@ fun PokerTableScene(
                 dealerPosAnim.animateTo(current + forwardDist)
             }
         }
-        val a = ellipse.positionForSeat(dealerPosAnim.value.toInt(), scaleFactor = 0.72f)
-        val dealerX by animateDpAsState(a.first)
-        val dealerY by animateDpAsState(a.second)
 
-        uiState.gameState?.let { gameState ->
-            val isLocalPlayerSeated = uiState.playerId?.let { gameState.table.getPlayerSeat(it) } != null
+        if (dealCards <= 0) {
+            uiState.gameState?.let { gameState ->
+                val isLocalPlayerSeated = uiState.playerId?.let { gameState.table.getPlayerSeat(it) } != null
 
-            gameState.table.seats.forEach { seat ->
-                key(seat.number) {
-                    val (playerX, playerY) = ellipse.positionForSeat(seat.number)
-
-                    LayoutCenteredAt(x = playerX, y = playerY) {
-                        SeatSlot(
-                            seatNumber = seat.number,
-                            currentActor = gameState.currentActor,
-                            playerState = seat.playerState,
-                            isLoading = isLoading,
-                            isLocalPlayerSeated = isLocalPlayerSeated,
-                            onTakeSeat = onTakeSeat,
-                        )
-                    }
-
-                    val currentBet = seat.playerState?.currentBet ?: 0.0
-                    if (currentBet > 0.0) {
-                        val (chipX, chipY) = ellipse.positionForSeat(seat.number, scaleFactor = 0.5f)
-                        WagerChips(
-                            wager = currentBet,
-                            chipOffsetX = chipX,
-                            chipOffsetY = chipY,
-                        )
-                    }
-
-                    if (seat.number == gameState.dealerSeatNumber) {
-                        val buttonSize = minOf(maxWidth, maxHeight) / 18
-                        LayoutCenteredAt(x = dealerX, y = dealerY) {
-                            DealerButton(size = buttonSize)
-                        }
-                    }
-                }
+                ShowPlayers(
+                    gameState = gameState,
+                    ellipse = ellipse,
+                    isLoading = isLoading,
+                    isLocalPlayerSeated = isLocalPlayerSeated,
+                    onTakeSeat = onTakeSeat,
+                )
             }
         }
     }
@@ -179,4 +177,46 @@ fun PokerTableScene(
         handDescription = uiState.handDescription,
         onIntent = onIntent,
     )
+}
+
+@Composable
+private fun BoxWithConstraintsScope.ShowPlayers(
+    gameState: GameState,
+    ellipse: EllipseGeometry,
+    isLoading: Boolean,
+    isLocalPlayerSeated: Boolean,
+    onTakeSeat: (Int) -> Unit,
+) = gameState.table.seats.forEach { seat ->
+    key(seat.number) {
+        val (playerX, playerY) = ellipse.positionForSeat(seat.number)
+
+        LayoutCenteredAt(x = playerX, y = playerY) {
+            SeatSlot(
+                seatNumber = seat.number,
+                currentActor = gameState.currentActor,
+                playerState = seat.playerState,
+                isLoading = isLoading,
+                isLocalPlayerSeated = isLocalPlayerSeated,
+                onTakeSeat = onTakeSeat,
+            )
+        }
+
+        val currentBet = seat.playerState?.currentBet ?: 0.0
+        if (currentBet > 0.0) {
+            val (chipX, chipY) = ellipse.positionForSeat(seat.number, scaleFactor = 0.5f)
+            WagerChips(
+                wager = currentBet,
+                chipOffsetX = chipX,
+                chipOffsetY = chipY,
+            )
+        }
+
+        if (seat.number == gameState.dealerSeatNumber) {
+            val buttonSize = minOf(maxWidth, maxHeight) / 18
+            val (dealerX, dealerY) = ellipse.positionForSeat(seat.number, scaleFactor = 0.72f)
+            LayoutCenteredAt(x = dealerX, y = dealerY) {
+                DealerButton(size = buttonSize)
+            }
+        }
+    }
 }
