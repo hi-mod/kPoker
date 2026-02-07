@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aaronchancey.poker.config.AppConfig
 import com.aaronchancey.poker.kpoker.betting.Action
+import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.core.Card
+import com.aaronchancey.poker.kpoker.equity.ActionEv
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.network.ConnectionState
@@ -41,6 +44,8 @@ private data class LocalUiState(
     val selectedPreAction: PreActionType? = null,
     /** The bet amount when the pre-action was selected, used for invalidation. */
     val preActionSnapshotBet: ChipAmount = 0.0,
+    /** Computed equity and action EVs, updated when board or actions change. */
+    val actionEv: ActionEv? = null,
 )
 
 /**
@@ -57,6 +62,7 @@ class RoomViewModel(
     private val settings: Settings,
     private val repository: PokerRepository,
     private val handDescriptionProvider: HandDescriptionProvider,
+    private val actionEvProvider: ActionEvProvider,
 ) : ViewModel() {
 
     /** Guards against multiple join attempts when flow is resubscribed. */
@@ -92,6 +98,7 @@ class RoomViewModel(
             error = session.error ?: localState.error,
             isLoading = localState.isLoading,
             selectedPreAction = localState.selectedPreAction,
+            actionEv = localState.actionEv,
         )
     }
         .onStart { startConnectionObservation() }
@@ -128,6 +135,7 @@ class RoomViewModel(
         println("[RoomViewModel] startConnectionObservation: Starting for roomId=${params.roomId}")
         observeGameState()
         observePreActionAutoSubmit()
+        observeEquity()
         viewModelScope.launch {
             repository.gameEvents
                 .filterIsInstance<GameEvent.HandStarted>()
@@ -233,6 +241,36 @@ class RoomViewModel(
 
                 previousBets = currentBets
                 previousWinners = currentWinners
+            }
+    }
+
+    /**
+     * Observes community cards and available actions to recompute equity and EV.
+     * Uses [distinctUntilChanged] on a composite key to avoid redundant Monte Carlo runs.
+     */
+    private fun observeEquity() = viewModelScope.launch {
+        data class EquityKey(
+            val communityCards: List<Card>,
+            val availableActions: ActionRequest?,
+        )
+
+        repository.session
+            .map { session ->
+                EquityKey(
+                    communityCards = session.gameState?.communityCards ?: emptyList(),
+                    availableActions = session.availableActions,
+                )
+            }
+            .distinctUntilChanged()
+            .collect {
+                val session = repository.session.value
+                val playerId = session.playerId ?: params.playerId
+                val actionEv = actionEvProvider.getActionEv(
+                    gameState = session.gameState,
+                    playerId = playerId,
+                    availableActions = session.availableActions,
+                )
+                localState.update { it.copy(actionEv = actionEv) }
             }
     }
 

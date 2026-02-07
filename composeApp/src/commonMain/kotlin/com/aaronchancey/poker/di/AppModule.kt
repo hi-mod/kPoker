@@ -4,6 +4,7 @@ import com.aaronchancey.poker.network.PokerRepository
 import com.aaronchancey.poker.network.PokerWebSocketClient
 import com.aaronchancey.poker.network.RoomClient
 import com.aaronchancey.poker.presentation.lobby.LobbyViewModel
+import com.aaronchancey.poker.presentation.room.ActionEvProvider
 import com.aaronchancey.poker.presentation.room.HandDescriptionProvider
 import com.aaronchancey.poker.presentation.room.RoomParams
 import com.aaronchancey.poker.presentation.room.RoomViewModel
@@ -45,6 +46,7 @@ val appModule = module {
     factory { PokerWebSocketClient(get()) }
     factory { PokerRepository(get()) }
     factory { HandDescriptionProvider() }
+    factory { ActionEvProvider() }
 
     // Singleton: LobbyViewModel lives for app lifetime and is accessed outside Window scope
     singleOf(::LobbyViewModel)
@@ -56,6 +58,7 @@ val appModule = module {
             settings = get(),
             repository = get(),
             handDescriptionProvider = get(),
+            actionEvProvider = get(),
         )
     }
 }

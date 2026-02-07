@@ -1,6 +1,7 @@
 package com.aaronchancey.poker.presentation.room.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
@@ -13,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.aaronchancey.poker.kpoker.equity.ActionEv
 import com.aaronchancey.poker.kpoker.game.GamePhase
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.PlayerStatus
@@ -25,7 +27,7 @@ import com.aaronchancey.poker.presentation.room.RoomUiState
  *
  * Shows:
  * - **Player actions** when it's the player's turn
- * - **Pre-action checkboxes** when the player is in the hand but it's NOT their turn
+ * - **Pre-action checkboxes** when the player is in the hand, but it's NOT their turn
  * - Nothing when the player is not in the hand
  *
  * @param currentActor The player whose turn it is, or null if no active turn
@@ -62,7 +64,7 @@ fun ActionBar(
                 )
             }
 
-            isInHand && !isMyTurn && uiState.showdown == null && !listOf(GamePhase.HAND_COMPLETE, GamePhase.SHOWDOWN).contains(uiState.gameState?.phase) -> {
+            isInHand && !isMyTurn && canShowPreActions(uiState) -> {
                 PreActionCheckboxes(
                     selectedPreAction = uiState.selectedPreAction,
                     onSelectPreAction = { onIntent(RoomIntent.SelectPreAction(it)) },
@@ -80,9 +82,16 @@ fun ActionBar(
             )
         }
 
-        if (handDescription.isNotEmpty()) {
+        if (handDescription.isNotEmpty() || uiState.actionEv != null) {
             Spacer(Modifier.weight(1f))
-            Text(handDescription)
+            Column(horizontalAlignment = Alignment.End) {
+                if (handDescription.isNotEmpty()) {
+                    Text(handDescription)
+                }
+                uiState.actionEv?.let { ev ->
+                    EvDisplay(actionEv = ev)
+                }
+            }
         }
     }
 }
@@ -143,6 +152,44 @@ private fun SitOutToggle(
     ) {
         Text(label)
     }
+}
+
+/**
+ * Displays equity percentage and call/check EV inline.
+ * Positive EV is shown in tertiary color, negative in error color.
+ */
+@Composable
+private fun EvDisplay(actionEv: ActionEv) {
+    val equityText = "Equity: ${(actionEv.equity * 100).toInt()}%"
+    val callEv = actionEv.callEv
+    val checkEv = actionEv.checkEv
+    val evPart = when {
+        callEv != null -> " | Call EV: ${formatEv(callEv)}"
+        checkEv != null -> " | Check EV: ${formatEv(checkEv)}"
+        else -> ""
+    }
+    val evValue = callEv ?: checkEv
+    val evColor = when {
+        evValue == null -> MaterialTheme.colorScheme.onSurface
+        evValue >= 0 -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.error
+    }
+    Text(
+        text = equityText + evPart,
+        style = MaterialTheme.typography.bodySmall,
+        color = evColor,
+    )
+}
+
+private fun canShowPreActions(uiState: RoomUiState): Boolean {
+    val phase = uiState.gameState?.phase
+    return uiState.showdown == null && phase != GamePhase.HAND_COMPLETE && phase != GamePhase.SHOWDOWN
+}
+
+private fun formatEv(ev: Double): String {
+    val sign = if (ev >= 0) "+" else ""
+    val rounded = (ev * 10).toLong() / 10.0
+    return "$sign$rounded"
 }
 
 private val PreActionType.label: String

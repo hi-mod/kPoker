@@ -86,6 +86,7 @@ ktor-clientJs = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeVersion" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
