@@ -54,6 +54,8 @@ data class PlayerState(
     val hasActed: Boolean = false,
     val timeBank: Int = 30, // seconds
     val showdownStatus: ShowdownStatus? = null,
+    /** When true, player will be set to SITTING_OUT when the current hand ends. */
+    val sitOutNextHand: Boolean = false,
 ) {
     val isActive: Boolean get() = status == PlayerStatus.ACTIVE
     val canAct: Boolean get() = status == PlayerStatus.ACTIVE && !hasActed
@@ -76,10 +78,12 @@ data class PlayerState(
     fun markActed() = copy(hasActed = true)
     fun resetForNewRound() = copy(hasActed = false, currentBet = 0.0, totalBetThisRound = 0.0)
     fun withShowdownStatus(status: ShowdownStatus) = copy(showdownStatus = status)
+    val isSittingOut: Boolean get() = status == PlayerStatus.SITTING_OUT
+
     fun resetForNewHand() = copy(
         holeCards = emptyList(),
         dealtCards = emptyList(),
-        status = PlayerStatus.WAITING,
+        status = if (isSittingOut || sitOutNextHand) PlayerStatus.SITTING_OUT else PlayerStatus.WAITING,
         currentBet = 0.0,
         totalBetThisRound = 0.0,
         hasActed = false,
@@ -87,5 +91,6 @@ data class PlayerState(
         isSmallBlind = false,
         isBigBlind = false,
         showdownStatus = null,
+        sitOutNextHand = false,
     )
 }

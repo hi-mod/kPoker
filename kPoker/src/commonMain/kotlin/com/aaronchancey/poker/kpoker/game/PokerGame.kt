@@ -82,6 +82,55 @@ open class PokerGame(
         state = state.withTable(table)
     }
 
+    /**
+     * Toggles a player's sit-out status.
+     *
+     * If the player is currently sitting out, they return to WAITING.
+     * If the player is WAITING (not in a hand), they sit out immediately.
+     * If the player is in an active hand (ACTIVE/ALL_IN), they will be marked
+     * to sit out after the current hand completes.
+     *
+     * @return true if the player is now sitting out, false if they returned to play
+     * @throws IllegalArgumentException if player is not seated
+     */
+    fun toggleSitOut(playerId: PlayerId): Boolean {
+        val seat = state.table.getPlayerSeat(playerId)
+            ?: throw IllegalArgumentException("Player $playerId is not seated")
+        val playerState = seat.playerState!!
+
+        return when (playerState.status) {
+            PlayerStatus.SITTING_OUT -> {
+                state = state.withTable(
+                    state.table.updatePlayerState(playerId) { it.withStatus(PlayerStatus.WAITING) },
+                )
+                emit(GameEvent.PlayerSatIn(playerId))
+                false
+            }
+
+            PlayerStatus.WAITING -> {
+                state = state.withTable(
+                    state.table.updatePlayerState(playerId) { it.withStatus(PlayerStatus.SITTING_OUT) },
+                )
+                emit(GameEvent.PlayerSatOut(playerId))
+                true
+            }
+
+            // Player is in a hand - mark for sit-out after hand completes
+            PlayerStatus.ACTIVE, PlayerStatus.ALL_IN, PlayerStatus.FOLDED -> {
+                state = state.withTable(
+                    state.table.updatePlayerState(playerId) { it.copy(sitOutNextHand = true) },
+                )
+                emit(GameEvent.PlayerSatOut(playerId))
+                true
+            }
+
+            PlayerStatus.DISCONNECTED -> {
+                // Disconnected players are handled by reconnection logic
+                false
+            }
+        }
+    }
+
     open fun startHand(): GameState {
         require(state.table.eligiblePlayerCount >= 2) { "Need at least 2 players with chips" }
         require(!state.isHandInProgress) { "Hand already in progress" }

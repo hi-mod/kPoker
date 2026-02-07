@@ -14,6 +14,11 @@ sealed interface RoomIntent {
     data class TakeSeat(val seatNumber: Int, val buyIn: ChipAmount) : RoomIntent
     data object LeaveSeat : RoomIntent
     data class PerformAction(val action: Action) : RoomIntent
+    data object ToggleSitOut : RoomIntent
+
+    /** Select a pre-action checkbox (or null to clear). */
+    data class SelectPreAction(val preAction: PreActionType?) : RoomIntent
+
     data class SendChat(val message: String) : RoomIntent
     data object Disconnect : RoomIntent
     data object ClearError : RoomIntent

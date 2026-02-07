@@ -147,6 +147,10 @@ class PokerRepository(
         client.send(ClientMessage.PerformAction(action))
     }
 
+    suspend fun toggleSitOut() {
+        client.send(ClientMessage.ToggleSitOut)
+    }
+
     suspend fun sendChat(message: String) {
         client.send(ClientMessage.SendChat(message))
     }

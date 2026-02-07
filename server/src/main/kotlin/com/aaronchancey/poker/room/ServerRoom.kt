@@ -249,6 +249,18 @@ class ServerRoom(
         }
     }
 
+    // === Sit-Out ===
+
+    suspend fun toggleSitOut(playerId: PlayerId): Result<Boolean> = mutex.withLock {
+        try {
+            val isSittingOut = game.toggleSitOut(playerId)
+            broadcastVisibleGameState()
+            Result.success(isSittingOut)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // === Game Operations ===
 
     suspend fun performAction(playerId: PlayerId, action: Action): Result<Unit> = mutex.withLock {

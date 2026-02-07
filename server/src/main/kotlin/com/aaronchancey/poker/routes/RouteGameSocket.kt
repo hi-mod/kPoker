@@ -198,6 +198,25 @@ private suspend fun handleClientMessage(
             )
         }
 
+        is ClientMessage.ToggleSitOut -> {
+            if (!isJoined) {
+                session.sendSerialized<ServerMessage>(ServerMessage.Error("NOT_JOINED", "Must join room first"))
+                return
+            }
+
+            val result = room.toggleSitOut(playerId)
+            result.fold(
+                onSuccess = {
+                    // State updates are broadcast via game events
+                },
+                onFailure = { e ->
+                    session.sendSerialized<ServerMessage>(
+                        ServerMessage.Error("SIT_OUT_ERROR", e.message ?: "Cannot toggle sit-out"),
+                    )
+                },
+            )
+        }
+
         is ClientMessage.SendChat -> {
             if (!isJoined) {
                 session.sendSerialized<ServerMessage>(ServerMessage.Error("NOT_JOINED", "Must join room first"))

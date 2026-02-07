@@ -17,4 +17,6 @@ data class RoomUiState(
     val error: String? = null,
     val isLoading: Boolean = false,
     val showdown: ShowdownRequest? = null,
+    /** Currently selected pre-action checkbox, or null if none. */
+    val selectedPreAction: PreActionType? = null,
 )

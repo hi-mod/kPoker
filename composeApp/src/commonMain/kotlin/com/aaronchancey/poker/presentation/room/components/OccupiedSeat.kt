@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aaronchancey.poker.kpoker.core.DealtCard
 import com.aaronchancey.poker.kpoker.player.PlayerState
+import com.aaronchancey.poker.kpoker.player.PlayerStatus
 
 /**
  * Displays an occupied seat with the player's cards and nameplate.
@@ -56,12 +57,13 @@ private fun BoxScope.PlayerNameplate(
         .then(if (currentActor?.player?.id == player.player.id) Modifier.border(width = 2.dp, color = Color.Red) else Modifier)
         .padding(4.dp),
 ) {
+    val statusSuffix = if (player.status == PlayerStatus.SITTING_OUT) "\nSITTING OUT" else ""
     Text(
         modifier = Modifier.align(Alignment.BottomCenter),
-        text = "${player.player.name}\n${player.chips}",
+        text = "${player.player.name}\n${player.chips}$statusSuffix",
         textAlign = TextAlign.Center,
         style = TextStyle(fontSize = 16.sp),
-        color = Color.Black,
+        color = if (player.status == PlayerStatus.SITTING_OUT) Color.Gray else Color.Black,
     )
 }
 

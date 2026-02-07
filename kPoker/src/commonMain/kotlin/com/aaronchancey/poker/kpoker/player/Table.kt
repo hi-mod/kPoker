@@ -89,9 +89,13 @@ data class Table(
 
     /**
      * Returns seats occupied by players who have chips and can participate in a hand.
-     * Players with 0 chips are excluded as they cannot post blinds or bet.
+     * Players with 0 chips or sitting out are excluded.
      */
-    val seatsWithChips: List<Seat> get() = occupiedSeats.filter { it.playerState!!.chips > 0 }
+    val seatsWithChips: List<Seat>
+        get() = occupiedSeats.filter {
+            val ps = it.playerState!!
+            ps.chips > 0 && !ps.isSittingOut
+        }
 
     /**
      * Number of players with chips who can participate in a hand.

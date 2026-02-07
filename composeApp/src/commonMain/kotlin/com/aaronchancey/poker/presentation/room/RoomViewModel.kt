@@ -38,6 +38,9 @@ import kotlinx.coroutines.withTimeout
 private data class LocalUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
+    val selectedPreAction: PreActionType? = null,
+    /** The bet amount when the pre-action was selected, used for invalidation. */
+    val preActionSnapshotBet: ChipAmount = 0.0,
 )
 
 /**
@@ -88,6 +91,7 @@ class RoomViewModel(
             showdown = session.showdown,
             error = session.error ?: localState.error,
             isLoading = localState.isLoading,
+            selectedPreAction = localState.selectedPreAction,
         )
     }
         .onStart { startConnectionObservation() }
@@ -107,6 +111,8 @@ class RoomViewModel(
         is RoomIntent.TakeSeat -> handleTakeSeat(intent.seatNumber, intent.buyIn)
         is RoomIntent.LeaveSeat -> handleLeaveSeat()
         is RoomIntent.PerformAction -> handlePerformAction(intent.action)
+        is RoomIntent.ToggleSitOut -> handleToggleSitOut()
+        is RoomIntent.SelectPreAction -> handleSelectPreAction(intent.preAction)
         is RoomIntent.SendChat -> handleSendChat(intent.message)
         is RoomIntent.Disconnect -> handleDisconnect()
         is RoomIntent.ClearError -> handleClearError()
@@ -121,6 +127,7 @@ class RoomViewModel(
         observationStarted = true
         println("[RoomViewModel] startConnectionObservation: Starting for roomId=${params.roomId}")
         observeGameState()
+        observePreActionAutoSubmit()
         viewModelScope.launch {
             repository.gameEvents
                 .filterIsInstance<GameEvent.HandStarted>()
@@ -301,6 +308,8 @@ class RoomViewModel(
     }
 
     private fun handlePerformAction(action: Action) = viewModelScope.launch {
+        // Clear any pre-action when player manually acts
+        localState.update { it.copy(selectedPreAction = null, preActionSnapshotBet = 0.0) }
         repository.performAction(action)
         when (action) {
             is Action.Check -> SoundType.CHECK
@@ -309,6 +318,76 @@ class RoomViewModel(
         }?.let { soundType ->
             _effects.emit(RoomEffect.PlaySound(soundType))
         }
+    }
+
+    /**
+     * Observes when it becomes the player's turn and auto-submits a pre-action if valid.
+     * Clears pre-action on hand end.
+     */
+    private fun observePreActionAutoSubmit() {
+        // Auto-submit pre-action when ActionRequired arrives for this player
+        viewModelScope.launch {
+            repository.session
+                .map { it.availableActions }
+                .distinctUntilChanged()
+                .collect { actionRequest ->
+                    if (actionRequest == null) return@collect
+                    val local = localState.value
+                    val preAction = local.selectedPreAction ?: return@collect
+
+                    println("[PreAction] Resolving $preAction (snapshot=${local.preActionSnapshotBet}, amountToCall=${actionRequest.amountToCall})")
+
+                    val resolved = resolvePreAction(
+                        preAction = preAction,
+                        actionRequest = actionRequest,
+                        snapshotBet = local.preActionSnapshotBet,
+                    )
+
+                    // Clear pre-action regardless of whether it resolved
+                    localState.update { it.copy(selectedPreAction = null, preActionSnapshotBet = 0.0) }
+
+                    if (resolved != null) {
+                        println("[PreAction] Auto-submitting: $resolved")
+                        repository.performAction(resolved)
+                    } else {
+                        println("[PreAction] Invalidated - showing normal action buttons")
+                    }
+                }
+        }
+
+        // Clear pre-action on hand end
+        viewModelScope.launch {
+            repository.gameEvents
+                .filterIsInstance<GameEvent.HandComplete>()
+                .collect {
+                    localState.update { it.copy(selectedPreAction = null, preActionSnapshotBet = 0.0) }
+                }
+        }
+    }
+
+    private fun handleSelectPreAction(preAction: PreActionType?) {
+        val session = repository.session.value
+        val gameState = session.gameState
+        val playerId = session.playerId
+
+        // Snapshot the amount-to-call at selection time for CALL invalidation.
+        // This is what the player would currently need to put in to call.
+        val roundBet = gameState?.bettingRound?.currentBet ?: 0.0
+        val myCurrentBet = playerId?.let {
+            gameState?.table?.getPlayerSeat(it)?.playerState?.currentBet
+        } ?: 0.0
+        val snapshotAmountToCall = maxOf(0.0, roundBet - myCurrentBet)
+
+        localState.update {
+            it.copy(
+                selectedPreAction = preAction,
+                preActionSnapshotBet = snapshotAmountToCall,
+            )
+        }
+    }
+
+    private fun handleToggleSitOut() = viewModelScope.launch {
+        repository.toggleSitOut()
     }
 
     private fun handleSendChat(message: String) = viewModelScope.launch {

@@ -134,6 +134,21 @@ sealed class GameEvent {
         override val timestamp: Long = currentTimeMillis(),
     ) : GameEvent()
 
+    // Sit-out
+    @Serializable
+    @SerialName("player_sat_out")
+    data class PlayerSatOut(
+        val playerId: PlayerId,
+        override val timestamp: Long = currentTimeMillis(),
+    ) : GameEvent()
+
+    @Serializable
+    @SerialName("player_sat_in")
+    data class PlayerSatIn(
+        val playerId: PlayerId,
+        override val timestamp: Long = currentTimeMillis(),
+    ) : GameEvent()
+
     // Chat
     @Serializable
     @SerialName("chat_message")

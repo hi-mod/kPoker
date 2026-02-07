@@ -28,6 +28,10 @@ sealed class ClientMessage {
     data class PerformAction(val action: Action) : ClientMessage()
 
     @Serializable
+    @SerialName("toggle_sit_out")
+    data object ToggleSitOut : ClientMessage()
+
+    @Serializable
     @SerialName("send_chat")
     data class SendChat(val message: String) : ClientMessage()
 }
