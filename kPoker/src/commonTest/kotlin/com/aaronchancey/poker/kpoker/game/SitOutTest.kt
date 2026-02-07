@@ -1,5 +1,6 @@
 package com.aaronchancey.poker.kpoker.game
 
+import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.player.Player
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.PlayerStatus
@@ -216,6 +217,112 @@ class SitOutTest {
         assertFailsWith<IllegalArgumentException> {
             game.toggleSitOut("nobody")
         }
+    }
+
+    @Test
+    fun removePlayerMidHandCompletesHand() {
+        val game = createGame()
+        var table = Table.create("1", "Test Table", 2)
+
+        table = table.sitPlayer(1, PlayerState(Player("p1", "Alice"), chips = 100.0))
+        table = table.sitPlayer(2, PlayerState(Player("p2", "Bob"), chips = 100.0))
+
+        game.initialize(table)
+        game.startHand()
+
+        assertTrue(game.currentState.isHandInProgress, "Hand should be in progress")
+
+        // Remove Alice mid-hand (simulates leaving the table)
+        game.removePlayerMidHand("p1")
+
+        assertEquals(
+            GamePhase.HAND_COMPLETE,
+            game.currentState.phase,
+            "Hand should complete when only one player remains after removal",
+        )
+    }
+
+    @Test
+    fun removePlayerMidHandWhenNotTheirTurn() {
+        val game = createGame()
+        var table = Table.create("1", "Test Table", 3)
+
+        table = table.sitPlayer(1, PlayerState(Player("p1", "Alice"), chips = 100.0))
+        table = table.sitPlayer(2, PlayerState(Player("p2", "Bob"), chips = 100.0))
+        table = table.sitPlayer(3, PlayerState(Player("p3", "Charlie"), chips = 100.0))
+
+        game.initialize(table)
+        game.startHand()
+
+        assertTrue(game.currentState.isHandInProgress, "Hand should be in progress")
+
+        // Remove a non-current-actor player — hand should continue (still 2 players)
+        val currentActorId = game.currentState.currentActor?.player?.id
+        val nonActorId = listOf("p1", "p2", "p3").first { it != currentActorId }
+
+        game.removePlayerMidHand(nonActorId)
+
+        assertTrue(
+            game.currentState.isHandInProgress,
+            "Hand should continue with 2 remaining players",
+        )
+        val removedState = game.currentState.table.getPlayerSeat(nonActorId)?.playerState
+        assertEquals(
+            PlayerStatus.FOLDED,
+            removedState?.status,
+            "Removed player should be FOLDED",
+        )
+    }
+
+    @Test
+    fun removePlayerMidHandNoOpIfNotInHand() {
+        val game = createGame()
+        var table = Table.create("1", "Test Table", 2)
+
+        table = table.sitPlayer(1, PlayerState(Player("p1", "Alice"), chips = 100.0))
+        table = table.sitPlayer(2, PlayerState(Player("p2", "Bob"), chips = 100.0))
+
+        game.initialize(table)
+
+        // No hand in progress — should be a no-op
+        game.removePlayerMidHand("p1")
+
+        val aliceState = game.currentState.table.getPlayerSeat("p1")?.playerState!!
+        assertEquals(PlayerStatus.WAITING, aliceState.status, "Status should be unchanged")
+    }
+
+    @Test
+    fun sitOutNextHandPreventsNextHandHeadsUp() {
+        val game = createGame()
+        var table = Table.create("1", "Test Table", 2)
+
+        table = table.sitPlayer(1, PlayerState(Player("p1", "Alice"), chips = 100.0))
+        table = table.sitPlayer(2, PlayerState(Player("p2", "Bob"), chips = 100.0))
+
+        game.initialize(table)
+        game.startHand()
+
+        // Alice toggles sit-out mid-hand (sets sitOutNextHand)
+        game.toggleSitOut("p1")
+
+        // Current actor folds to end the hand
+        val currentActorId = game.currentState.currentActor!!.player.id
+        game.processAction(Action.Fold(currentActorId))
+
+        assertEquals(GamePhase.HAND_COMPLETE, game.currentState.phase)
+
+        // Next hand should NOT start — Alice's sitOutNextHand should convert
+        // to SITTING_OUT during reset, leaving only 1 eligible player
+        assertFailsWith<IllegalArgumentException>("Should not start with 1 eligible player") {
+            game.startHand()
+        }
+
+        val aliceState = game.currentState.table.getPlayerSeat("p1")?.playerState!!
+        assertEquals(
+            PlayerStatus.SITTING_OUT,
+            aliceState.status,
+            "Alice should be SITTING_OUT after reset (even though startHand failed eligibility)",
+        )
     }
 
     @Test

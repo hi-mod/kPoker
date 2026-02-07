@@ -236,6 +236,10 @@ class ServerRoom(
             val chips = seat.playerState?.chips ?: 0.0
             val player = seat.playerState?.player
 
+            // If a hand is in progress, properly fold the player first so the
+            // game flow detects last-player-standing and completes the hand.
+            game.removePlayerMidHand(playerId)
+
             game.updateTable(game.currentState.table.standPlayer(playerId))
             seatManager.cancelReservation(playerId)
 
@@ -251,14 +255,23 @@ class ServerRoom(
 
     // === Sit-Out ===
 
-    suspend fun toggleSitOut(playerId: PlayerId): Result<Boolean> = mutex.withLock {
-        try {
-            val isSittingOut = game.toggleSitOut(playerId)
-            broadcastVisibleGameState()
-            Result.success(isSittingOut)
-        } catch (e: Exception) {
-            Result.failure(e)
+    suspend fun toggleSitOut(playerId: PlayerId): Result<Boolean> {
+        val isSittingOut = mutex.withLock {
+            try {
+                val result = game.toggleSitOut(playerId)
+                broadcastVisibleGameState()
+                Result.success(result)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
+
+        // If the player sat back in, check if we can start a hand now
+        if (isSittingOut.getOrNull() == false) {
+            startHandIfReady()
+        }
+
+        return isSittingOut
     }
 
     // === Game Operations ===
@@ -280,9 +293,14 @@ class ServerRoom(
     }
 
     suspend fun startHandIfReady(): Boolean = mutex.withLock {
-        if (game.currentState.table.eligiblePlayerCount >= 2 && !game.currentState.isHandInProgress) {
-            game.startHand()
-            true
+        if (!game.currentState.isHandInProgress) {
+            try {
+                game.startHand()
+                true
+            } catch (_: IllegalArgumentException) {
+                // Not enough eligible players (e.g., after sitOutNextHand converts)
+                false
+            }
         } else {
             false
         }

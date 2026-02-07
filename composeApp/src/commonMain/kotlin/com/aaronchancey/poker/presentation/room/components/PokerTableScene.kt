@@ -48,7 +48,7 @@ fun PokerTableScene(
     onTakeSeat: (Int) -> Unit,
     onIntent: (RoomIntent) -> Unit,
 ) = Column(
-    modifier = modifier.fillMaxSize(),
+    modifier = modifier,
     horizontalAlignment = Alignment.CenterHorizontally,
 ) {
     val handNumber = uiState.gameState?.handNumber ?: 0L

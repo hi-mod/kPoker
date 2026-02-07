@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -57,8 +60,6 @@ fun ActionBar(
                     uiState = uiState,
                     onIntent = onIntent,
                 )
-                Spacer(Modifier.weight(1f))
-                Text(handDescription)
             }
 
             isInHand && !isMyTurn && uiState.showdown == null && !listOf(GamePhase.HAND_COMPLETE, GamePhase.SHOWDOWN).contains(uiState.gameState?.phase) -> {
@@ -66,15 +67,22 @@ fun ActionBar(
                     selectedPreAction = uiState.selectedPreAction,
                     onSelectPreAction = { onIntent(RoomIntent.SelectPreAction(it)) },
                 )
-                Spacer(Modifier.weight(1f))
-                Text(handDescription)
             }
+        }
 
-            else -> {
-                if (handDescription.isNotEmpty()) {
-                    Text(handDescription)
-                }
-            }
+        if (myPlayerState != null) {
+            Spacer(Modifier.weight(1f))
+            SitOutToggle(
+                isSittingOut = myPlayerState.status == PlayerStatus.SITTING_OUT ||
+                    myPlayerState.sitOutNextHand,
+                isInHand = isInHand,
+                onToggle = { onIntent(RoomIntent.ToggleSitOut) },
+            )
+        }
+
+        if (handDescription.isNotEmpty()) {
+            Spacer(Modifier.weight(1f))
+            Text(handDescription)
         }
     }
 }
@@ -102,6 +110,38 @@ private fun PreActionCheckboxes(
             )
             Text(preAction.label)
         }
+    }
+}
+
+/**
+ * Toggle button for sitting out / sitting back in.
+ *
+ * Shows "Sit Out Next Hand" when in an active hand (sets [PlayerState.sitOutNextHand]),
+ * "Sit Out" / "Sit In" when between hands.
+ */
+@Composable
+private fun SitOutToggle(
+    isSittingOut: Boolean,
+    isInHand: Boolean,
+    onToggle: () -> Unit,
+) {
+    val label = when {
+        isSittingOut && isInHand -> "Cancel Sit Out"
+        isSittingOut -> "Sit In"
+        isInHand -> "Sit Out Next Hand"
+        else -> "Sit Out"
+    }
+    Button(
+        onClick = onToggle,
+        colors = if (isSittingOut) {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiary,
+            )
+        } else {
+            ButtonDefaults.buttonColors()
+        },
+    ) {
+        Text(label)
     }
 }
 

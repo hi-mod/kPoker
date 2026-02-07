@@ -83,6 +83,51 @@ open class PokerGame(
     }
 
     /**
+     * Removes a player from an in-progress hand.
+     *
+     * Folds the player (even if it's not their turn), removes them from pot
+     * eligibility, and advances the game flow. This properly handles the case
+     * where only one player remains — awarding the pot and emitting [GameEvent.HandComplete].
+     *
+     * Call this before removing the player from the table (via [Table.standPlayer])
+     * to avoid leaving the hand in a stuck state.
+     *
+     * @throws IllegalArgumentException if the player is not seated
+     */
+    fun removePlayerMidHand(playerId: PlayerId) {
+        if (!state.isHandInProgress) return
+
+        val seat = state.table.getPlayerSeat(playerId)
+            ?: throw IllegalArgumentException("Player $playerId is not seated")
+        val playerState = seat.playerState!!
+
+        // Only need to handle players that are still in the hand
+        if (playerState.status !in listOf(PlayerStatus.ACTIVE, PlayerStatus.ALL_IN)) return
+
+        val wasCurrentActor = state.currentActor?.player?.id == playerId
+
+        // Fold the player and remove from pot eligibility
+        state = state.withTable(
+            state.table.updatePlayerState(playerId) {
+                it.withStatus(PlayerStatus.FOLDED).markActed()
+            },
+        )
+        state = state.copy(potManager = state.potManager.removePlayer(playerId))
+        emit(GameEvent.ActionTaken(Action.Fold(playerId)))
+
+        // If it was their turn, advance the game flow
+        if (wasCurrentActor) {
+            setNextActor()
+        } else {
+            // Not their turn, but check if only one player remains
+            val playersInHand = state.table.getPlayersInHand()
+            if (playersInHand.size <= 1) {
+                endBettingRound()
+            }
+        }
+    }
+
+    /**
      * Toggles a player's sit-out status.
      *
      * If the player is currently sitting out, they return to WAITING.
@@ -132,11 +177,12 @@ open class PokerGame(
     }
 
     open fun startHand(): GameState {
-        require(state.table.eligiblePlayerCount >= 2) { "Need at least 2 players with chips" }
         require(!state.isHandInProgress) { "Hand already in progress" }
 
-        // Reset all player states for the new hand (clears showdownStatus, hole cards, etc.)
+        // Reset first so sitOutNextHand converts to SITTING_OUT before the eligibility check
         state = state.withTable(state.table.mapPlayerStates { it.resetForNewHand() })
+
+        require(state.table.eligiblePlayerCount >= 2) { "Need at least 2 players with chips" }
 
         state = state.copy(
             phase = GamePhase.STARTING,
