@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -132,26 +130,17 @@ private fun PreActionCheckboxes(
 private fun SitOutToggle(
     isSittingOut: Boolean,
     isInHand: Boolean,
-    onToggle: () -> Unit,
+    onToggle: (Boolean) -> Unit,
 ) {
     val label = when {
-        isSittingOut && isInHand -> "Cancel Sit Out"
-        isSittingOut -> "Sit In"
         isInHand -> "Sit Out Next Hand"
         else -> "Sit Out"
     }
-    Button(
-        onClick = onToggle,
-        colors = if (isSittingOut) {
-            ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-            )
-        } else {
-            ButtonDefaults.buttonColors()
-        },
-    ) {
-        Text(label)
-    }
+    Checkbox(
+        checked = isSittingOut,
+        onCheckedChange = onToggle,
+    )
+    Text(label)
 }
 
 /**
