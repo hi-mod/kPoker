@@ -19,3 +19,6 @@ ij_kotlin_allow_trailing_comma = true
 ktlint_standard_multiline-expression-wrapping = disabled
 ktlint_standard_blank-line-between-when-conditions = disabled
 ktlint_function_naming_ignore_when_annotated_with = Composable
+
+[{build/**,*/build/**}]
+ktlint = disabled
