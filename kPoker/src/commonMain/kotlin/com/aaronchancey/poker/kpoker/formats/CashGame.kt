@@ -11,7 +11,6 @@ import com.aaronchancey.poker.kpoker.player.Table
  *
  * Handles cash game specific logic:
  * - Buy-in/rebuy/top-up validation
- * - Rake calculation
  * - Hand counting
  *
  * Note: Seating/standing players is handled by the server layer (ServerRoom).
@@ -31,11 +30,7 @@ class CashGame(
     init {
         game.addEventListener { event ->
             when (event) {
-                is GameEvent.HandComplete -> {
-                    handsPlayed++
-                    applyRake(event.winners)
-                }
-
+                is GameEvent.HandComplete -> handsPlayed++
                 else -> Unit
             }
         }
@@ -130,12 +125,6 @@ class CashGame(
         }
 
         return Result.success(Unit)
-    }
-
-    private fun applyRake(winners: List<com.aaronchancey.poker.kpoker.game.Winner>) {
-        if (config.rakePercent <= 0) return
-        // TODO: Calculate and deduct rake from winnings
-        // This would typically be done before awarding to players
     }
 
     companion object {

@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -102,6 +101,7 @@ fun PokerTableScene(
             TableCenter(
                 communityCards = uiState.gameState?.communityCards ?: emptyList(),
                 displayedPot = displayedPot,
+                rake = uiState.gameState?.rake ?: 0.0,
                 onMeasured = { newMeasurements ->
                     // Only update state if values changed to prevent recomposition loop
                     if (measurements != newMeasurements) {

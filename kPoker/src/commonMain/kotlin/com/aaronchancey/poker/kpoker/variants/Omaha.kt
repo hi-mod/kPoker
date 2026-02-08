@@ -3,8 +3,7 @@ package com.aaronchancey.poker.kpoker.variants
 import com.aaronchancey.poker.kpoker.betting.BettingStructure
 import com.aaronchancey.poker.kpoker.game.PokerGame
 import com.aaronchancey.poker.kpoker.player.ChipAmount
-import com.aaronchancey.poker.kpoker.variants.OmahaStrategy
-import com.aaronchancey.poker.kpoker.variants.PokerVariant
+import com.aaronchancey.poker.kpoker.rake.RakeCalculator
 
 object OmahaVariant : PokerVariant {
     override val name = "Omaha"
@@ -29,25 +28,29 @@ object OmahaHiLoVariant : PokerVariant {
 class OmahaGame(
     bettingStructure: BettingStructure,
     private val isHiLo: Boolean = false,
-) : PokerGame(bettingStructure, OmahaStrategy(isHiLo)) {
+    rakeCalculator: RakeCalculator? = null,
+) : PokerGame(bettingStructure, OmahaStrategy(isHiLo), rakeCalculator = rakeCalculator) {
 
     companion object {
         fun potLimit(
             smallBlind: ChipAmount,
             bigBlind: ChipAmount,
             minDenomination: ChipAmount = 1.0,
+            rakeCalculator: RakeCalculator? = null,
         ): OmahaGame = OmahaGame(
             BettingStructure.potLimit(
                 smallBlind,
                 bigBlind,
                 minDenomination = minDenomination,
             ),
+            rakeCalculator = rakeCalculator,
         )
 
         fun potLimitHiLo(
             smallBlind: ChipAmount,
             bigBlind: ChipAmount,
             minDenomination: ChipAmount = 1.0,
+            rakeCalculator: RakeCalculator? = null,
         ): OmahaGame = OmahaGame(
             BettingStructure.potLimit(
                 smallBlind,
@@ -55,6 +58,7 @@ class OmahaGame(
                 minDenomination = minDenomination,
             ),
             isHiLo = true,
+            rakeCalculator = rakeCalculator,
         )
     }
 }

@@ -48,6 +48,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ChipStacks(
     modifier: Modifier = Modifier,
+    label: String = "",
     wager: ChipAmount,
 ) {
     if (wager <= 0) return
@@ -75,7 +76,7 @@ fun ChipStacks(
             }
         }
         Text(
-            text = "$wager",
+            text = if (label.isNotEmpty()) "$label: $wager" else "$wager",
             fontSize = 12.sp,
         )
     }
@@ -213,6 +214,10 @@ internal val Color.Companion.Brown: Color
     get() = Color(0xFFA52A2A)
 
 private val colors = mapOf(
+    0.01 to Color.Cyan,
+    0.1 to Color(0xFF9F2B68),
+    0.25 to Color(0xFFBA9549),
+    0.5 to Color.Magenta,
     1.0 to Color.Blue,
     5.0 to Color.Red,
     25.0 to Color.Green,

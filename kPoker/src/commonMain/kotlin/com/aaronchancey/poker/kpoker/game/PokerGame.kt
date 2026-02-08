@@ -20,11 +20,13 @@ import com.aaronchancey.poker.kpoker.player.PlayerStatus
 import com.aaronchancey.poker.kpoker.player.PotManager
 import com.aaronchancey.poker.kpoker.player.ShowdownStatus
 import com.aaronchancey.poker.kpoker.player.Table
+import com.aaronchancey.poker.kpoker.rake.RakeCalculator
 
 open class PokerGame(
     protected val bettingStructure: BettingStructure,
     protected val variantStrategy: VariantStrategy,
     protected val cardDealer: CardDealer = StandardDealer(),
+    protected val rakeCalculator: RakeCalculator? = null,
 ) {
     protected var state: GameState = GameState(Table.create("1", "Default", 9))
 
@@ -190,6 +192,7 @@ open class PokerGame(
             communityCards = emptyList(),
             potManager = PotManager(),
             winners = emptyList(),
+            rake = 0.0,
             handNumber = state.handNumber + 1,
         )
 
@@ -509,6 +512,11 @@ open class PokerGame(
             .withCurrentActor(null)
             .withShowdownAggressor(lastAggressor)
 
+        // Recalculate rake after each post-flop street (no-flop-no-drop)
+        if (state.phase != GamePhase.PRE_FLOP) {
+            recalculateRake()
+        }
+
         // Check if hand should continue
         val playersRemaining = state.table.getPlayersInHand()
         if (playersRemaining.size <= 1) {
@@ -550,6 +558,13 @@ open class PokerGame(
 
             else -> {}
         }
+
+        // Recalculate rake when entering any post-flop street so the UI
+        // shows rake as soon as the flop is dealt, not after betting ends.
+        if (state.phase !in NON_RAKED_PHASES) {
+            recalculateRake()
+        }
+
         emit(GameEvent.PhaseChanged(state.phase))
     }
 
@@ -669,7 +684,7 @@ open class PokerGame(
      * Awards the entire pot to a single winner and completes the hand.
      */
     private fun awardPotToWinner(winner: PlayerState, handDescription: String) {
-        val amount = state.totalPot
+        val amount = state.totalPot - state.rake
         val winners = listOf(
             Winner(
                 playerId = winner.player.id,
@@ -787,7 +802,7 @@ open class PokerGame(
      * Evaluates hands and awards pots after all showdown actions complete.
      */
     private fun completeShowdown() {
-        val winners = evaluateHands()
+        val winners = deductRakeFromWinners(evaluateHands())
         state = state.withWinners(winners)
 
         // Award pots to winners
@@ -800,6 +815,53 @@ open class PokerGame(
 
         state = state.withTable(table).withPhase(GamePhase.HAND_COMPLETE)
         emit(GameEvent.HandComplete(winners))
+    }
+
+    /**
+     * Recalculates the total rake from the current pot state.
+     * No-op if no [rakeCalculator] is configured.
+     */
+    private fun recalculateRake() {
+        val calc = rakeCalculator ?: return
+        val totalRake = calc.calculateRake(state.potManager.pots).sum()
+        state = state.withRake(totalRake)
+    }
+
+    /**
+     * Deducts per-pot rake from winner amounts proportionally.
+     *
+     * Each pot's rake is distributed across winners of that pot based on their
+     * share of the pot. For example, if a pot is 100 with 5 rake and two winners
+     * splitting evenly, each winner's amount is reduced by 2.5.
+     */
+    private fun deductRakeFromWinners(winners: List<Winner>): List<Winner> {
+        val calc = rakeCalculator ?: return winners
+        val pots = state.potManager.pots
+        if (pots.isEmpty()) return winners
+
+        val rakeByPotIndex = calc.calculateRake(pots)
+
+        // Accumulate rake by base pot type (main/side), summing across pots
+        // that share the same type. This handles multiple side pots correctly.
+        // TODO: Winner.potType doesn't distinguish between side pot 1 and side pot 2,
+        //  so rake is distributed evenly across all "side" winners. Consider adding
+        //  pot indices to Winner.potType for precise per-pot rake deduction.
+        val rakeByPotType = mutableMapOf<String, ChipAmount>()
+        pots.forEachIndexed { index, pot ->
+            val potType = if (pot.isMain) "main" else "side"
+            val rakeAmount = rakeByPotIndex.getOrElse(index) { 0.0 }
+            rakeByPotType[potType] = (rakeByPotType[potType] ?: 0.0) + rakeAmount
+        }
+
+        val winnersPerPotType = winners.groupBy { it.potType.removeSuffix("-hi").removeSuffix("-lo") }
+
+        return winners.map { winner ->
+            val basePotType = winner.potType.removeSuffix("-hi").removeSuffix("-lo")
+            val potRake = rakeByPotType[basePotType] ?: 0.0
+            val shareCount = winnersPerPotType[basePotType]?.size ?: 1
+            val rakeShare = potRake / shareCount
+            winner.copy(amount = winner.amount - rakeShare)
+        }
     }
 
     /**
@@ -839,6 +901,15 @@ open class PokerGame(
             currentBet = round.currentBet,
             potSize = state.effectivePot,
             minRaise = round.minimumRaise,
+        )
+    }
+
+    companion object {
+        /** Phases where rake should not be calculated (pre-flop = no-flop-no-drop). */
+        private val NON_RAKED_PHASES = setOf(
+            GamePhase.PRE_FLOP,
+            GamePhase.WAITING,
+            GamePhase.HAND_COMPLETE,
         )
     }
 }

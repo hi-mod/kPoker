@@ -13,6 +13,8 @@ import com.aaronchancey.poker.kpoker.player.PlayerId
 import com.aaronchancey.poker.kpoker.player.PlayerState
 import com.aaronchancey.poker.kpoker.player.Seat
 import com.aaronchancey.poker.kpoker.player.Table
+import com.aaronchancey.poker.kpoker.rake.PercentageRakeCalculator
+import com.aaronchancey.poker.kpoker.rake.RakeCalculator
 import com.aaronchancey.poker.kpoker.variants.OmahaGame
 import com.aaronchancey.poker.kpoker.variants.TexasHoldemGame
 import com.aaronchancey.poker.kpoker.visibility.StandardVisibility
@@ -112,10 +114,19 @@ class ServerRoom(
         initialGameState = initialGameState,
     )
 
-    private fun createGame(): PokerGame = when (config.variant) {
-        GameVariant.OMAHA_PL -> OmahaGame.potLimit(smallBlind, bigBlind, minDenomination)
-        GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(smallBlind, bigBlind, minDenomination)
-        GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(smallBlind, bigBlind, minDenomination)
+    private fun createRakeCalculator(): RakeCalculator? = if (config.rakePercent > 0.0) {
+        PercentageRakeCalculator(config.rakePercent, config.rakeCap, config.minDenomination)
+    } else {
+        null
+    }
+
+    private fun createGame(): PokerGame {
+        val rake = createRakeCalculator()
+        return when (config.variant) {
+            GameVariant.OMAHA_PL -> OmahaGame.potLimit(smallBlind, bigBlind, minDenomination, rakeCalculator = rake)
+            GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(smallBlind, bigBlind, minDenomination, rakeCalculator = rake)
+            GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(smallBlind, bigBlind, minDenomination, rakeCalculator = rake)
+        }
     }
 
     private fun setupEventListeners() {

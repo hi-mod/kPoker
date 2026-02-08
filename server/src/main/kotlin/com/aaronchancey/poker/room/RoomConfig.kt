@@ -16,6 +16,8 @@ data class RoomConfig(
     val maxBuyIn: ChipAmount = 200.0,
     val minDenomination: ChipAmount = 0.1,
     val variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
+    val rakePercent: Double = 0.10,
+    val rakeCap: ChipAmount = 6.0,
     val maxSpectators: Int = 100,
     val allowSpectators: Boolean = true,
     val reservationDurationMs: Long = 60_000,
