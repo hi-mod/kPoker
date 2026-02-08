@@ -1,5 +1,7 @@
 package com.aaronchancey.poker.presentation.room
 
+import com.aaronchancey.poker.kpoker.player.ChipAmount
+
 sealed interface RoomEffect {
     data class DealCards(val numCards: Int) : RoomEffect
     data class ShowToast(val message: String) : RoomEffect
@@ -17,6 +19,12 @@ sealed interface RoomEffect {
      * Emitted when a hand completes and winnings are distributed.
      */
     data class AnimateChipsFromPot(val winnings: List<AnimatingBet>) : RoomEffect
+
+    /**
+     * Shows ante chips at player seats before animating to pot.
+     * Emitted when antes are posted, before the animation begins.
+     */
+    data class ShowAntesAtSeats(val antes: List<AnimatingBet>) : RoomEffect
 }
 
 /**
@@ -27,5 +35,5 @@ sealed interface RoomEffect {
  */
 data class AnimatingBet(
     val seatNumber: Int,
-    val amount: Double,
+    val amount: ChipAmount,
 )

@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 
 class HeadsUpTest {
 
-    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1.0, bigBlind = 2.0)
+    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1.0, bigBlind = 2.0, ante = 1.0)
 
     private fun createHeadsUpTable(): Table {
         var table = Table.create("1", "Heads Up Table", 2)

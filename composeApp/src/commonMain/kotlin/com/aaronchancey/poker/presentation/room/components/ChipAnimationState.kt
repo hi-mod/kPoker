@@ -16,13 +16,15 @@ import com.aaronchancey.poker.presentation.room.RoomEffect
 /**
  * Holds state for chip animations between player seats and the pot.
  *
- * Tracks three categories:
+ * Tracks four categories:
+ * - [antesAtSeats]: Antes displayed at seats before animating to pot
  * - [animatingBets]: Chips animating FROM player seats TO the pot
  * - [animatingWinnings]: Chips animating FROM the pot TO winning players
  * - [completedWinningsTotal]: Sum of winnings already animated (keeps pot hidden until new hand)
  */
 @Stable
 class ChipAnimationState {
+    var antesAtSeats by mutableStateOf<List<AnimatingBet>>(emptyList())
     var animatingBets by mutableStateOf<List<AnimatingBet>>(emptyList())
     var animatingWinnings by mutableStateOf<List<AnimatingBet>>(emptyList())
     var completedWinningsTotal by mutableDoubleStateOf(0.0)
@@ -30,6 +32,7 @@ class ChipAnimationState {
     /** Resets animation state for a new hand. */
     fun resetForNewHand() {
         completedWinningsTotal = 0.0
+        antesAtSeats = emptyList()
     }
 
     /** Removes completed bet animation for a seat. */
@@ -64,7 +67,12 @@ fun rememberChipAnimationState(handNumber: Long): ChipAnimationState {
     val effects = LocalRoomEffects.current
     ObserveAsEvents(effects) { effect ->
         when (effect) {
-            is RoomEffect.AnimateChipsToPot -> state.animatingBets = effect.bets
+            is RoomEffect.ShowAntesAtSeats -> state.antesAtSeats = effect.antes
+            is RoomEffect.AnimateChipsToPot -> {
+                // Clear antes at seats when they start animating to pot
+                state.antesAtSeats = emptyList()
+                state.animatingBets = effect.bets
+            }
             is RoomEffect.AnimateChipsFromPot -> state.animatingWinnings = effect.winnings
             else -> {}
         }

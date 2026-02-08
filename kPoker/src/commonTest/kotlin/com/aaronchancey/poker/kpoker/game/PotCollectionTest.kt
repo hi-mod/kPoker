@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 
 class PotCollectionTest {
 
-    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1.0, bigBlind = 2.0)
+    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1.0, bigBlind = 2.0, ante = 1.0)
 
     private fun createTableWithPlayers(): Table {
         var table = Table.create("1", "Test Table", 6)
@@ -57,7 +57,9 @@ class PotCollectionTest {
         // Verify Pot is EMPTY (or close to it)
         // Before fix: Pot would have 3 chips (1+2).
         // After fix: Pot should be 0 because bets are still with players.
-        assertEquals(0.0, state.potManager.totalPot, "Pot should be empty at start of pre-flop")
+        // Antes (1.0 each x 2 players = 2.0) go directly into the pot as dead money.
+        // Blinds remain with players until the betting round ends.
+        assertEquals(2.0, state.potManager.totalPot, "Pot should contain only antes at start of pre-flop")
 
         // Verify Players have bets in front of them
         val seat1 = state.table.getSeat(1)?.playerState!!
@@ -103,15 +105,16 @@ class PotCollectionTest {
         assertEquals(GamePhase.FLOP, state.phase)
 
         // Pot should now have collected the bets.
+        // Antes: 1.0 x 2 = 2.0 (dead money from start)
         // SB: 1 (blind) + 1 (call) = 2.
         // BB: 2 (blind) + 0 (check) = 2.
-        // Total Pot = 4.
-        assertEquals(4.0, state.potManager.totalPot)
+        // Total Pot = 6.
+        assertEquals(6.0, state.potManager.totalPot)
 
         // Crucial: Should be ONE main pot, not two split pots.
         assertEquals(1, state.potManager.pots.size, "Should be exactly one pot")
         assertTrue(state.potManager.pots[0].isMain, "Pot should be main")
-        assertEquals(4.0, state.potManager.pots[0].amount, "Main pot should have 4 chips")
+        assertEquals(6.0, state.potManager.pots[0].amount, "Main pot should have 6 chips (2 antes + 4 from blinds)")
     }
 
     @Test
@@ -134,7 +137,7 @@ class PotCollectionTest {
 
         state = game.currentState
         assertEquals(GamePhase.FLOP, state.phase)
-        assertEquals(4.0, state.potManager.totalPot, "Pot should be 4 after Pre-Flop")
+        assertEquals(6.0, state.potManager.totalPot, "Pot should be 6 after Pre-Flop (2 antes + 4 from blinds)")
 
         // Verify totalBetThisRound is reset
         state.table.occupiedSeats.forEach { seat ->
@@ -152,6 +155,6 @@ class PotCollectionTest {
         assertEquals(GamePhase.TURN, state.phase)
 
         // Pot should still be 4, NOT 8
-        assertEquals(4.0, state.potManager.totalPot, "Pot should remain 4 after Flop checks")
+        assertEquals(6.0, state.potManager.totalPot, "Pot should remain 6 after Flop checks")
     }
 }

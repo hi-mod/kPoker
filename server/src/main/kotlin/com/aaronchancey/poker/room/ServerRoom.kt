@@ -93,6 +93,7 @@ class ServerRoom(
         maxPlayers: Int = 9,
         smallBlind: ChipAmount = 1.0,
         bigBlind: ChipAmount = 2.0,
+        ante: ChipAmount = 1.0,
         minBuyIn: ChipAmount = 40.0,
         maxBuyIn: ChipAmount = 200.0,
         variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
@@ -105,6 +106,7 @@ class ServerRoom(
             maxPlayers = maxPlayers,
             smallBlind = smallBlind,
             bigBlind = bigBlind,
+            ante = ante,
             minBuyIn = minBuyIn,
             maxBuyIn = maxBuyIn,
             minDenomination = minDenomination,
@@ -123,9 +125,29 @@ class ServerRoom(
     private fun createGame(): PokerGame {
         val rake = createRakeCalculator()
         return when (config.variant) {
-            GameVariant.OMAHA_PL -> OmahaGame.potLimit(smallBlind, bigBlind, minDenomination, rakeCalculator = rake)
-            GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(smallBlind, bigBlind, minDenomination, rakeCalculator = rake)
-            GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(smallBlind, bigBlind, minDenomination, rakeCalculator = rake)
+            GameVariant.OMAHA_PL -> OmahaGame.potLimit(
+                smallBlind = smallBlind,
+                bigBlind = bigBlind,
+                ante = config.ante,
+                minDenomination = minDenomination,
+                rakeCalculator = rake,
+            )
+
+            GameVariant.OMAHA_HILO_PL -> OmahaGame.potLimitHiLo(
+                smallBlind = smallBlind,
+                bigBlind = bigBlind,
+                ante = config.ante,
+                minDenomination = minDenomination,
+                rakeCalculator = rake,
+            )
+
+            GameVariant.TEXAS_HOLDEM_NL -> TexasHoldemGame.noLimit(
+                smallBlind = smallBlind,
+                bigBlind = bigBlind,
+                ante = config.ante,
+                minDenomination = minDenomination,
+                rakeCalculator = rake,
+            )
         }
     }
 
@@ -360,6 +382,7 @@ class ServerRoom(
         maxPlayers = config.maxPlayers,
         smallBlind = config.smallBlind,
         bigBlind = config.bigBlind,
+        ante = config.ante,
         minBuyIn = config.minBuyIn,
         maxBuyIn = config.maxBuyIn,
         variant = config.variant,

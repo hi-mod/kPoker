@@ -35,12 +35,14 @@ class OmahaGame(
         fun potLimit(
             smallBlind: ChipAmount,
             bigBlind: ChipAmount,
+            ante: ChipAmount = 0.0,
             minDenomination: ChipAmount = 1.0,
             rakeCalculator: RakeCalculator? = null,
         ): OmahaGame = OmahaGame(
             BettingStructure.potLimit(
                 smallBlind,
                 bigBlind,
+                ante = ante,
                 minDenomination = minDenomination,
             ),
             rakeCalculator = rakeCalculator,
@@ -49,12 +51,14 @@ class OmahaGame(
         fun potLimitHiLo(
             smallBlind: ChipAmount,
             bigBlind: ChipAmount,
+            ante: ChipAmount = 0.0,
             minDenomination: ChipAmount = 1.0,
             rakeCalculator: RakeCalculator? = null,
         ): OmahaGame = OmahaGame(
             BettingStructure.potLimit(
                 smallBlind,
                 bigBlind,
+                ante = ante,
                 minDenomination = minDenomination,
             ),
             isHiLo = true,

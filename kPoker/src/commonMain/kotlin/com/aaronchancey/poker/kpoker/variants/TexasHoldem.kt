@@ -24,12 +24,14 @@ class TexasHoldemGame(
         fun noLimit(
             smallBlind: ChipAmount,
             bigBlind: ChipAmount,
+            ante: ChipAmount = 0.0,
             minDenomination: ChipAmount = 1.0,
             rakeCalculator: RakeCalculator? = null,
         ): TexasHoldemGame = TexasHoldemGame(
             BettingStructure.noLimit(
                 smallBlind,
                 bigBlind,
+                ante = ante,
                 minDenomination = minDenomination,
             ),
             rakeCalculator = rakeCalculator,
@@ -38,12 +40,14 @@ class TexasHoldemGame(
         fun potLimit(
             smallBlind: ChipAmount,
             bigBlind: ChipAmount,
+            ante: ChipAmount = 0.0,
             minDenomination: ChipAmount = 1.0,
             rakeCalculator: RakeCalculator? = null,
         ): TexasHoldemGame = TexasHoldemGame(
             BettingStructure.potLimit(
                 smallBlind,
                 bigBlind,
+                ante = ante,
                 minDenomination = minDenomination,
             ),
             rakeCalculator = rakeCalculator,
@@ -52,12 +56,14 @@ class TexasHoldemGame(
         fun fixedLimit(
             smallBlind: ChipAmount,
             bigBlind: ChipAmount,
+            ante: ChipAmount = 0.0,
             minDenomination: ChipAmount = 1.0,
             rakeCalculator: RakeCalculator? = null,
         ): TexasHoldemGame = TexasHoldemGame(
             BettingStructure.fixedLimit(
                 smallBlind,
                 bigBlind,
+                ante = ante,
                 minDenomination = minDenomination,
             ),
             rakeCalculator = rakeCalculator,

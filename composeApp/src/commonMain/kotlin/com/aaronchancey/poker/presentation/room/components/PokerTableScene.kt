@@ -57,7 +57,6 @@ fun PokerTableScene(
 
     val effects = LocalRoomEffects.current
     ObserveAsEvents(effects) { effect ->
-        print(effect)
         if (effect is RoomEffect.DealCards) {
             dealCards = effect.numCards
         }
@@ -129,6 +128,16 @@ fun PokerTableScene(
         )
 
         // Render animating chips OUTSIDE seat loop for proper state isolation
+        // Antes at seats (before animation starts)
+        chipAnimationState.antesAtSeats.forEach { ante ->
+            val (chipX, chipY) = ellipse.positionForSeat(ante.seatNumber, scaleFactor = 0.5f)
+            WagerChips(
+                wager = ante.amount,
+                chipOffsetX = chipX,
+                chipOffsetY = chipY,
+            )
+        }
+
         // Bets → pot animation
         AnimatingChipStacks(
             animatingBets = chipAnimationState.animatingBets,

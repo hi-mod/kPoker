@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
  */
 class BrokePlayerExclusionTest {
 
-    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1.0, bigBlind = 2.0)
+    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 1.0, bigBlind = 2.0, ante = 1.0)
 
     @Test
     fun testBrokePlayerNotDealtCards() {

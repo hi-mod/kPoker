@@ -113,6 +113,7 @@ fun App() = MaterialExpressiveTheme {
 
                         is RoomEffect.AnimateChipsToPot,
                         is RoomEffect.AnimateChipsFromPot,
+                        is RoomEffect.ShowAntesAtSeats,
                         is RoomEffect.DealCards,
                         -> {
                             // Handled locally in ShowPlayers via LocalRoomEffects
@@ -186,7 +187,7 @@ private fun GameScreen(
     onIntent: (RoomIntent) -> Unit,
 ) {
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         uiState.roomInfo?.let { room ->

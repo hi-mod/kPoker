@@ -17,7 +17,7 @@ data class Pot(
 data class PotManager(
     val pots: List<Pot> = emptyList(),
 ) {
-    val totalPot: ChipAmount get() = pots.map { it.amount }.sum()
+    val totalPot: ChipAmount get() = pots.sumOf { it.amount }
     val mainPot: Pot? get() = pots.firstOrNull { it.isMain }
 
     fun collectBets(playerBets: Map<PlayerId, ChipAmount>): PotManager {
@@ -74,6 +74,27 @@ data class PotManager(
     }
 
     fun removePlayer(playerId: PlayerId): PotManager = copy(pots = pots.map { it.removePlayer(playerId) })
+
+    /**
+     * Adds dead money (e.g., antes) directly to the pot without going through collectBets().
+     * Dead money bypasses currentBet/totalBetThisRound tracking.
+     */
+    fun addDeadMoney(amount: ChipAmount, eligiblePlayerIds: Set<PlayerId>): PotManager {
+        if (amount <= 0) return this
+
+        val existingMain = pots.firstOrNull { it.isMain }
+        return if (existingMain != null) {
+            // Add to existing main pot, merging eligible players
+            val updatedMain = existingMain.copy(
+                amount = existingMain.amount + amount,
+                eligiblePlayerIds = existingMain.eligiblePlayerIds + eligiblePlayerIds,
+            )
+            copy(pots = listOf(updatedMain) + pots.drop(1))
+        } else {
+            // Create new main pot
+            copy(pots = listOf(Pot(amount = amount, eligiblePlayerIds = eligiblePlayerIds, isMain = true)))
+        }
+    }
 
     fun reset(): PotManager = PotManager()
 }

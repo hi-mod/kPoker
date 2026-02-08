@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 
 class MidHandJoinTest {
 
-    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 10.0, bigBlind = 20.0)
+    private fun createGame(): TexasHoldemGame = TexasHoldemGame.noLimit(smallBlind = 10.0, bigBlind = 20.0, ante = 1.0)
 
     private fun createTableWithTwoPlayers(): Table {
         var table = Table.create("1", "Test Table", 6)

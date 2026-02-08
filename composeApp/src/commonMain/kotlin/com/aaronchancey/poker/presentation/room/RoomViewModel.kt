@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.aaronchancey.poker.config.AppConfig
 import com.aaronchancey.poker.kpoker.betting.Action
 import com.aaronchancey.poker.kpoker.betting.ActionRequest
+import com.aaronchancey.poker.kpoker.betting.BlindType
 import com.aaronchancey.poker.kpoker.core.Card
 import com.aaronchancey.poker.kpoker.equity.ActionEv
 import com.aaronchancey.poker.kpoker.events.GameEvent
+import com.aaronchancey.poker.kpoker.game.GamePhase
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.network.PokerRepository
@@ -76,6 +78,9 @@ class RoomViewModel(
 
     /** Tracks previous winners for pot-to-player animation detection. */
     private var previousWinners: List<com.aaronchancey.poker.kpoker.game.Winner> = emptyList()
+
+    /** Queued ante events to animate together when posting phase ends. */
+    private val pendingAntes = mutableListOf<AnimatingBet>()
 
     private val localState = MutableStateFlow(LocalUiState())
 
@@ -159,6 +164,7 @@ class RoomViewModel(
                 }
             }
         }
+        observeAntePosting()
     }
 
     /**
@@ -272,6 +278,55 @@ class RoomViewModel(
                 )
                 localState.update { it.copy(actionEv = actionEv) }
             }
+    }
+
+    /**
+     * Observes ante posting events and triggers animation sequence.
+     * Queues ante events during posting phase, then animates when phase transitions.
+     */
+    private fun observeAntePosting() {
+        // Queue ante events as they arrive
+        viewModelScope.launch {
+            repository.gameEvents
+                .filterIsInstance<GameEvent.BlindPosted>()
+                .collect { event ->
+                    if (event.blindType == BlindType.ANTE) {
+                        val gameState = repository.session.value.gameState ?: return@collect
+                        val seatNumber = gameState.table.getPlayerSeat(event.playerId)?.number
+                            ?: return@collect
+                        pendingAntes.add(AnimatingBet(seatNumber, event.amount))
+                    }
+                }
+        }
+
+        // Trigger animation when phase transitions from POSTING_BLINDS to PRE_FLOP
+        viewModelScope.launch {
+            repository.session
+                .map { it.gameState?.phase }
+                .distinctUntilChanged()
+                .collect { phase ->
+                    if (phase == GamePhase.PRE_FLOP && pendingAntes.isNotEmpty()) {
+                        val antesToAnimate = pendingAntes.toList()
+                        pendingAntes.clear()
+
+                        // Show antes at seats
+                        _effects.emit(RoomEffect.ShowAntesAtSeats(antesToAnimate))
+
+                        // Wait 300ms then animate to pot
+                        delay(300)
+                        _effects.emit(RoomEffect.AnimateChipsToPot(antesToAnimate))
+                    }
+                }
+        }
+
+        // Clear pending antes on new hand (safety reset)
+        viewModelScope.launch {
+            repository.gameEvents
+                .filterIsInstance<GameEvent.HandStarted>()
+                .collect {
+                    pendingAntes.clear()
+                }
+        }
     }
 
     /**

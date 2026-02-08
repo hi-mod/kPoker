@@ -3,6 +3,7 @@ package com.aaronchancey.poker.room
 import com.aaronchancey.poker.kpoker.events.GameEvent
 import com.aaronchancey.poker.kpoker.player.ChipAmount
 import com.aaronchancey.poker.persistence.PersistenceManager
+import com.aaronchancey.poker.persistence.RoomStateData
 import com.aaronchancey.poker.shared.message.RoomInfo
 import com.aaronchancey.poker.shared.model.GameVariant
 import com.aaronchancey.poker.ws.ConnectionManager
@@ -103,7 +104,7 @@ class RoomManager(
         }
     }
 
-    private fun constructRoom(data: com.aaronchancey.poker.persistence.RoomStateData): ServerRoom {
+    private fun constructRoom(data: RoomStateData): ServerRoom {
         val room = ServerRoom(
             roomId = data.roomId,
             roomName = data.roomName,
@@ -111,6 +112,7 @@ class RoomManager(
             maxPlayers = data.maxPlayers,
             smallBlind = data.smallBlind,
             bigBlind = data.bigBlind,
+            ante = data.ante,
             minBuyIn = data.minBuyIn,
             maxBuyIn = data.maxBuyIn,
             variant = data.variant,

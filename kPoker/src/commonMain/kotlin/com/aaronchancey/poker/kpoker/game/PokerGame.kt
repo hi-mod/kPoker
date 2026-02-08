@@ -197,6 +197,7 @@ open class PokerGame(
         )
 
         advanceDealer()
+        postAntes()
         postBlinds()
         dealHoleCards()
 
@@ -239,6 +240,47 @@ open class PokerGame(
             }
         }
         state = state.withTable(table)
+    }
+
+    protected open fun postAntes() {
+        val anteAmount = bettingStructure.ante
+        if (anteAmount <= 0) return
+
+        val eligibleSeats = state.table.seatsWithChips
+        if (eligibleSeats.isEmpty()) return
+
+        var totalAntes = 0.0
+        val eligiblePlayerIds = mutableSetOf<PlayerId>()
+
+        for (seat in eligibleSeats) {
+            val playerState = seat.playerState ?: continue
+            val actualAnte = minOf(anteAmount, playerState.chips)
+            if (actualAnte <= 0) continue
+
+            val newChips = playerState.chips - actualAnte
+            val newStatus = if (newChips == 0.0) PlayerStatus.ALL_IN else playerState.status
+
+            state = state.withTable(
+                state.table.updateSeat(seat.number) { s ->
+                    s.updatePlayerState { ps ->
+                        ps.copy(
+                            chips = newChips,
+                            status = newStatus,
+                        )
+                    }
+                },
+            )
+
+            totalAntes += actualAnte
+            eligiblePlayerIds.add(playerState.player.id)
+            emit(GameEvent.BlindPosted(playerState.player.id, actualAnte, BlindType.ANTE))
+        }
+
+        if (totalAntes > 0) {
+            state = state.copy(
+                potManager = state.potManager.addDeadMoney(totalAntes, eligiblePlayerIds),
+            )
+        }
     }
 
     protected open fun postBlinds() {

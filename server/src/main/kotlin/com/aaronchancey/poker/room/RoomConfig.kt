@@ -12,6 +12,7 @@ data class RoomConfig(
     val maxPlayers: Int = 9,
     val smallBlind: ChipAmount = 1.0,
     val bigBlind: ChipAmount = 2.0,
+    val ante: ChipAmount = 1.0,
     val minBuyIn: ChipAmount = 40.0,
     val maxBuyIn: ChipAmount = 200.0,
     val minDenomination: ChipAmount = 0.1,

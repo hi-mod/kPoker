@@ -65,7 +65,7 @@ class WebSocketTest {
                     assertIs<ServerMessage.GameStateUpdate>(receiveDeserialized<ServerMessage>())
 
                     // Take Seat
-                    sendSerialized(ClientMessage.TakeSeat(1, 100) as ClientMessage)
+                    sendSerialized(ClientMessage.TakeSeat(1, 100.0) as ClientMessage)
                     assertIs<ServerMessage.GameStateUpdate>(receiveDeserialized<ServerMessage>())
                 }
 
@@ -77,7 +77,7 @@ class WebSocketTest {
                     assertIs<ServerMessage.GameStateUpdate>(receiveDeserialized<ServerMessage>())
 
                     // Take Seat - this should trigger game start
-                    sendSerialized(ClientMessage.TakeSeat(2, 100) as ClientMessage)
+                    sendSerialized(ClientMessage.TakeSeat(2, 100.0) as ClientMessage)
 
                     // We expect at least one state update (seated)
                     receiveDeserialized<ServerMessage>()
@@ -93,7 +93,7 @@ class WebSocketTest {
                 assertTrue(currentActor != null, "Game should have started and have a current actor")
 
                 // 4. Reconnect the CURRENT ACTOR
-                val targetId = currentActor!!
+                val targetId = currentActor
                 println("Reconnecting target actor: $targetId")
 
                 client.webSocket("/ws/room/$roomId?playerId=$targetId") {

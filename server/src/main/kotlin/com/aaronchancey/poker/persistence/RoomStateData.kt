@@ -13,6 +13,7 @@ data class RoomStateData(
     val maxPlayers: Int,
     val smallBlind: ChipAmount,
     val bigBlind: ChipAmount,
+    val ante: ChipAmount,
     val minBuyIn: ChipAmount,
     val maxBuyIn: ChipAmount,
     val variant: GameVariant = GameVariant.TEXAS_HOLDEM_NL,
