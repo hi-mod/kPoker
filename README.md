@@ -1,107 +1,130 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM), Server.
+# Poker
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+A full-stack, real-time multiplayer poker application built with **Kotlin Multiplatform** and **Compose Multiplatform**. Runs on Android, iOS, Web (Wasm/JS), and Desktop from a single codebase, backed by a Ktor WebSocket server.
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+## Features
 
-* [/server](./server/src/main/kotlin) is for the Ktor server application.
+- **3 Variants** — Texas Hold'em, Omaha, Omaha Hi-Lo (8-or-better)
+- **Betting Structures** — No Limit, Pot Limit, Fixed Limit
+- **Real-time Multiplayer** — WebSocket-based with instant state sync
+- **Rake System** — Configurable percentage and cap, no-flop-no-drop
+- **Antes & Blinds** — Fully configurable per table
+- **Side Pots** — Automatic calculation for all-in scenarios
+- **Sit Out** — Players can sit out and return between hands
+- **Spectator Mode** — Watch games without a seat
+- **Crash Recovery** — Server persists game state to disk
+- **Cross-Platform** — Single Compose UI shared across Android, iOS, Web, and Desktop
 
-* [/shared](./shared/src) is for the code that will be shared between all targets in the project.
-  The most important subfolder is [commonMain](./shared/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
+## Quick Start
 
-### Build and Run Android Application
+### Prerequisites
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+- JDK 21+
+- Android SDK (for Android builds)
+- Xcode (for iOS builds)
 
-### Build and Run Desktop (JVM) Application
+### Run the Server
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
+```bash
+./gradlew :server:run
+```
 
-### Build and Run Server
+The server starts on port 8080 (configurable via `PORT` env var).
 
-To build and run the development version of the server, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :server:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :server:run
-  ```
+### Run a Client
 
-### Build and Run Web Application
+```bash
+# Desktop (JVM)
+./gradlew :composeApp:run
 
-To build and run the development version of the web app, use the run configuration from the run widget
-in your IDE's toolbar or run it directly from the terminal:
-- for the Wasm target (faster, modern browsers):
-  - on macOS/Linux
-    ```shell
-    ./gradlew :composeApp:wasmJsBrowserDevelopmentRun
-    ```
-  - on Windows
-    ```shell
-    .\gradlew.bat :composeApp:wasmJsBrowserDevelopmentRun
-    ```
-- for the JS target (slower, supports older browsers):
-  - on macOS/Linux
-    ```shell
-    ./gradlew :composeApp:jsBrowserDevelopmentRun
-    ```
-  - on Windows
-    ```shell
-    .\gradlew.bat :composeApp:jsBrowserDevelopmentRun
-    ```
+# Web (Wasm — recommended)
+./gradlew :composeApp:wasmJsBrowserDevelopmentRun
 
-### Build and Run iOS Application
+# Web (JS — legacy browser support)
+./gradlew :composeApp:jsBrowserDevelopmentRun
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+# Android APK
+./gradlew :composeApp:assembleDebug
 
----
+# iOS — open iosApp/iosApp.xcodeproj in Xcode
+```
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
-[Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform/#compose-multiplatform),
-[Kotlin/Wasm](https://kotl.in/wasm/)…
+## Architecture
 
-We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
-If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
+Four Gradle modules with strict separation of concerns:
 
+```
+poker/
+├── kPoker/       # Pure Kotlin poker engine (no UI deps)
+├── shared/       # Client ↔ Server message protocol
+├── server/       # Ktor WebSocket server
+└── composeApp/   # Compose Multiplatform UI
+```
 
-To deploy to Cloud Run:
+### kPoker
 
-1 # 1. Build the image
-2 docker build -t gcr.io/kpoker-483701/poker-server .
-3
-4 # 2. Push to Container Registry (or Artifact Registry)
-5 docker push gcr.io/kpoker-483701/poker-server
-6
-7 # 3. Deploy
-8 gcloud run deploy poker-server --image gcr.io/kpoker-483701/poker-server --platform managed --allow-unauthenticated
+The core engine — pure Kotlin Multiplatform with zero UI dependencies. Handles game state, hand evaluation, betting logic, pot management, and variant rules.
+
+- **Immutable state** — `GameState` uses copy-on-write; transitions create new instances
+- **Event-driven** — `GameEvent` emissions for all state changes
+- **Strategy pattern** — `PokerVariant` interface for pluggable game rules
+- **4 hand evaluators** — Standard, Omaha, Lo, and Omaha Hi-Lo
+
+### shared
+
+Defines `ClientMessage` and `ServerMessage` sealed classes — the WebSocket protocol contract between client and server. Serialized with `kotlinx.serialization`.
+
+### server
+
+Ktor server (Netty) managing rooms, player connections, and game lifecycle. Uses `Mutex` for thread-safe room operations and broadcasts state updates via `ConnectionManager`. Persists game state to `/data/rooms/` for crash recovery.
+
+### composeApp
+
+Shared UI layer using Compose Multiplatform with platform-specific entry points. Follows **MVI** (Model-View-Intent) architecture with `ViewModel`, `Intent`, and `UiState` patterns. Connects to the server via Ktor WebSocket client.
+
+**Platform targets:** Android, iOS (arm64 + simulator), Desktop (JVM), Web (Wasm), Web (JS)
+
+## Testing
+
+```bash
+# All tests
+./gradlew test
+
+# Engine tests only
+./gradlew :kPoker:test
+
+# Specific test class
+./gradlew :kPoker:test --tests "com.aaronchancey.poker.kpoker.HandEvaluatorTest"
+```
+
+## Deployment
+
+Docker multi-stage build targeting Google Cloud Run:
+
+```bash
+docker build -t gcr.io/kpoker-483701/poker-server .
+docker push gcr.io/kpoker-483701/poker-server
+gcloud run deploy poker-server \
+  --image gcr.io/kpoker-483701/poker-server \
+  --platform managed \
+  --allow-unauthenticated
+```
+
+The Docker image bundles both the Ktor server JAR and the Wasm/JS frontend static files, served together on port 8080.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Language | Kotlin 2.3 (Multiplatform) |
+| UI | Compose Multiplatform 1.10 |
+| Server | Ktor 3.4 (Netty) |
+| Networking | Ktor WebSockets + kotlinx.serialization |
+| DI | Koin 4.2 |
+| Navigation | Jetpack Navigation3 (Multiplatform) |
+| Build | Gradle (Kotlin DSL) + Shadow plugin |
+| Deploy | Docker → Google Cloud Run |
+
+## License
+
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) — Non-commercial use with attribution and share-alike.
