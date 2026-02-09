@@ -57,13 +57,27 @@ private fun BoxScope.PlayerNameplate(
         .then(if (currentActor?.player?.id == player.player.id) Modifier.border(width = 2.dp, color = Color.Red) else Modifier)
         .padding(4.dp),
 ) {
-    val statusSuffix = if (player.status == PlayerStatus.SITTING_OUT) "\nSITTING OUT" else ""
+    val scale = LocalTableScale.current
+    val isSittingOut = player.status == PlayerStatus.SITTING_OUT
+    val displayName = if (scale.isMobile && player.player.name.length > 8) {
+        player.player.name.take(7) + "…"
+    } else {
+        player.player.name
+    }
+    val statusSuffix = when {
+        !isSittingOut -> ""
+        scale.isMobile -> "" // On mobile, use dimmed opacity instead of text
+        else -> "\nSITTING OUT"
+    }
+    val alpha = if (scale.isMobile && isSittingOut) 0.5f else 1f
     Text(
-        modifier = Modifier.align(Alignment.BottomCenter),
-        text = "${player.player.name}\n${player.chips}$statusSuffix",
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .graphicsLayer { this.alpha = alpha },
+        text = "$displayName\n${player.chips}$statusSuffix",
         textAlign = TextAlign.Center,
-        style = TextStyle(fontSize = 16.sp),
-        color = if (player.status == PlayerStatus.SITTING_OUT) Color.Gray else Color.Black,
+        style = TextStyle(fontSize = scale.nameplateTextSize),
+        color = if (isSittingOut) Color.Gray else Color.Black,
     )
 }
 
@@ -73,10 +87,11 @@ private fun BoxScope.PlayerNameplate(
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun HoleCards(hand: List<DealtCard>) {
+    val scale = LocalTableScale.current
     val windowInfo = LocalWindowInfo.current
     val windowSize = windowInfo.containerSize
-    val cardHeight = remember(windowSize) {
-        minOf(windowSize.width, windowSize.height) * 0.125f
+    val cardHeight = remember(windowSize, scale) {
+        minOf(windowSize.width, windowSize.height) * scale.cardHeightFraction
     }
 
     Box {
@@ -84,8 +99,8 @@ private fun HoleCards(hand: List<DealtCard>) {
             key(index) {
                 DealtCardView(
                     modifier = Modifier
-                        .offset { IntOffset(x = index * 8, y = 0) }
-                        .graphicsLayer { rotationZ = index * 10f }
+                        .offset { IntOffset(x = index * scale.holeCardOffset, y = 0) }
+                        .graphicsLayer { rotationZ = index * scale.holeCardRotation }
                         .requiredHeight(cardHeight.dp),
                     dealtCard = card,
                 )

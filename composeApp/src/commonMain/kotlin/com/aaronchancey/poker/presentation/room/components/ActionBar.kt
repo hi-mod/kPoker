@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.kpoker.equity.ActionEv
 import com.aaronchancey.poker.kpoker.game.GamePhase
@@ -48,27 +50,57 @@ fun ActionBar(
     }
     val isInHand = myPlayerState?.status in listOf(PlayerStatus.ACTIVE, PlayerStatus.ALL_IN)
 
+    val scale = LocalTableScale.current
+
+    if (scale.isMobile) {
+        MobileActionBar(
+            modifier = modifier.heightIn(min = scale.actionBarMinHeight),
+            currentActor = currentActor,
+            isMyTurn = isMyTurn,
+            isInHand = isInHand,
+            myPlayerState = myPlayerState,
+            uiState = uiState,
+            handDescription = handDescription,
+            onIntent = onIntent,
+        )
+    } else {
+        DesktopActionBar(
+            modifier = modifier.heightIn(min = scale.actionBarMinHeight),
+            currentActor = currentActor,
+            isMyTurn = isMyTurn,
+            isInHand = isInHand,
+            myPlayerState = myPlayerState,
+            uiState = uiState,
+            handDescription = handDescription,
+            onIntent = onIntent,
+        )
+    }
+}
+
+/** Desktop layout: single Row with all elements horizontally. */
+@Composable
+private fun DesktopActionBar(
+    modifier: Modifier,
+    currentActor: PlayerState?,
+    isMyTurn: Boolean,
+    isInHand: Boolean,
+    myPlayerState: PlayerState?,
+    uiState: RoomUiState,
+    handDescription: String,
+    onIntent: (RoomIntent) -> Unit,
+) {
     Row(
-        modifier = modifier.heightIn(min = 105.dp),
+        modifier = modifier,
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        when {
-            isMyTurn && currentActor != null -> {
-                PlayerActions(
-                    playerState = currentActor,
-                    uiState = uiState,
-                    onIntent = onIntent,
-                )
-            }
-
-            isInHand && !isMyTurn && canShowPreActions(uiState) -> {
-                PreActionCheckboxes(
-                    selectedPreAction = uiState.selectedPreAction,
-                    onSelectPreAction = { onIntent(RoomIntent.SelectPreAction(it)) },
-                )
-            }
-        }
+        ActionContent(
+            currentActor = currentActor,
+            isMyTurn = isMyTurn,
+            isInHand = isInHand,
+            uiState = uiState,
+            onIntent = onIntent,
+        )
 
         if (myPlayerState != null) {
             Spacer(Modifier.weight(1f))
@@ -76,6 +108,7 @@ fun ActionBar(
                 isSittingOut = myPlayerState.status == PlayerStatus.SITTING_OUT ||
                     myPlayerState.sitOutNextHand,
                 isInHand = isInHand,
+                isMobile = false,
                 onToggle = { onIntent(RoomIntent.ToggleSitOut) },
             )
         }
@@ -95,6 +128,116 @@ fun ActionBar(
 }
 
 /**
+ * Mobile layout: stacks actions on top, info row on bottom.
+ *
+ * ```
+ * ┌──────────────────────────────┐
+ * │  PlayerActions / PreActions  │
+ * │  [SitOut]     HandDesc / EV  │
+ * └──────────────────────────────┘
+ * ```
+ */
+@Composable
+private fun MobileActionBar(
+    modifier: Modifier,
+    currentActor: PlayerState?,
+    isMyTurn: Boolean,
+    isInHand: Boolean,
+    myPlayerState: PlayerState?,
+    uiState: RoomUiState,
+    handDescription: String,
+    onIntent: (RoomIntent) -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Primary row: actions or pre-action checkboxes
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ActionContent(
+                currentActor = currentActor,
+                isMyTurn = isMyTurn,
+                isInHand = isInHand,
+                uiState = uiState,
+                onIntent = onIntent,
+            )
+        }
+
+        // Secondary row: sit-out toggle + hand description
+        val hasInfo = myPlayerState != null ||
+            handDescription.isNotEmpty() ||
+            uiState.actionEv != null
+        if (hasInfo) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (myPlayerState != null) {
+                    SitOutToggle(
+                        isSittingOut = myPlayerState.status == PlayerStatus.SITTING_OUT ||
+                            myPlayerState.sitOutNextHand,
+                        isInHand = isInHand,
+                        isMobile = true,
+                        onToggle = { onIntent(RoomIntent.ToggleSitOut) },
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                if (handDescription.isNotEmpty() || uiState.actionEv != null) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        if (handDescription.isNotEmpty()) {
+                            Text(
+                                text = handDescription,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        uiState.actionEv?.let { ev ->
+                            EvDisplay(
+                                actionEv = ev,
+                                isMobile = true,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Shared action/pre-action content used by both mobile and desktop layouts. */
+@Composable
+private fun ActionContent(
+    currentActor: PlayerState?,
+    isMyTurn: Boolean,
+    isInHand: Boolean,
+    uiState: RoomUiState,
+    onIntent: (RoomIntent) -> Unit,
+) {
+    when {
+        isMyTurn && currentActor != null -> {
+            PlayerActions(
+                playerState = currentActor,
+                uiState = uiState,
+                onIntent = onIntent,
+            )
+        }
+
+        isInHand && !isMyTurn && canShowPreActions(uiState) -> {
+            PreActionCheckboxes(
+                selectedPreAction = uiState.selectedPreAction,
+                onSelectPreAction = { onIntent(RoomIntent.SelectPreAction(it)) },
+            )
+        }
+    }
+}
+
+/**
  * Pre-action checkboxes shown when it's NOT the player's turn.
  * Selecting a checkbox queues an action for auto-submission when the turn arrives.
  */
@@ -103,8 +246,9 @@ private fun PreActionCheckboxes(
     selectedPreAction: PreActionType?,
     onSelectPreAction: (PreActionType?) -> Unit,
 ) {
+    val scale = LocalTableScale.current
     Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(scale.buttonSpacing),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PreActionType.entries.forEach { preAction ->
@@ -115,7 +259,7 @@ private fun PreActionCheckboxes(
                     onSelectPreAction(if (checked) preAction else null)
                 },
             )
-            Text(preAction.label)
+            Text(preAction.label(isMobile = scale.isMobile))
         }
     }
 }
@@ -130,17 +274,21 @@ private fun PreActionCheckboxes(
 private fun SitOutToggle(
     isSittingOut: Boolean,
     isInHand: Boolean,
+    isMobile: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
     val label = when {
+        isMobile -> "Sit Out"
         isInHand -> "Sit Out Next Hand"
         else -> "Sit Out"
     }
-    Checkbox(
-        checked = isSittingOut,
-        onCheckedChange = onToggle,
-    )
-    Text(label)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = isSittingOut,
+            onCheckedChange = onToggle,
+        )
+        Text(label)
+    }
 }
 
 /**
@@ -148,15 +296,30 @@ private fun SitOutToggle(
  * Positive EV is shown in tertiary color, negative in error color.
  */
 @Composable
-private fun EvDisplay(actionEv: ActionEv) {
-    val equityText = "Equity: ${(actionEv.equity * 100).toInt()}%"
+private fun EvDisplay(
+    actionEv: ActionEv,
+    isMobile: Boolean = false,
+) {
+    val equityPct = (actionEv.equity * 100).toInt()
     val callEv = actionEv.callEv
     val checkEv = actionEv.checkEv
-    val evPart = when {
-        callEv != null -> " | Call EV: ${formatEv(callEv)}"
-        checkEv != null -> " | Check EV: ${formatEv(checkEv)}"
-        else -> ""
+
+    val text = if (isMobile) {
+        val evPart = when {
+            callEv != null -> " | C: ${formatEv(callEv)}"
+            checkEv != null -> " | X: ${formatEv(checkEv)}"
+            else -> ""
+        }
+        "Eq: $equityPct%$evPart"
+    } else {
+        val evPart = when {
+            callEv != null -> " | Call EV: ${formatEv(callEv)}"
+            checkEv != null -> " | Check EV: ${formatEv(checkEv)}"
+            else -> ""
+        }
+        "Equity: $equityPct%$evPart"
     }
+
     val evValue = callEv ?: checkEv
     val evColor = when {
         evValue == null -> MaterialTheme.colorScheme.onSurface
@@ -164,9 +327,11 @@ private fun EvDisplay(actionEv: ActionEv) {
         else -> MaterialTheme.colorScheme.error
     }
     Text(
-        text = equityText + evPart,
+        text = text,
         style = MaterialTheme.typography.bodySmall,
         color = evColor,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
     )
 }
 
@@ -181,10 +346,9 @@ private fun formatEv(ev: Double): String {
     return "$sign$rounded"
 }
 
-private val PreActionType.label: String
-    get() = when (this) {
-        PreActionType.CHECK_FOLD -> "Check/Fold"
-        PreActionType.CHECK -> "Check"
-        PreActionType.CALL -> "Call"
-        PreActionType.CALL_ANY -> "Call Any"
-    }
+private fun PreActionType.label(isMobile: Boolean): String = when (this) {
+    PreActionType.CHECK_FOLD -> if (isMobile) "C/F" else "Check/Fold"
+    PreActionType.CHECK -> if (isMobile) "Chk" else "Check"
+    PreActionType.CALL -> "Call"
+    PreActionType.CALL_ANY -> if (isMobile) "Any" else "Call Any"
+}

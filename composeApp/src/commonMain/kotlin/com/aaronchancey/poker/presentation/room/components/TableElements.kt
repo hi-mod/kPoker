@@ -68,11 +68,12 @@ fun LayoutCenteredAt(
 
 @Composable
 fun DrawTable(modifier: Modifier = Modifier) {
+    val scale = LocalTableScale.current
     val pokerTable = painterResource(Res.drawable.pokerTable)
     Image(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(scale.tablePadding),
         painter = pokerTable,
         contentDescription = "Poker Table",
         contentScale = ContentScale.FillBounds,
@@ -84,10 +85,11 @@ fun CommunityCards(
     modifier: Modifier = Modifier,
     communityCards: List<Card>,
 ) = Row(modifier = modifier) {
+    val scale = LocalTableScale.current
     val windowInfo = LocalWindowInfo.current
     val windowSize = windowInfo.containerSize
-    val cardHeight = remember(windowSize) {
-        minOf(windowSize.width, windowSize.height) * 0.125f
+    val cardHeight = remember(windowSize, scale) {
+        minOf(windowSize.width, windowSize.height) * scale.cardHeightFraction
     }
     communityCards.forEach { card ->
         key(card) {

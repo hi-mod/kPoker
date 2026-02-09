@@ -200,6 +200,7 @@ private fun GameScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         RoomControls(
+            isMobile = false,
             uiState = uiState,
             onIntent = onIntent,
         )

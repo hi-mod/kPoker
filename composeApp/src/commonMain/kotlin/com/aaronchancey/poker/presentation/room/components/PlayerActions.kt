@@ -96,9 +96,10 @@ private fun ActionButtons(
         mutableDoubleStateOf(calculateInitialBetAmount(availableActions))
     }
 
+    val scale = LocalTableScale.current
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(scale.buttonSpacing),
     ) {
         availableActions.validActions.forEach { actionType ->
             ActionButton(
@@ -206,15 +207,16 @@ private fun BetAmountInput(
         }
     }
 
+    val scale = LocalTableScale.current
     TextField(
-        modifier = Modifier.widthIn(200.dp, 200.dp),
+        modifier = Modifier.widthIn(max = scale.betInputWidth),
         state = textFieldState,
         label = { Text("Amount") },
         lineLimits = TextFieldLineLimits.SingleLine,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     )
     Slider(
-        modifier = Modifier.sizeIn(minWidth = 200.dp, minHeight = 25.dp, maxWidth = 200.dp, maxHeight = 25.dp),
+        modifier = Modifier.sizeIn(minWidth = scale.betInputWidth, minHeight = 25.dp, maxWidth = scale.betInputWidth, maxHeight = 25.dp),
         state = sliderState,
     )
 }
@@ -225,9 +227,11 @@ internal fun Showdown(
     playerId: PlayerId,
     showdownRequest: ShowdownRequest,
     onIntent: (RoomIntent) -> Unit,
-) = Row(
+) {
+    val scale = LocalTableScale.current
+    Row(
     modifier = modifier,
-    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    horizontalArrangement = Arrangement.spacedBy(scale.buttonSpacing),
 ) {
     showdownRequest.validActions.forEach { actionType ->
         Button(onClick = {
@@ -249,6 +253,7 @@ internal fun Showdown(
             )
         }
     }
+}
 }
 
 private fun ActionType.isVariableAmount(): Boolean = this == ActionType.BET || this == ActionType.RAISE

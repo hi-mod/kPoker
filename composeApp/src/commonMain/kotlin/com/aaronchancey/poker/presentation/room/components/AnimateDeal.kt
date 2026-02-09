@@ -27,10 +27,11 @@ fun AnimateDeal(
     tableCenterY: Dp,
     onAnimatedComplete: () -> Unit = {},
 ) {
+    val scale = LocalTableScale.current
     val windowInfo = LocalWindowInfo.current
     val windowSize = windowInfo.containerSize
-    val cardHeight = remember(windowSize) {
-        minOf(windowSize.width, windowSize.height) * 0.125f
+    val cardHeight = remember(windowSize, scale) {
+        minOf(windowSize.width, windowSize.height) * scale.cardHeightFraction
     }
     val dealProgress = remember { Animatable(0f) }
     var currentCardIndex by remember { mutableIntStateOf(0) }
@@ -57,8 +58,8 @@ fun AnimateDeal(
                     DealCard(
                         modifier = Modifier
                             .graphicsLayer {
-                                translationX = cardIndex * 8f
-                                rotationZ = cardIndex * 10f
+                                translationX = cardIndex * scale.holeCardOffset.toFloat()
+                                rotationZ = cardIndex * scale.holeCardRotation
                             }
                             .requiredHeight(cardHeight.dp),
                         dealtCard = dealtCard,
@@ -80,9 +81,9 @@ fun AnimateDeal(
                 DealCard(
                     modifier = Modifier
                         .graphicsLayer {
-                            rotationZ = progress * 720f + currentCardIndex * 10f * progress
+                            rotationZ = progress * 720f + currentCardIndex * scale.holeCardRotation * progress
                             rotationY = flipRotationY
-                            translationX = currentCardIndex * 8f * progress
+                            translationX = currentCardIndex * scale.holeCardOffset.toFloat() * progress
                             cameraDistance = 12f * density
                         }
                         .requiredHeight(cardHeight.dp),

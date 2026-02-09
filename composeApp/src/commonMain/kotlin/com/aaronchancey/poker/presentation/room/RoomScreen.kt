@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,7 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.aaronchancey.poker.network.ConnectionState
 import com.aaronchancey.poker.presentation.common.ObserveAsEvents
+import com.aaronchancey.poker.presentation.room.components.LocalTableScale
 import com.aaronchancey.poker.presentation.room.components.RoomControls
+import com.aaronchancey.poker.presentation.room.components.TableScale
 import com.aaronchancey.poker.presentation.sound.SoundManager
 import com.aaronchancey.poker.presentation.sound.SoundPlayer
 import kotlinx.coroutines.flow.Flow
@@ -82,10 +85,13 @@ fun RoomScreen(
 
     // Provide effects flow to composition tree for local observation
     CompositionLocalProvider(LocalRoomEffects provides effects) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isMobile = maxWidth < 700.dp || maxHeight < 400.dp
+        val outerPadding = if (isMobile) 4.dp else 16.dp
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(outerPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             when (uiState.connectionState) {
@@ -140,6 +146,7 @@ fun RoomScreen(
                 CircularProgressIndicator()
             }
         }
+        } // BoxWithConstraints
     }
 }
 
@@ -149,22 +156,28 @@ private fun RoomGameScreen(
     uiState: RoomUiState,
     onIntent: (RoomIntent) -> Unit,
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        uiState.roomInfo?.let { room ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Hand No: ${uiState.gameState?.handNumber ?: "N/A"}")
-                Text("Blinds: ${room.smallBlind}/${room.bigBlind}")
+    BoxWithConstraints(modifier = modifier) {
+        val isMobile = maxWidth < 700.dp || maxHeight < 400.dp
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (!isMobile) {
+                uiState.roomInfo?.let { room ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Hand No: ${uiState.gameState?.handNumber ?: "N/A"}")
+                        Text("Blinds: ${room.smallBlind}/${room.bigBlind}")
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
+
+            RoomControls(
+                isMobile = isMobile,
+                uiState = uiState,
+                onIntent = onIntent,
+            )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        RoomControls(
-            uiState = uiState,
-            onIntent = onIntent,
-        )
     }
 }

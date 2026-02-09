@@ -104,6 +104,9 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        val serverHost = findProperty("poker.serverHost")?.toString() ?: "10.0.2.2"
+        buildConfigField("String", "SERVER_HOST", "\"$serverHost\"")
     }
     packaging {
         resources {

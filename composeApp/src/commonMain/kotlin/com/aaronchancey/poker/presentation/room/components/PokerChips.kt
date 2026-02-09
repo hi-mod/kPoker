@@ -53,6 +53,7 @@ fun ChipStacks(
 ) {
     if (wager <= 0) return
 
+    val scale = LocalTableScale.current
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -66,7 +67,7 @@ fun ChipStacks(
                     Box {
                         repeat(count) { chipIndex ->
                             Box(
-                                modifier = Modifier.offset(y = 4.dp * chipIndex),
+                                modifier = Modifier.offset(y = scale.chipStackOffset * chipIndex),
                             ) {
                                 PokerChip(value = chipValue)
                             }
@@ -162,14 +163,16 @@ private fun PokerChip(
     modifier: Modifier = Modifier,
     value: Double = 0.0,
 ) {
+    val scale = LocalTableScale.current
+    val chipSizeValue = scale.chipSize.value
     val gradient = Brush.radialGradient(
         colors = listOf(colors[value] ?: Color.White, Color.DarkGray),
-        radius = 35f,
+        radius = chipSizeValue,
     )
 
     Box(
         modifier = modifier
-            .size(35.dp)
+            .size(scale.chipSize)
             .padding(2.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -195,7 +198,7 @@ private fun PokerChip(
             color = Color.White,
             style = TextStyle(
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
+                fontSize = scale.chipTextSize,
                 shadow = Shadow(
                     color = Color.Black,
                     blurRadius = 1f,

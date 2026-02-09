@@ -7,15 +7,18 @@ actual object AppConfig {
     actual val isProduction: Boolean
         get() = NSBundle.mainBundle.infoDictionary?.get("IS_PRODUCTION") as? Boolean ?: true
 
+    private val serverHost: String
+        get() = (NSBundle.mainBundle.infoDictionary?.get("SERVER_HOST") as? String) ?: "localhost"
+
     actual val baseUrl: String
         get() = if (isProduction) {
             "https://poker-server-824217504292.us-east1.run.app"
         } else {
-            "http://localhost:8080"
+            "http://$serverHost:8080"
         }
 
     actual val wsHost: String
-        get() = if (isProduction) "poker-server-824217504292.us-east1.run.app" else "localhost"
+        get() = if (isProduction) "poker-server-824217504292.us-east1.run.app" else serverHost
 
     actual val wsPort: Int
         get() = if (isProduction) 443 else 8080

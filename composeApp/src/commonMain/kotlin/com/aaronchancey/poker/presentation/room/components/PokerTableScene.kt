@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -67,116 +68,20 @@ fun PokerTableScene(
             .weight(1f)
             .background(color = Color.Green),
     ) {
-        DrawTable()
+        val scale = remember(maxWidth, maxHeight) {
+            if (maxWidth < 700.dp || maxHeight < 400.dp) TableScale.Mobile else TableScale.Desktop
+        }
 
-        // The table image has 16.dp padding and uses FillBounds
-        val tablePadding = 16.dp
-        val imageWidth = maxWidth - tablePadding * 2
-        val imageHeight = maxHeight - tablePadding * 2
-
-        val playerCount = uiState.gameState?.table?.seats?.size ?: 1
-
-        // Rail ellipse proportions from pokerTable.svg (viewBox 1200x700, rail at cx=600 cy=330 rx=560 ry=290)
-        val ellipse = remember(maxWidth, maxHeight, playerCount) {
-            EllipseGeometry(
-                centerX = maxWidth / 2, // Rail is horizontally centered (600/1200 = 0.5)
-                centerY = tablePadding + imageHeight * (330f / 700f), // Rail center is at y=330 in 700-height viewBox
-                radiusX = imageWidth * (560f / 1200f), // Rail rx=560 in 1200-width viewBox
-                radiusY = imageHeight * (290f / 700f), // Rail ry=290 in 700-height viewBox
-                angleStep = 360.0 / playerCount,
+        // Provide scale to all descendant composables
+        CompositionLocalProvider(LocalTableScale provides scale) {
+            TableContent(
+                uiState = uiState,
+                isLoading = isLoading,
+                chipAnimationState = chipAnimationState,
+                dealCards = dealCards,
+                onDealComplete = { dealCards = 0 },
+                onTakeSeat = onTakeSeat,
             )
-        }
-
-        val density = LocalDensity.current
-        var measurements by remember { mutableStateOf<TableCenterMeasurements?>(null) }
-        val tableCenterX = maxWidth / 2 - 8.dp
-        val tableCenterY = maxHeight / 2 - 8.dp
-
-        // Community cards and pot display
-        LayoutCenteredAt(x = tableCenterX, y = maxHeight / 2) {
-            val animatingTotal = chipAnimationState.animatingWinnings.sumOf { it.amount }
-            val displayedPot = (uiState.gameState?.totalPot ?: 0.0) - animatingTotal - chipAnimationState.completedWinningsTotal
-
-            TableCenter(
-                communityCards = uiState.gameState?.communityCards ?: emptyList(),
-                displayedPot = displayedPot,
-                rake = uiState.gameState?.rake ?: 0.0,
-                onMeasured = { newMeasurements ->
-                    // Only update state if values changed to prevent recomposition loop
-                    if (measurements != newMeasurements) {
-                        measurements = newMeasurements
-                    }
-                },
-            )
-        }
-
-        // Calculate pot center for animations
-        val potCenterY = measurements?.let { m ->
-            with(density) {
-                maxHeight / 2 + (m.chipOffsetInColumn + m.chipHeight / 2 - m.columnHeight / 2).toDp()
-            }
-        } ?: (maxHeight / 2)
-        val potCenter = tableCenterX to potCenterY
-
-        AnimateDeal(
-            occupiedSeats = uiState.gameState?.table?.occupiedSeats ?: emptyList(),
-            ellipse = ellipse,
-            dealCards = dealCards,
-            tableCenterX = tableCenterX,
-            tableCenterY = tableCenterY,
-            onAnimatedComplete = { dealCards = 0 },
-        )
-
-        // Render animating chips OUTSIDE seat loop for proper state isolation
-        // Antes at seats (before animation starts)
-        chipAnimationState.antesAtSeats.forEach { ante ->
-            val (chipX, chipY) = ellipse.positionForSeat(ante.seatNumber, scaleFactor = 0.5f)
-            WagerChips(
-                wager = ante.amount,
-                chipOffsetX = chipX,
-                chipOffsetY = chipY,
-            )
-        }
-
-        // Bets → pot animation
-        AnimatingChipStacks(
-            animatingBets = chipAnimationState.animatingBets,
-            getSeatPosition = { seatNumber -> ellipse.positionForSeat(seatNumber, scaleFactor = 0.5f) },
-            potCenter = potCenter,
-            onAnimationComplete = { seatNumber -> chipAnimationState.onBetAnimationComplete(seatNumber) },
-        )
-
-        // Pot → winners animation
-        AnimatingChipStacks(
-            animatingBets = chipAnimationState.animatingWinnings,
-            getSeatPosition = { seatNumber -> ellipse.positionForSeat(seatNumber, scaleFactor = 0.5f) },
-            potCenter = potCenter,
-            onAnimationComplete = { seatNumber -> chipAnimationState.onWinningsAnimationComplete(seatNumber) },
-            fromPot = true,
-        )
-
-        val dealerPosAnim = remember { Animatable((uiState.gameState?.dealerSeatNumber ?: 1).toFloat()) }
-        LaunchedEffect(uiState.gameState?.dealerSeatNumber) {
-            val targetSeat = uiState.gameState?.dealerSeatNumber ?: return@LaunchedEffect
-            val current = dealerPosAnim.value
-            val forwardDist = (targetSeat - current.toInt() + 9) % 9
-            if (forwardDist > 0) {
-                dealerPosAnim.animateTo(current + forwardDist)
-            }
-        }
-
-        if (dealCards <= 0) {
-            uiState.gameState?.let { gameState ->
-                val isLocalPlayerSeated = uiState.playerId?.let { gameState.table.getPlayerSeat(it) } != null
-
-                ShowPlayers(
-                    gameState = gameState,
-                    ellipse = ellipse,
-                    isLoading = isLoading,
-                    isLocalPlayerSeated = isLocalPlayerSeated,
-                    onTakeSeat = onTakeSeat,
-                )
-            }
         }
     }
 
@@ -186,6 +91,126 @@ fun PokerTableScene(
         handDescription = uiState.handDescription,
         onIntent = onIntent,
     )
+}
+
+@Composable
+private fun BoxWithConstraintsScope.TableContent(
+    uiState: RoomUiState,
+    isLoading: Boolean,
+    chipAnimationState: ChipAnimationState,
+    dealCards: Int,
+    onDealComplete: () -> Unit,
+    onTakeSeat: (Int) -> Unit,
+) {
+    val scale = LocalTableScale.current
+    DrawTable()
+
+    val tablePadding = scale.tablePadding
+    val imageWidth = maxWidth - tablePadding * 2
+    val imageHeight = maxHeight - tablePadding * 2
+
+    val playerCount = uiState.gameState?.table?.seats?.size ?: 1
+
+    // Rail ellipse proportions from pokerTable.svg (viewBox 1200x700, rail at cx=600 cy=330 rx=560 ry=290)
+    val ellipse = remember(maxWidth, maxHeight, playerCount) {
+        EllipseGeometry(
+            centerX = maxWidth / 2,
+            centerY = tablePadding + imageHeight * (330f / 700f),
+            radiusX = imageWidth * (560f / 1200f),
+            radiusY = imageHeight * (290f / 700f),
+            angleStep = 360.0 / playerCount,
+        )
+    }
+
+    val density = LocalDensity.current
+    var measurements by remember { mutableStateOf<TableCenterMeasurements?>(null) }
+    val tableCenterX = maxWidth / 2 - 8.dp
+    val tableCenterY = maxHeight / 2 - 8.dp
+
+    // Community cards and pot display
+    LayoutCenteredAt(x = tableCenterX, y = maxHeight / 2) {
+        val animatingTotal = chipAnimationState.animatingWinnings.sumOf { it.amount }
+        val displayedPot = (uiState.gameState?.totalPot ?: 0.0) - animatingTotal - chipAnimationState.completedWinningsTotal
+
+        TableCenter(
+            communityCards = uiState.gameState?.communityCards ?: emptyList(),
+            displayedPot = displayedPot,
+            rake = uiState.gameState?.rake ?: 0.0,
+            onMeasured = { newMeasurements ->
+                if (measurements != newMeasurements) {
+                    measurements = newMeasurements
+                }
+            },
+        )
+    }
+
+    // Calculate pot center for animations
+    val potCenterY = measurements?.let { m ->
+        with(density) {
+            maxHeight / 2 + (m.chipOffsetInColumn + m.chipHeight / 2 - m.columnHeight / 2).toDp()
+        }
+    } ?: (maxHeight / 2)
+    val potCenter = tableCenterX to potCenterY
+
+    AnimateDeal(
+        occupiedSeats = uiState.gameState?.table?.occupiedSeats ?: emptyList(),
+        ellipse = ellipse,
+        dealCards = dealCards,
+        tableCenterX = tableCenterX,
+        tableCenterY = tableCenterY,
+        onAnimatedComplete = onDealComplete,
+    )
+
+    // Antes at seats (before animation starts)
+    chipAnimationState.antesAtSeats.forEach { ante ->
+        val (chipX, chipY) = ellipse.positionForSeat(ante.seatNumber, scaleFactor = 0.5f)
+        WagerChips(
+            wager = ante.amount,
+            chipOffsetX = chipX,
+            chipOffsetY = chipY,
+        )
+    }
+
+    // Bets → pot animation
+    AnimatingChipStacks(
+        animatingBets = chipAnimationState.animatingBets,
+        getSeatPosition = { seatNumber -> ellipse.positionForSeat(seatNumber, scaleFactor = 0.5f) },
+        potCenter = potCenter,
+        onAnimationComplete = { seatNumber -> chipAnimationState.onBetAnimationComplete(seatNumber) },
+    )
+
+    // Pot → winners animation
+    AnimatingChipStacks(
+        animatingBets = chipAnimationState.animatingWinnings,
+        getSeatPosition = { seatNumber -> ellipse.positionForSeat(seatNumber, scaleFactor = 0.5f) },
+        potCenter = potCenter,
+        onAnimationComplete = { seatNumber -> chipAnimationState.onWinningsAnimationComplete(seatNumber) },
+        fromPot = true,
+    )
+
+    val dealerPosAnim = remember { Animatable((uiState.gameState?.dealerSeatNumber ?: 1).toFloat()) }
+    LaunchedEffect(uiState.gameState?.dealerSeatNumber) {
+        val targetSeat = uiState.gameState?.dealerSeatNumber ?: return@LaunchedEffect
+        val current = dealerPosAnim.value
+        val forwardDist = (targetSeat - current.toInt() + 9) % 9
+        if (forwardDist > 0) {
+            dealerPosAnim.animateTo(current + forwardDist)
+        }
+    }
+
+    if (dealCards <= 0) {
+        uiState.gameState?.let { gameState ->
+            val isLocalPlayerSeated = uiState.playerId?.let { gameState.table.getPlayerSeat(it) } != null
+
+            ShowPlayers(
+                gameState = gameState,
+                ellipse = ellipse,
+                isLoading = isLoading,
+                isLocalPlayerSeated = isLocalPlayerSeated,
+                onTakeSeat = onTakeSeat,
+            )
+        }
+    }
 }
 
 @Composable

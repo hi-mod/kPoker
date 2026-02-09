@@ -12,11 +12,11 @@ actual object AppConfig {
         get() = if (isProduction) {
             "${window.location.protocol}//${window.location.host}"
         } else {
-            "http://localhost:8080"
+            "http://${window.location.hostname}:8080"
         }
 
     actual val wsHost: String
-        get() = if (isProduction) window.location.hostname else "localhost"
+        get() = window.location.hostname
 
     actual val wsPort: Int
         get() = if (isProduction) {

@@ -21,3 +21,5 @@ node_modules/
 # Generated Wasm files copied for deployment
 server/src/main/resources/static/
 **/data/
+/.claude/
+/.claude-flow/
